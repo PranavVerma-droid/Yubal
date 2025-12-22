@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 import subprocess
+import sys
 import os
 
 
@@ -17,8 +18,6 @@ class TagResult:
     artist_name: Optional[str] = None
     track_count: int = 0
     error: Optional[str] = None
-    stdout: str = ""
-    stderr: str = ""
 
 
 class Tagger:
@@ -28,6 +27,11 @@ class Tagger:
         self.beets_config = beets_config
         self.library_dir = library_dir
         self.beets_db = beets_db
+
+    def _get_beet_command(self) -> list[str]:
+        """Get the command to run beets using the current Python."""
+        # Use python -m to avoid shebang issues with venv scripts
+        return [sys.executable, "-m", "beets"]
 
     def tag_album(self, source_dir: Path) -> TagResult:
         """
@@ -59,8 +63,6 @@ class Tagger:
                     success=False,
                     source_dir=source_dir,
                     error=f"Beets import failed: {result.stderr}",
-                    stdout=result.stdout,
-                    stderr=result.stderr,
                 )
 
             # Find where the album was imported
@@ -72,8 +74,6 @@ class Tagger:
                 source_dir=source_dir,
                 dest_dir=dest_dir,
                 track_count=track_count,
-                stdout=result.stdout,
-                stderr=result.stderr,
             )
 
         except subprocess.TimeoutExpired:
@@ -82,11 +82,11 @@ class Tagger:
                 source_dir=source_dir,
                 error="Beets import timed out after 5 minutes",
             )
-        except FileNotFoundError:
+        except FileNotFoundError as e:
             return TagResult(
                 success=False,
                 source_dir=source_dir,
-                error="Beets command not found. Please install beets: pip install beets",
+                error=f"Beets module not found. Error: {e}",
             )
         except Exception as e:
             return TagResult(
@@ -102,26 +102,48 @@ class Tagger:
         Uses quiet mode (-q) for non-interactive import.
         Uses move mode to relocate files to library.
         """
-        # Set BEETSDIR to use our config
+        # Ensure library directory exists (beets prompts otherwise)
+        self.library_dir.mkdir(parents=True, exist_ok=True)
+        self.beets_db.parent.mkdir(parents=True, exist_ok=True)
+
+        # Set BEETSDIR to use our config directory
         env = os.environ.copy()
         env["BEETSDIR"] = str(self.beets_config.parent)
 
-        cmd = [
-            "beet",
+        cmd = self._get_beet_command() + [
             "--config",
             str(self.beets_config),
             "import",
-            "-q",  # Quiet mode - no prompts
             str(source_dir),
         ]
 
-        return subprocess.run(
+        print(f"Running beets: {' '.join(cmd)}")
+
+        # Use Popen to stream output in real-time
+        process = subprocess.Popen(
             cmd,
-            capture_output=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,  # Combine stderr into stdout
             text=True,
-            timeout=300,  # 5 minute timeout
             env=env,
-            cwd=str(self.beets_config.parent.parent),  # Project root
+            cwd=str(self.beets_config.parent.parent),
+        )
+
+        stdout_lines = []
+        for line in process.stdout:
+            line = line.rstrip()
+            print(f"  [beets] {line}")
+            stdout_lines.append(line)
+
+        process.wait(timeout=300)
+        print(f"Beets returncode: {process.returncode}")
+
+        # Return a CompletedProcess-like result for compatibility
+        return subprocess.CompletedProcess(
+            args=cmd,
+            returncode=process.returncode,
+            stdout="\n".join(stdout_lines),
+            stderr="",
         )
 
     def _find_audio_files(self, directory: Path) -> list[Path]:

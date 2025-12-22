@@ -1,7 +1,6 @@
 """Services module."""
 from .downloader import Downloader, AlbumInfo, DownloadResult
 from .tagger import Tagger, TagResult
-from .pipeline import Pipeline, ProcessResult
 
 __all__ = [
     "Downloader",
@@ -9,6 +8,4 @@ __all__ = [
     "DownloadResult",
     "Tagger",
     "TagResult",
-    "Pipeline",
-    "ProcessResult",
 ]

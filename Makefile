@@ -1,10 +1,7 @@
-.PHONY: dev css watch
+.PHONY: install test
 
-dev: css
-	uv run python run.py
+install:
+	uv sync
 
-css:
-	./tailwindcss -i styles.css -o ./app/static/css/output.css --minify
-
-watch:
-	./tailwindcss -i styles.css -o ./app/static/css/output.css --watch
+test:
+	uv run ytad --help

@@ -145,10 +145,18 @@ class Downloader:
         album_info: Optional[AlbumInfo] = None
 
         def progress_hook(d):
-            if d["status"] == "finished":
+            if d["status"] == "downloading":
+                # Print download progress
+                percent = d.get("_percent_str", "").strip()
+                speed = d.get("_speed_str", "").strip()
+                if percent:
+                    print(f"\r  Downloading: {percent} at {speed}", end="", flush=True)
+            elif d["status"] == "finished":
+                print()  # New line after progress
                 filename = d.get("info_dict", {}).get("filepath") or d.get("filename")
                 if filename:
                     downloaded_files.append(Path(filename))
+                    print(f"  Completed: {Path(filename).name}")
 
         ydl_opts = self._get_ydl_opts(output_dir, progress_hook)
 
@@ -237,6 +245,12 @@ class Downloader:
         return {
             "format": "bestaudio/best",
             "outtmpl": str(output_dir / "%(playlist_index|0)02d - %(title)s.%(ext)s"),
+            # Override track number with playlist index
+            # Syntax: "SOURCE_FIELD:%(DEST_FIELD)s"
+            "parse_metadata": [
+                "playlist_index:%(track_number)s",
+                "playlist:%(album)s",
+            ],
             "postprocessors": [
                 {
                     "key": "FFmpegExtractAudio",

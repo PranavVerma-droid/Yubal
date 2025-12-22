@@ -1,54 +1,76 @@
 # Beets configuration for ytad
-# Auto-tagging and organization settings
+# Based on Tidarr's config for non-interactive imports
 
-# Library paths (relative to project root)
-directory: data/library
-library: data/beets.db
+# Library paths
+directory: /Users/guille/repos/ytad/data/library
+library: /Users/guille/repos/ytad/data/beets.db
 
-# Import settings
-import:
-    move: yes                    # Move files instead of copy
-    write: yes                   # Write tags to files
-    copy: no
-    autotag: yes
-    quiet_fallback: skip         # Skip if no confident match in quiet mode
-    timid: no                    # Don't ask for confirmation
-    log: data/beets_import.log
+# Plugins
+plugins: embedart fetchart fromfilename spotify
+
+# General settings
+threaded: yes
+asciify_paths: true
+
+ui:
+  color: no
 
 # Path format for organized files
 paths:
-    default: $albumartist/$album%aunique{}/$track - $title
-    singleton: Non-Album/$artist - $title
-    comp: Compilations/$album%aunique{}/$track - $title
+  default: "%asciify{$albumartist}/$original_year - %asciify{$album}%aunique{}/$track - %asciify{$title}"
+  singleton: Non-Album/%asciify{$artist} - %asciify{$title}
+  comp: Compilations/%asciify{$album}%aunique{}/$track - %asciify{$title}
 
-# Matching settings
+# Import settings
+import:
+  write: yes
+  copy: no
+  move: yes
+  resume: no
+  incremental: no
+  quiet: yes
+  quiet_fallback: asis
+  timid: no
+  duplicate_action: merge
+  log: /Users/guille/repos/ytad/data/beets_import.log
+  languages: ["en"]
+  group_albums: no
+
+# Matching settings - relaxed for YouTube rips
 match:
-    strong_rec_thresh: 0.04      # 96% similarity = strong recommendation
-    preferred:
-        countries: ['US', 'GB', 'XW']  # XW = worldwide
-        media: ['Digital Media']
+  strong_rec_thresh: 0.10
+  medium_rec_thresh: 0.25
+  rec_gap_thresh: 0.25
+  max_rec:
+    missing_tracks: medium
+    unmatched_tracks: medium
+    track_length: medium
+    track_index: medium
+  ignored: ["missing_tracks", "track_length", "unmatched_tracks", "track_index"]
+  ignore_data_tracks: yes
+  ignore_video_tracks: yes
+  track_length_grace: 10
+  track_length_max: 30
 
 # MusicBrainz settings
 musicbrainz:
-    host: musicbrainz.org
-    https: yes
-    ratelimit: 1
-    ratelimit_interval: 1.0
-    extra_tags: [year, label, catalognum, country, media]
-    genres: yes
-
-# Plugins
-plugins: fetchart embedart
+  host: musicbrainz.org
+  https: yes
+  ratelimit: 1
+  ratelimit_interval: 1.0
 
 # Fetch album art
 fetchart:
-    auto: yes
-    sources: filesystem coverart itunes amazon albumart
-    store_source: no
+  auto: yes
+  sources: filesystem coverart itunes amazon albumart
 
-# Embed album art in files
+# Embed album art - disabled for speed
 embedart:
-    auto: yes
-    ifempty: no
-    maxwidth: 1000
-    remove_art_file: no
+  auto: no
+
+# Spotify metadata source (get credentials from https://developer.spotify.com/dashboard)
+spotify:
+  data_source_mismatch_penalty: 0.0  # Prefer Spotify matches
+  search_limit: 10
+  client_id: fde699cf3cef46a796cdf80b0c714701
+  client_secret: a07797d4a0894aab939a26545f38dc56
