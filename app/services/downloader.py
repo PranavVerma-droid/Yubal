@@ -3,6 +3,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
 import yt_dlp
+from yt_dlp.postprocessor.metadataparser import MetadataParserPP
 
 
 @dataclass
@@ -246,17 +247,19 @@ class Downloader:
             "format": "bestaudio/best",
             "remote_components": ["ejs:github"],
             "outtmpl": str(output_dir / "%(playlist_index|0)02d - %(title)s.%(ext)s"),
-            # Override track number with playlist index
-            # Syntax: "SOURCE_FIELD:%(DEST_FIELD)s"
-            "parse_metadata": [
-                "playlist_index:%(track_number)s",
-                "playlist:%(album)s",
-            ],
             "postprocessors": [
                 {
                     "key": "FFmpegExtractAudio",
                     "preferredcodec": self.audio_format,
                     "preferredquality": self.audio_quality,
+                },
+                # Set track number from playlist index
+                {
+                    "key": "MetadataParser",
+                    "when": "pre_process",
+                    "actions": [
+                        (MetadataParserPP.Actions.INTERPRET, "playlist_index", "%(meta_track)s"),
+                    ],
                 },
                 {
                     "key": "FFmpegMetadata",
