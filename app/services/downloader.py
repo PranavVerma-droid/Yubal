@@ -17,13 +17,13 @@ from app.core import (
     TrackInfo,
 )
 
+# Shared yt-dlp instance for template evaluation
+_ydl = yt_dlp.YoutubeDL({"quiet": True})
 
-def _get_first_valid(*values: Any, default: str = "Unknown") -> str:
-    """Return first non-None, non-empty string value, or default."""
-    for v in values:
-        if v is not None and str(v).strip():
-            return str(v)
-    return default
+
+def _eval(template: str, info: dict[str, Any]) -> str:
+    """Evaluate yt-dlp template with fallback support."""
+    return _ydl.evaluate_outtmpl(template, info)
 
 
 class Downloader:
@@ -202,38 +202,38 @@ class Downloader:
                 if entry:
                     tracks.append(
                         TrackInfo(
-                            title=_get_first_valid(entry.get("title"), default=f"Track {i}"),
-                            artist=_get_first_valid(entry.get("artist"), entry.get("uploader")),
+                            title=_eval(f"%(title|Track {i})s", entry),
+                            artist=_eval("%(artist,uploader|Unknown)s", entry),
                             track_number=i,
                             duration=entry.get("duration") or 0,
                         )
                     )
 
             return AlbumInfo(
-                title=_get_first_valid(info.get("title"), default="Unknown Album"),
-                artist=_get_first_valid(info.get("uploader"), info.get("channel")),
+                title=_eval("%(title|Unknown Album)s", info),
+                artist=_eval("%(uploader,channel|Unknown)s", info),
                 year=self._extract_year(info),
                 track_count=len(tracks),
                 tracks=tracks,
-                playlist_id=info.get("id") or "",
+                playlist_id=_eval("%(id|)s", info),
                 url=url,
             )
 
         # Single track
         return AlbumInfo(
-            title=_get_first_valid(info.get("album"), info.get("title")),
-            artist=_get_first_valid(info.get("artist"), info.get("uploader")),
+            title=_eval("%(album,title|Unknown)s", info),
+            artist=_eval("%(artist,uploader|Unknown)s", info),
             year=self._extract_year(info),
             track_count=1,
             tracks=[
                 TrackInfo(
-                    title=_get_first_valid(info.get("title")),
-                    artist=_get_first_valid(info.get("artist")),
+                    title=_eval("%(title|Unknown)s", info),
+                    artist=_eval("%(artist|Unknown)s", info),
                     track_number=1,
                     duration=info.get("duration") or 0,
                 )
             ],
-            playlist_id=info.get("id") or "",
+            playlist_id=_eval("%(id|)s", info),
             url=url,
         )
 
