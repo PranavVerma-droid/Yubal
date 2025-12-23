@@ -1,9 +1,8 @@
 """CLI utilities."""
+
 from pathlib import Path
 
 import typer
-
-from app.config import DEFAULT_BEETS_CONFIG, DEFAULT_LIBRARY_DIR
 
 
 def echo_error(message: str) -> None:
@@ -37,6 +36,7 @@ def validate_beets_config(beets_config: Path) -> None:
 def create_tagger(library_dir: Path, beets_config: Path):
     """Create a Tagger instance with standard configuration."""
     from app.services.tagger import Tagger
+
     return Tagger(
         beets_config=beets_config,
         library_dir=library_dir,

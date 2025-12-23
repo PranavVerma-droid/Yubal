@@ -1,11 +1,11 @@
 """Music tagging and organization using beets CLI."""
+
 import json
 import os
 import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
 
 from app.constants import AUDIO_EXTENSIONS
 
@@ -16,11 +16,11 @@ class TagResult:
 
     success: bool
     source_dir: Path
-    dest_dir: Optional[Path] = None
-    album_name: Optional[str] = None
-    artist_name: Optional[str] = None
+    dest_dir: Path | None = None
+    album_name: str | None = None
+    artist_name: str | None = None
     track_count: int = 0
-    error: Optional[str] = None
+    error: str | None = None
 
 
 @dataclass
@@ -112,10 +112,12 @@ class Tagger:
             return TagResult(
                 success=False,
                 source_dir=source_dir,
-                error=f"Unexpected error during tagging: {str(e)}",
+                error=f"Unexpected error during tagging: {e!s}",
             )
 
-    def _run_beets_import(self, source_dir: Path, copy: bool = False) -> subprocess.CompletedProcess[str]:
+    def _run_beets_import(
+        self, source_dir: Path, copy: bool = False
+    ) -> subprocess.CompletedProcess[str]:
         """
         Execute beets import command.
 
@@ -176,15 +178,24 @@ class Tagger:
     def _find_audio_files(self, directory: Path) -> list[Path]:
         """Find all audio files in a directory."""
         return [
-            f for f in directory.iterdir()
+            f
+            for f in directory.iterdir()
             if f.is_file() and f.suffix.lower() in AUDIO_EXTENSIONS
         ]
 
-    def _get_album_metadata(self, audio_file: Path) -> tuple[Optional[str], Optional[str]]:
+    def _get_album_metadata(self, audio_file: Path) -> tuple[str | None, str | None]:
         """Extract album and artist from an audio file using ffprobe."""
         try:
             result = subprocess.run(
-                ["ffprobe", "-v", "quiet", "-print_format", "json", "-show_format", str(audio_file)],
+                [
+                    "ffprobe",
+                    "-v",
+                    "quiet",
+                    "-print_format",
+                    "json",
+                    "-show_format",
+                    str(audio_file),
+                ],
                 capture_output=True,
                 text=True,
                 check=True,
@@ -196,21 +207,28 @@ class Tagger:
             print(f"  [warning] Failed to read metadata from {audio_file.name}: {e}")
             return None, None
 
-    def _album_exists_in_library(self, album: str, artist: str) -> Optional[Path]:
+    def _album_exists_in_library(self, album: str, artist: str) -> Path | None:
         """Check if an album already exists in the beets library."""
         if not album:
             return None
 
         # Query beets for the album
         cmd = self._get_beet_command() + [
-            "--config", str(self.beets_config),
-            "ls", "-a", "-p",  # -a for albums, -p for path
+            "--config",
+            str(self.beets_config),
+            "ls",
+            "-a",
+            "-p",  # -a for albums, -p for path
             f"album:{album}",
         ]
 
         try:
             result = subprocess.run(
-                cmd, capture_output=True, text=True, env=self._get_beets_env(), timeout=30
+                cmd,
+                capture_output=True,
+                text=True,
+                env=self._get_beets_env(),
+                timeout=30,
             )
             if result.returncode == 0 and result.stdout.strip():
                 # Return the first matching album path
@@ -222,7 +240,7 @@ class Tagger:
 
         return None
 
-    def _find_imported_album(self, source_dir: Path) -> Optional[Path]:
+    def _find_imported_album(self, source_dir: Path) -> Path | None:
         """
         Find where beets moved the album in the library.
 
@@ -318,13 +336,19 @@ class Tagger:
             return 0
 
         cmd = self._get_beet_command() + [
-            "--config", str(self.beets_config),
-            "ls", "-a",  # List albums only
+            "--config",
+            str(self.beets_config),
+            "ls",
+            "-a",  # List albums only
         ]
 
         try:
             result = subprocess.run(
-                cmd, capture_output=True, text=True, env=self._get_beets_env(), timeout=30
+                cmd,
+                capture_output=True,
+                text=True,
+                env=self._get_beets_env(),
+                timeout=30,
             )
             if result.returncode == 0 and result.stdout.strip():
                 return len(result.stdout.strip().split("\n"))
@@ -352,11 +376,12 @@ class Tagger:
 
         # Run beets import with --noautotag to just register files
         cmd = self._get_beet_command() + [
-            "--config", str(self.beets_config),
+            "--config",
+            str(self.beets_config),
             "import",
-            "-q",           # Quiet mode - non-interactive
+            "-q",  # Quiet mode - non-interactive
             "--noautotag",  # Don't fetch metadata, trust existing tags
-            "--nowrite",    # Don't modify files
+            "--nowrite",  # Don't modify files
             str(self.library_dir),
         ]
 
@@ -387,4 +412,4 @@ class Tagger:
         except subprocess.TimeoutExpired:
             return False, "Rebuild timed out after 10 minutes"
         except Exception as e:
-            return False, f"Rebuild failed: {str(e)}"
+            return False, f"Rebuild failed: {e!s}"

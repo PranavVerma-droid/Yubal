@@ -1,4 +1,5 @@
 """Version command."""
+
 import typer
 
 

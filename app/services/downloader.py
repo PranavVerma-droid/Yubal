@@ -1,7 +1,9 @@
 """YouTube Music downloader using yt-dlp Python API."""
+
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import Any
 
 import yt_dlp
 from yt_dlp.postprocessor.metadataparser import MetadataParserPP
@@ -17,7 +19,7 @@ class TrackInfo:
     artist: str
     track_number: int
     duration: int  # seconds
-    filename: Optional[str] = None
+    filename: str | None = None
 
 
 @dataclass
@@ -26,7 +28,7 @@ class AlbumInfo:
 
     title: str
     artist: str
-    year: Optional[int]
+    year: int | None
     track_count: int
     tracks: list[TrackInfo] = field(default_factory=list)
     playlist_id: str = ""
@@ -38,10 +40,10 @@ class DownloadResult:
     """Result of a download operation."""
 
     success: bool
-    album_info: Optional[AlbumInfo]
+    album_info: AlbumInfo | None
     output_dir: Path
     downloaded_files: list[Path] = field(default_factory=list)
-    error: Optional[str] = None
+    error: str | None = None
 
 
 class Downloader:
@@ -77,7 +79,7 @@ class Downloader:
                 raise ValueError("Could not extract info from URL")
             return self._parse_album_info(info, url)
 
-    def _extract_year(self, info: dict[str, Any]) -> Optional[int]:
+    def _extract_year(self, info: dict[str, Any]) -> int | None:
         """Extract year from upload_date or release_year."""
         if info.get("release_year"):
             return info["release_year"]
@@ -89,8 +91,11 @@ class Downloader:
                 pass
         return None
 
-    def _create_progress_hook(self, downloaded_files: list[Path]) -> Callable[[dict[str, Any]], None]:
+    def _create_progress_hook(
+        self, downloaded_files: list[Path]
+    ) -> Callable[[dict[str, Any]], None]:
         """Create a progress hook that tracks downloaded files."""
+
         def hook(d: dict[str, Any]) -> None:
             if d["status"] == "downloading":
                 percent = d.get("_percent_str", "").strip()
@@ -103,6 +108,7 @@ class Downloader:
                 if filename:
                     downloaded_files.append(Path(filename))
                     print(f"  Completed: {Path(filename).name}")
+
         return hook
 
     def download_album(self, url: str, output_dir: Path) -> DownloadResult:
@@ -119,9 +125,11 @@ class Downloader:
         output_dir.mkdir(parents=True, exist_ok=True)
 
         downloaded_files: list[Path] = []
-        album_info: Optional[AlbumInfo] = None
+        album_info: AlbumInfo | None = None
 
-        ydl_opts = self._get_ydl_opts(output_dir, self._create_progress_hook(downloaded_files))
+        ydl_opts = self._get_ydl_opts(
+            output_dir, self._create_progress_hook(downloaded_files)
+        )
 
         try:
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -130,7 +138,8 @@ class Downloader:
 
             # Find all audio files in output directory
             all_files = [
-                f for f in output_dir.iterdir()
+                f
+                for f in output_dir.iterdir()
                 if f.is_file() and f.suffix.lower() in AUDIO_EXTENSIONS
             ]
 
@@ -155,7 +164,7 @@ class Downloader:
                 album_info=album_info,
                 output_dir=output_dir,
                 downloaded_files=[],
-                error=f"Unexpected error: {str(e)}",
+                error=f"Unexpected error: {e!s}",
             )
 
     def _parse_album_info(self, info: dict[str, Any], url: str) -> AlbumInfo:
@@ -177,7 +186,9 @@ class Downloader:
                     tracks.append(
                         TrackInfo(
                             title=entry.get("title", f"Track {i}"),
-                            artist=entry.get("artist", entry.get("uploader", "Unknown")),
+                            artist=entry.get(
+                                "artist", entry.get("uploader", "Unknown")
+                            ),
                             track_number=i,
                             duration=entry.get("duration", 0),
                         )
@@ -211,7 +222,9 @@ class Downloader:
             url=url,
         )
 
-    def _get_ydl_opts(self, output_dir: Path, progress_hook: Callable[[dict[str, Any]], None]) -> dict[str, Any]:
+    def _get_ydl_opts(
+        self, output_dir: Path, progress_hook: Callable[[dict[str, Any]], None]
+    ) -> dict[str, Any]:
         """Build yt-dlp options dictionary."""
         return {
             "format": "bestaudio/best",
@@ -228,9 +241,21 @@ class Downloader:
                     "key": "MetadataParser",
                     "when": "pre_process",
                     "actions": [
-                        (MetadataParserPP.Actions.INTERPRET, "playlist_index", "%(meta_track)s"),
-                        (MetadataParserPP.Actions.INTERPRET, "release_date", "%(meta_date)s"),
-                        (MetadataParserPP.Actions.INTERPRET, "%(artists.0)s", "%(meta_artist)s")
+                        (
+                            MetadataParserPP.Actions.INTERPRET,
+                            "playlist_index",
+                            "%(meta_track)s",
+                        ),
+                        (
+                            MetadataParserPP.Actions.INTERPRET,
+                            "release_date",
+                            "%(meta_date)s",
+                        ),
+                        (
+                            MetadataParserPP.Actions.INTERPRET,
+                            "%(artists.0)s",
+                            "%(meta_artist)s",
+                        ),
                     ],
                 },
                 {

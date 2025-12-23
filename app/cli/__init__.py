@@ -1,4 +1,5 @@
 """YTADL CLI - command registration and entry point."""
+
 from app.cli.app import app
 from app.cli.doctor import doctor
 from app.cli.download import download

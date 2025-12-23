@@ -90,6 +90,24 @@ Edit `config/beets_config.yaml` to customize:
 - `match.strong_rec_thresh` - auto-match confidence
 - `fetchart.sources` - album art sources
 
+## Development
+
+### Linting & Formatting
+
+```bash
+# Check for linting issues
+uv run ruff check .
+
+# Auto-fix linting issues
+uv run ruff check --fix .
+
+# Format code
+uv run ruff format .
+
+# Check formatting without changes
+uv run ruff format --check .
+```
+
 ## License
 
 MIT

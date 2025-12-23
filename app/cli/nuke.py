@@ -1,26 +1,35 @@
 """Nuke command."""
+
 import shutil
 from pathlib import Path
 
 import typer
 
-from app.cli.utils import echo_error, echo_info, echo_success, DEFAULT_BEETS_CONFIG, DEFAULT_LIBRARY_DIR
+from app.cli.utils import (
+    DEFAULT_BEETS_CONFIG,
+    DEFAULT_LIBRARY_DIR,
+    echo_info,
+    echo_success,
+)
 
 
 def nuke(
     library_dir: Path = typer.Option(
         DEFAULT_LIBRARY_DIR,
-        "--library-dir", "-l",
+        "--library-dir",
+        "-l",
         help="Library directory to remove",
     ),
     beets_config: Path = typer.Option(
         DEFAULT_BEETS_CONFIG,
-        "--beets-config", "-c",
+        "--beets-config",
+        "-c",
         help="Path to beets configuration file (used to find db/logs)",
     ),
     force: bool = typer.Option(
         False,
-        "--force", "-f",
+        "--force",
+        "-f",
         help="Skip confirmation prompt",
     ),
 ) -> None:

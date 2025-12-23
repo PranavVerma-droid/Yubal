@@ -1,4 +1,5 @@
 """Info command."""
+
 import json
 import subprocess
 from pathlib import Path
@@ -12,7 +13,15 @@ from app.constants import PRIORITY_TAGS, SKIP_TAGS
 def _get_audio_tags(file_path: Path) -> dict[str, str]:
     """Extract metadata tags from an audio file using ffprobe."""
     result = subprocess.run(
-        ["ffprobe", "-v", "quiet", "-print_format", "json", "-show_format", str(file_path)],
+        [
+            "ffprobe",
+            "-v",
+            "quiet",
+            "-print_format",
+            "json",
+            "-show_format",
+            str(file_path),
+        ],
         capture_output=True,
         text=True,
         check=True,
@@ -49,12 +58,16 @@ def _print_metadata_table(tags: dict[str, str]) -> None:
     echo_info("")
     header_tag = typer.style("Tag", bold=True)
     header_val = typer.style("Value", bold=True)
-    typer.echo(f"| {header_tag:<{tag_width + bold_offset}} | {header_val:<{val_width + bold_offset}} |")
+    typer.echo(
+        f"| {header_tag:<{tag_width + bold_offset}} | {header_val:<{val_width + bold_offset}} |"
+    )
     echo_info(f"|{'-' * (tag_width + 2)}|{'-' * (val_width + 2)}|")
 
     for key, value in rows:
         styled_key = typer.style(key, fg=typer.colors.CYAN)
-        typer.echo(f"| {styled_key:<{tag_width + color_offset}} | {value:<{val_width}} |")
+        typer.echo(
+            f"| {styled_key:<{tag_width + color_offset}} | {value:<{val_width}} |"
+        )
 
 
 def info(

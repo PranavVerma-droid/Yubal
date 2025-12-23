@@ -1,4 +1,5 @@
 """Typer app instance."""
+
 import typer
 import typer.main
 

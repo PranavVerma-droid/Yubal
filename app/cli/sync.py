@@ -1,4 +1,5 @@
 """Sync command."""
+
 import shutil
 import tempfile
 from pathlib import Path
@@ -21,17 +22,20 @@ def sync(
     url: str = typer.Argument(..., help="YouTube Music album/playlist URL"),
     library_dir: Path = typer.Option(
         DEFAULT_LIBRARY_DIR,
-        "--library-dir", "-l",
+        "--library-dir",
+        "-l",
         help="Library directory for organized music",
     ),
     beets_config: Path = typer.Option(
         DEFAULT_BEETS_CONFIG,
-        "--beets-config", "-c",
+        "--beets-config",
+        "-c",
         help="Path to beets configuration file",
     ),
     audio_format: str = typer.Option(
         "mp3",
-        "--format", "-f",
+        "--format",
+        "-f",
         help="Audio format (mp3, m4a, opus, etc.)",
     ),
 ) -> None:

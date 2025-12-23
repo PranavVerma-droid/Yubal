@@ -1,4 +1,5 @@
 """Tag command."""
+
 from pathlib import Path
 
 import typer
@@ -16,20 +17,25 @@ from app.cli.utils import (
 
 
 def tag(
-    input_dir: Path = typer.Argument(..., help="Directory containing downloaded audio files"),
+    input_dir: Path = typer.Argument(
+        ..., help="Directory containing downloaded audio files"
+    ),
     library_dir: Path = typer.Option(
         DEFAULT_LIBRARY_DIR,
-        "--library-dir", "-l",
+        "--library-dir",
+        "-l",
         help="Library directory for organized music",
     ),
     beets_config: Path = typer.Option(
         DEFAULT_BEETS_CONFIG,
-        "--beets-config", "-c",
+        "--beets-config",
+        "-c",
         help="Path to beets configuration file",
     ),
     copy: bool = typer.Option(
         False,
-        "--copy", "-C",
+        "--copy",
+        "-C",
         help="Copy to library instead of moving (original files unchanged)",
     ),
 ) -> None:

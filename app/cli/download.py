@@ -1,4 +1,5 @@
 """Download command."""
+
 from pathlib import Path
 
 import typer
@@ -11,12 +12,14 @@ def download(
     url: str = typer.Argument(..., help="YouTube Music album/playlist URL"),
     output_dir: Path = typer.Option(
         ...,
-        "--output-dir", "-o",
+        "--output-dir",
+        "-o",
         help="Directory to save downloaded files",
     ),
     audio_format: str = typer.Option(
         "mp3",
-        "--format", "-f",
+        "--format",
+        "-f",
         help="Audio format (mp3, m4a, opus, etc.)",
     ),
 ) -> None:

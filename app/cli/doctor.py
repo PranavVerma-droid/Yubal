@@ -1,4 +1,5 @@
 """Doctor command."""
+
 from pathlib import Path
 
 import typer
@@ -16,17 +17,20 @@ from app.cli.utils import (
 def doctor(
     library_dir: Path = typer.Option(
         DEFAULT_LIBRARY_DIR,
-        "--library-dir", "-l",
+        "--library-dir",
+        "-l",
         help="Library directory for organized music",
     ),
     beets_config: Path = typer.Option(
         DEFAULT_BEETS_CONFIG,
-        "--beets-config", "-c",
+        "--beets-config",
+        "-c",
         help="Path to beets configuration file",
     ),
     rebuild: bool = typer.Option(
         False,
-        "--rebuild", "-r",
+        "--rebuild",
+        "-r",
         help="Rebuild database from existing library files if unhealthy",
     ),
 ) -> None:
@@ -70,6 +74,8 @@ def doctor(
         if new_health.healthy:
             echo_success("Library is now healthy")
         else:
-            typer.echo(typer.style(f"Warning: {new_health.message}", fg=typer.colors.YELLOW))
+            typer.echo(
+                typer.style(f"Warning: {new_health.message}", fg=typer.colors.YELLOW)
+            )
     else:
         echo_error(message)
