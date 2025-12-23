@@ -3,6 +3,7 @@
 from app.cli.app import app
 from app.cli.doctor import doctor
 from app.cli.download import download
+from app.cli.import_cmd import import_music
 from app.cli.info import info
 from app.cli.nuke import nuke
 from app.cli.sync import sync
@@ -12,6 +13,7 @@ from app.cli.version import version
 # Explicit command registration
 app.command()(doctor)
 app.command()(download)
+app.command(name="import")(import_music)
 app.command()(info)
 app.command()(nuke)
 app.command()(sync)

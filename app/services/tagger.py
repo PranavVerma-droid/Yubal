@@ -426,3 +426,81 @@ class Tagger:
             return False, "Rebuild timed out after 10 minutes"
         except Exception as e:
             return False, f"Rebuild failed: {e!s}"
+
+    def import_files(
+        self, source_path: Path, copy: bool = False, noautotag: bool = False
+    ) -> tuple[bool, str, int]:
+        """
+        Import existing music files into the library.
+
+        Files are organized according to the beets paths configuration
+        and registered in the database.
+
+        Args:
+            source_path: Path to files or folder to import
+            copy: If True, copy files instead of moving (keep originals)
+            noautotag: If True, skip auto-tagging and trust existing tags
+
+        Returns:
+            Tuple of (success, message, imported_count)
+        """
+        if not source_path.exists():
+            return False, f"Source path does not exist: {source_path}", 0
+
+        # Ensure library directory exists
+        self.library_dir.mkdir(parents=True, exist_ok=True)
+        self.beets_db.parent.mkdir(parents=True, exist_ok=True)
+
+        # Build beets import command
+        cmd = [
+            *self._get_beet_command(),
+            "--config",
+            str(self.beets_config),
+            "import",
+            "-q",  # Quiet mode - non-interactive
+        ]
+
+        if copy:
+            cmd.append("--copy")
+
+        if noautotag:
+            cmd.append("--noautotag")
+
+        cmd.append(str(source_path))
+
+        print(f"Importing files: {' '.join(cmd)}")
+
+        try:
+            process = subprocess.Popen(
+                cmd,
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                env=self._get_beets_env(),
+                cwd=str(self.beets_config.parent.parent),
+            )
+
+            # Send newlines to accept any prompts
+            process.stdin.write("\n" * 10)
+            process.stdin.close()
+
+            imported_count = 0
+            for line in process.stdout:
+                line = line.rstrip()
+                print(f"  [beets] {line}")
+                # Count successful imports (beets outputs "Added" for each album)
+                if "added" in line.lower():
+                    imported_count += 1
+
+            process.wait(timeout=600)  # 10 minutes for large imports
+
+            if process.returncode == 0:
+                return True, f"Successfully imported {imported_count} album(s)", imported_count
+            else:
+                return False, f"Import failed with return code {process.returncode}", 0
+
+        except subprocess.TimeoutExpired:
+            return False, "Import timed out after 10 minutes", 0
+        except Exception as e:
+            return False, f"Import failed: {e!s}", 0
