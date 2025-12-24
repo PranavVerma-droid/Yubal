@@ -1,7 +1,6 @@
 import { Input } from "@heroui/react";
-
-const YOUTUBE_MUSIC_URL_PATTERN =
-  /^https?:\/\/(music\.)?youtube\.com\/(playlist\?list=|watch\?v=|browse\/VL)/;
+import { Link } from "lucide-react";
+import { YOUTUBE_MUSIC_URL_PATTERN } from "../utils/url";
 
 interface UrlInputProps {
   value: string;
@@ -15,21 +14,17 @@ export function UrlInput({ value, onChange, disabled }: UrlInputProps) {
   return (
     <Input
       type="url"
-      placeholder="Paste YouTube Music URL..."
+      placeholder="Paste YouTube URL..."
       value={value}
       onValueChange={onChange}
       isDisabled={disabled}
       isInvalid={!isValid}
       errorMessage={!isValid ? "Enter a valid YouTube Music URL" : undefined}
-      size="lg"
+      startContent={<Link className="text-default-400 h-4 w-4" />}
       classNames={{
-        input: "text-base",
-        inputWrapper: "bg-default-100",
+        input: "font-mono text-sm",
+        inputWrapper: "h-10 bg-default-100",
       }}
     />
   );
-}
-
-export function isValidUrl(url: string): boolean {
-  return YOUTUBE_MUSIC_URL_PATTERN.test(url);
 }
