@@ -119,7 +119,7 @@ export default function App() {
         </AnimatePresence>
 
         {/* Console Output */}
-        <ConsoleOutput logs={logs} status={status} progress={progress} />
+        <ConsoleOutput logs={logs} status={status} />
 
         {/* Secondary Actions */}
         {(isSyncing || status === "complete" || status === "error") && (

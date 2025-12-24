@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { Progress } from "@heroui/react";
 import { Terminal } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { LogEntry, ProgressStep } from "../hooks/useSync";
@@ -7,7 +6,6 @@ import type { LogEntry, ProgressStep } from "../hooks/useSync";
 interface ConsoleOutputProps {
   logs: LogEntry[];
   status: ProgressStep;
-  progress: number;
 }
 
 const stepColors: Record<ProgressStep, string> = {
@@ -17,18 +15,6 @@ const stepColors: Record<ProgressStep, string> = {
   tagging: "text-purple-400",
   complete: "text-green-400",
   error: "text-red-400",
-};
-
-const progressColors: Record<
-  ProgressStep,
-  "default" | "primary" | "secondary" | "success" | "warning" | "danger"
-> = {
-  idle: "default",
-  starting: "primary",
-  downloading: "primary",
-  tagging: "secondary",
-  complete: "success",
-  error: "danger",
 };
 
 function formatTime(date: Date): string {
@@ -48,9 +34,9 @@ function getTimestamp(): string {
   return `${h}:${m}:${s}`;
 }
 
-export function ConsoleOutput({ logs, status, progress }: ConsoleOutputProps) {
+export function ConsoleOutput({ logs, status }: ConsoleOutputProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const showProgress = status !== "idle";
+  const showStatus = status !== "idle";
   const isActive =
     status !== "idle" && status !== "complete" && status !== "error";
   const [currentTime, setCurrentTime] = useState(getTimestamp());
@@ -73,38 +59,18 @@ export function ConsoleOutput({ logs, status, progress }: ConsoleOutputProps) {
 
   return (
     <div className="overflow-hidden rounded-lg border border-white/10 bg-[#0d0d0d]">
-      {/* Terminal Header - v0 style with Terminal icon */}
+      {/* Terminal Header */}
       <div className="flex items-center justify-between border-b border-white/10 bg-white/5 px-3 py-2">
         <div className="flex items-center gap-2">
           <Terminal className="h-3.5 w-3.5 text-gray-500" />
           <span className="font-mono text-xs text-gray-500">console</span>
         </div>
-        {showProgress && (
+        {showStatus && (
           <span className={`font-mono text-xs ${stepColors[status]}`}>
             {status.toUpperCase()}
           </span>
         )}
       </div>
-
-      {/* Progress Bar */}
-      <AnimatePresence>
-        {showProgress && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            className="border-b border-white/10 px-4 py-2"
-          >
-            <Progress
-              aria-label="Sync progress"
-              value={progress}
-              color={progressColors[status]}
-              size="sm"
-              className="w-full"
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* Console Content */}
       <div
