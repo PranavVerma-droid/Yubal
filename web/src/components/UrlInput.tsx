@@ -14,7 +14,7 @@ export function UrlInput({ value, onChange, disabled }: UrlInputProps) {
   return (
     <Input
       type="url"
-      placeholder="Paste YouTube URL..."
+      placeholder="Paste album URL..."
       value={value}
       onValueChange={onChange}
       isDisabled={disabled}

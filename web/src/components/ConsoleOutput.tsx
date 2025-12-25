@@ -60,7 +60,7 @@ export function ConsoleOutput({ logs, status }: ConsoleOutputProps) {
   return (
     <Card className="border-default-200 bg-background border-2 shadow-none">
       {/* Terminal Header */}
-      <div className="flex items-center gap-2 px-3 py-2 border-b-2 border-default-200 bg-content1">
+      <div className="border-default-200 bg-content1 flex items-center gap-2 border-b-2 px-3 py-2">
         <Terminal className="text-foreground-500 h-3.5 w-3.5" />
         <span className="text-foreground-500 font-mono text-xs">console</span>
       </div>
