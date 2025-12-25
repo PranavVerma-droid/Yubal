@@ -2,11 +2,15 @@
 
 import shutil
 import tempfile
+from collections.abc import Callable
 from pathlib import Path
 
 from yubal.core import ProgressCallback, ProgressEvent, ProgressStep, SyncResult
 from yubal.services.downloader import Downloader
 from yubal.services.tagger import Tagger
+
+# Type for cancellation check function
+CancelCheck = Callable[[], bool]
 
 
 class SyncService:
@@ -34,6 +38,7 @@ class SyncService:
         self,
         url: str,
         progress_callback: ProgressCallback | None = None,
+        cancel_check: CancelCheck | None = None,
     ) -> SyncResult:
         """
         Download and tag an album in one operation.
@@ -41,6 +46,7 @@ class SyncService:
         Args:
             url: YouTube Music album/playlist URL
             progress_callback: Optional callback for progress updates
+            cancel_check: Function returning True if operation should cancel
 
         Returns:
             SyncResult with success status and details
@@ -69,8 +75,19 @@ class SyncService:
 
             downloader = Downloader(audio_format=self.audio_format)
             download_result = downloader.download_album(
-                url, temp_dir, progress_callback=progress_callback
+                url,
+                temp_dir,
+                progress_callback=progress_callback,
+                cancel_check=cancel_check,
             )
+
+            # Check if cancelled
+            if download_result.cancelled:
+                return SyncResult(
+                    success=False,
+                    download_result=download_result,
+                    error="Download cancelled",
+                )
 
             if not download_result.success:
                 if progress_callback:

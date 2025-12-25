@@ -33,6 +33,7 @@ class DownloadResult(BaseModel):
     output_dir: str
     downloaded_files: list[str] = []
     error: str | None = None
+    cancelled: bool = False
 
 
 class TagResult(BaseModel):

@@ -11,6 +11,7 @@ from yubal.core.config import DEFAULT_BEETS_CONFIG, DEFAULT_LIBRARY_DIR
 from yubal.core.jobs import Job, JobStatus, job_store
 from yubal.core.progress import ProgressEvent
 from yubal.schemas.jobs import (
+    CancelJobResponse,
     ClearJobsResponse,
     CreateJobRequest,
     JobConflictError,
@@ -53,6 +54,10 @@ def job_to_response(job: Job) -> JobResponse:
 
 async def run_sync_job(job_id: str, url: str, audio_format: str) -> None:
     """Background task that runs the sync operation."""
+    # Check if cancelled before starting
+    if job_store.is_cancelled(job_id):
+        return
+
     # Update job to started
     await job_store.update_job(
         job_id,
@@ -65,8 +70,16 @@ async def run_sync_job(job_id: str, url: str, audio_format: str) -> None:
     # Capture the event loop BEFORE entering the thread
     loop = asyncio.get_running_loop()
 
+    def cancel_check() -> bool:
+        """Check if job has been cancelled."""
+        return job_store.is_cancelled(job_id)
+
     def progress_callback(event: ProgressEvent) -> None:
         """Thread-safe callback that updates job state."""
+        # Skip updates for cancelled jobs
+        if job_store.is_cancelled(job_id):
+            return
+
         # Map ProgressStep to JobStatus
         status_map = {
             "starting": JobStatus.PENDING,
@@ -96,7 +109,13 @@ async def run_sync_job(job_id: str, url: str, audio_format: str) -> None:
             service.sync_album,
             url,
             progress_callback,
+            cancel_check,
         )
+
+        # Check if job was cancelled
+        if job_store.is_cancelled(job_id):
+            await job_store.add_log(job_id, "cancelled", "Job cancelled by user")
+            return
 
         # Update job with final result
         if result.success:
@@ -152,6 +171,10 @@ async def _update_job_from_event(
     job_id: str, new_status: JobStatus, event: ProgressEvent
 ) -> None:
     """Helper to update job from progress event."""
+    # Don't update cancelled jobs - prevents race condition with status overwrite
+    if job_store.is_cancelled(job_id):
+        return
+
     # Don't update to complete/failed from callback - final result handles that
     if new_status in (JobStatus.COMPLETE, JobStatus.FAILED):
         new_status = (
@@ -239,6 +262,36 @@ async def get_job(job_id: str) -> JobResponse:
     return job_to_response(job)
 
 
+@router.post("/jobs/{job_id}/cancel", response_model=CancelJobResponse)
+async def cancel_job(job_id: str) -> CancelJobResponse:
+    """
+    Cancel a running job.
+
+    Returns 404 if job not found, 409 if job already finished.
+    """
+    job = await job_store.get_job(job_id)
+    if not job:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Job {job_id} not found",
+        )
+
+    if job.status in (JobStatus.COMPLETE, JobStatus.FAILED, JobStatus.CANCELLED):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Job already finished",
+        )
+
+    success = await job_store.cancel_job(job_id)
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Could not cancel job",
+        )
+
+    return CancelJobResponse()
+
+
 @router.get("/jobs/{job_id}/stream")
 async def stream_job(job_id: str) -> StreamingResponse:
     """
@@ -276,8 +329,12 @@ async def stream_job(job_id: str) -> StreamingResponse:
                 response = job_to_response(current_job)
                 yield f"id: {event_id}\ndata: {response.model_dump_json()}\n\n"
 
-                # If job is complete, send complete event and exit
-                if current_job.status in (JobStatus.COMPLETE, JobStatus.FAILED):
+                # If job is finished, send complete event and exit
+                if current_job.status in (
+                    JobStatus.COMPLETE,
+                    JobStatus.FAILED,
+                    JobStatus.CANCELLED,
+                ):
                     event_id += 1
                     data = response.model_dump_json()
                     yield f"id: {event_id}\nevent: complete\ndata: {data}\n\n"
@@ -311,7 +368,7 @@ async def clear_jobs() -> ClearJobsResponse:
 @router.delete("/jobs/{job_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_job(job_id: str) -> None:
     """
-    Delete a completed or failed job.
+    Delete a completed, failed, or cancelled job.
 
     Running jobs cannot be deleted (returns 409).
     """
@@ -322,7 +379,7 @@ async def delete_job(job_id: str) -> None:
             detail=f"Job {job_id} not found",
         )
 
-    if job.status not in (JobStatus.COMPLETE, JobStatus.FAILED):
+    if job.status not in (JobStatus.COMPLETE, JobStatus.FAILED, JobStatus.CANCELLED):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Cannot delete a running job",

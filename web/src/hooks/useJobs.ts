@@ -3,6 +3,7 @@ import {
   createJob,
   getJob,
   listJobs,
+  cancelJob as cancelJobApi,
   type Job,
   type JobStatus,
   type AlbumInfo,
@@ -14,7 +15,8 @@ export type ProgressStep =
   | "downloading"
   | "tagging"
   | "complete"
-  | "error";
+  | "error"
+  | "cancelled";
 
 export interface LogEntry {
   id: number;
@@ -36,9 +38,12 @@ export interface UseJobsResult {
   startJob: (url: string, audioFormat?: string) => Promise<void>;
   stopPolling: () => void;
   clearCurrentJob: () => void;
+  cancelJob: (jobId: string) => Promise<void>;
 
   // Job list
   jobs: Job[];
+  activeJobs: Job[];
+  completedJobs: Job[];
   refreshJobs: () => Promise<void>;
   resumeJob: (jobId: string) => void;
 }
@@ -57,6 +62,8 @@ function mapJobStatus(status: JobStatus): ProgressStep {
       return "complete";
     case "failed":
       return "error";
+    case "cancelled":
+      return "cancelled";
     default:
       return "idle";
   }
@@ -178,6 +185,11 @@ export function useJobs(): UseJobsResult {
 
       setCurrentJobId(result.jobId);
       addLog("pending", `Job created: ${result.jobId}`);
+
+      // Refresh job list to show the new job immediately
+      const { jobs: jobList } = await listJobs();
+      setJobs(jobList);
+
       startPolling(result.jobId);
     },
     [addLog, resetState, startPolling]
@@ -196,7 +208,10 @@ export function useJobs(): UseJobsResult {
     // Auto-resume active job if we're not tracking any
     if (activeJobId && !currentJobId) {
       const activeJob = jobList.find((j) => j.id === activeJobId);
-      if (activeJob && !["complete", "failed"].includes(activeJob.status)) {
+      if (
+        activeJob &&
+        !["complete", "failed", "cancelled"].includes(activeJob.status)
+      ) {
         // Resume the active job
         setCurrentJobId(activeJobId);
         setStatus(mapJobStatus(activeJob.status as JobStatus));
@@ -220,6 +235,24 @@ export function useJobs(): UseJobsResult {
       }
     }
   }, [currentJobId, startPolling]);
+
+  const cancelJob = useCallback(
+    async (jobId: string) => {
+      const success = await cancelJobApi(jobId);
+      if (success) {
+        // If cancelling current job, stop polling and update status
+        if (jobId === currentJobId) {
+          stopPolling();
+          setStatus("cancelled");
+          addLog("cancelled", "Job cancelled by user");
+        }
+        // Refresh the job list to get updated statuses
+        const { jobs: jobList } = await listJobs();
+        setJobs(jobList);
+      }
+    },
+    [currentJobId, stopPolling, addLog]
+  );
 
   const resumeJob = useCallback(
     (jobId: string) => {
@@ -248,11 +281,19 @@ export function useJobs(): UseJobsResult {
       logIdRef.current = newLogs.length;
 
       // If job is still running, start polling
-      if (!["complete", "failed"].includes(job.status)) {
+      if (!["complete", "failed", "cancelled"].includes(job.status)) {
         startPolling(jobId);
       }
     },
     [jobs, resetState, startPolling]
+  );
+
+  // Computed job lists
+  const activeJobs = jobs.filter((job) =>
+    ["pending", "downloading", "tagging"].includes(job.status)
+  );
+  const completedJobs = jobs.filter((job) =>
+    ["complete", "failed", "cancelled"].includes(job.status)
   );
 
   // Refresh jobs on mount and check for active job
@@ -278,7 +319,10 @@ export function useJobs(): UseJobsResult {
     startJob,
     stopPolling,
     clearCurrentJob,
+    cancelJob,
     jobs,
+    activeJobs,
+    completedJobs,
     refreshJobs,
     resumeJob,
   };

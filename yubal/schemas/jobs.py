@@ -67,3 +67,9 @@ class ClearJobsResponse(BaseModel):
     """Response when jobs are cleared."""
 
     cleared: int
+
+
+class CancelJobResponse(BaseModel):
+    """Response when a job is cancelled."""
+
+    message: str = "Job cancelled"

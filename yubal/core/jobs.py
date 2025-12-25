@@ -19,6 +19,7 @@ class JobStatus(str, Enum):
     TAGGING = "tagging"
     COMPLETE = "complete"
     FAILED = "failed"
+    CANCELLED = "cancelled"
 
 
 @dataclass
@@ -61,6 +62,7 @@ class JobStore:
         self._jobs: OrderedDict[str, Job] = OrderedDict()
         self._lock = asyncio.Lock()
         self._active_job_id: str | None = None
+        self._cancellation_requested: set[str] = set()
 
     async def create_job(self, url: str, audio_format: str = "mp3") -> Job | None:
         """
@@ -75,6 +77,7 @@ class JobStore:
                 if active and active.status not in (
                     JobStatus.COMPLETE,
                     JobStatus.FAILED,
+                    JobStatus.CANCELLED,
                 ):
                     return None  # Job already running
 
@@ -121,6 +124,41 @@ class JobStore:
                 return job
             return None
 
+    async def cancel_job(self, job_id: str) -> bool:
+        """
+        Cancel a running job.
+
+        Returns False if job doesn't exist or is already finished.
+        """
+        async with self._lock:
+            job = self._jobs.get(job_id)
+            if not job:
+                return False
+
+            # Cannot cancel already finished jobs
+            if job.status in (
+                JobStatus.COMPLETE,
+                JobStatus.FAILED,
+                JobStatus.CANCELLED,
+            ):
+                return False
+
+            # Mark as cancelled
+            self._cancellation_requested.add(job_id)
+            job.status = JobStatus.CANCELLED
+            job.message = "Job cancelled by user"
+            job.completed_at = datetime.now(UTC)
+
+            # Clear active job if it matches
+            if self._active_job_id == job_id:
+                self._active_job_id = None
+
+            return True
+
+    def is_cancelled(self, job_id: str) -> bool:
+        """Check if cancellation was requested for a job."""
+        return job_id in self._cancellation_requested
+
     async def update_job(
         self,
         job_id: str,
@@ -132,11 +170,15 @@ class JobStore:
         started_at: datetime | None = None,
         completed_at: datetime | None = None,
     ) -> Job | None:
-        """Update job fields."""
+        """Update job fields. Cancelled jobs cannot be updated."""
         async with self._lock:
             job = self._jobs.get(job_id)
             if not job:
                 return None
+
+            # Don't update cancelled jobs (prevents race conditions)
+            if job.status == JobStatus.CANCELLED:
+                return job
 
             if status is not None:
                 job.status = status
@@ -153,8 +195,12 @@ class JobStore:
             if completed_at is not None:
                 job.completed_at = completed_at
 
-            # Clear active job if completed or failed
-            if job.status in (JobStatus.COMPLETE, JobStatus.FAILED):
+            # Clear active job if completed, failed, or cancelled
+            if job.status in (
+                JobStatus.COMPLETE,
+                JobStatus.FAILED,
+                JobStatus.CANCELLED,
+            ):
                 job.completed_at = job.completed_at or datetime.now(UTC)
                 if self._active_job_id == job_id:
                     self._active_job_id = None
@@ -173,6 +219,10 @@ class JobStore:
         async with self._lock:
             job = self._jobs.get(job_id)
             if not job:
+                return
+
+            # Don't add logs to cancelled jobs (prevents stale updates)
+            if job.status == JobStatus.CANCELLED:
                 return
 
             entry = LogEntry(
@@ -199,15 +249,21 @@ class JobStore:
             if not job:
                 return False
 
-            if job.status not in (JobStatus.COMPLETE, JobStatus.FAILED):
+            if job.status not in (
+                JobStatus.COMPLETE,
+                JobStatus.FAILED,
+                JobStatus.CANCELLED,
+            ):
                 return False  # Cannot delete running job
 
             del self._jobs[job_id]
+            # Also remove from cancellation set if present
+            self._cancellation_requested.discard(job_id)
             return True
 
     async def clear_completed(self) -> int:
         """
-        Clear all completed/failed jobs.
+        Clear all completed/failed/cancelled jobs.
 
         Returns the number of jobs removed.
         """
@@ -215,10 +271,12 @@ class JobStore:
             to_remove = [
                 job_id
                 for job_id, job in self._jobs.items()
-                if job.status in (JobStatus.COMPLETE, JobStatus.FAILED)
+                if job.status
+                in (JobStatus.COMPLETE, JobStatus.FAILED, JobStatus.CANCELLED)
             ]
             for job_id in to_remove:
                 del self._jobs[job_id]
+                self._cancellation_requested.discard(job_id)
             return len(to_remove)
 
     def _check_timeout(self, job: Job) -> bool:
@@ -227,7 +285,11 @@ class JobStore:
 
         Returns True if job was timed out.
         """
-        if job.started_at and job.status not in (JobStatus.COMPLETE, JobStatus.FAILED):
+        if job.started_at and job.status not in (
+            JobStatus.COMPLETE,
+            JobStatus.FAILED,
+            JobStatus.CANCELLED,
+        ):
             elapsed = datetime.now(UTC) - job.started_at
             if elapsed.total_seconds() > self.TIMEOUT_SECONDS:
                 job.status = JobStatus.FAILED

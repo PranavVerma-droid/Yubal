@@ -11,7 +11,8 @@ export type JobStatus =
   | "downloading"
   | "tagging"
   | "complete"
-  | "failed";
+  | "failed"
+  | "cancelled";
 
 export type CreateJobResult =
   | {
@@ -83,4 +84,12 @@ export async function clearJobs(): Promise<number> {
 
   if (error) return 0;
   return data.cleared;
+}
+
+export async function cancelJob(jobId: string): Promise<boolean> {
+  const { error } = await api.POST("/api/v1/jobs/{job_id}/cancel", {
+    params: { path: { job_id: jobId } },
+  });
+
+  return !error;
 }

@@ -55,11 +55,33 @@ export interface paths {
     post?: never;
     /**
      * Delete Job
-     * @description Delete a completed or failed job.
+     * @description Delete a completed, failed, or cancelled job.
      *
      *     Running jobs cannot be deleted (returns 409).
      */
     delete: operations["delete_job_api_v1_jobs__job_id__delete"];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/jobs/{job_id}/cancel": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Cancel Job
+     * @description Cancel a running job.
+     *
+     *     Returns 404 if job not found, 409 if job already finished.
+     */
+    post: operations["cancel_job_api_v1_jobs__job_id__cancel_post"];
+    delete?: never;
     options?: never;
     head?: never;
     patch?: never;
@@ -140,6 +162,17 @@ export interface components {
        * @default
        */
       url: string;
+    };
+    /**
+     * CancelJobResponse
+     * @description Response when a job is cancelled.
+     */
+    CancelJobResponse: {
+      /**
+       * Message
+       * @default Job cancelled
+       */
+      message: string;
     };
     /**
      * ClearJobsResponse
@@ -431,6 +464,37 @@ export interface operations {
           [name: string]: unknown;
         };
         content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  cancel_job_api_v1_jobs__job_id__cancel_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        job_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["CancelJobResponse"];
+        };
       };
       /** @description Validation Error */
       422: {

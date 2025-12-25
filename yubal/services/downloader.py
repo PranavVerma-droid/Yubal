@@ -6,6 +6,7 @@ from typing import Any
 
 import yt_dlp
 from yt_dlp.postprocessor.metadataparser import MetadataParserPP
+from yt_dlp.utils import DownloadCancelled
 
 from yubal.core import (
     AlbumInfo,
@@ -16,6 +17,9 @@ from yubal.core import (
     TrackInfo,
 )
 from yubal.core.constants import AUDIO_EXTENSIONS
+
+# Type for cancellation check function
+CancelCheck = Callable[[], bool]
 
 # Shared yt-dlp instance for template evaluation
 _ydl = yt_dlp.YoutubeDL({"quiet": True})
@@ -75,10 +79,15 @@ class Downloader:
         self,
         downloaded_files: list[Path],
         progress_callback: ProgressCallback | None = None,
+        cancel_check: CancelCheck | None = None,
     ) -> Callable[[dict[str, Any]], None]:
         """Create a progress hook that tracks downloaded files."""
 
         def hook(d: dict[str, Any]) -> None:
+            # Check for cancellation before processing
+            if cancel_check and cancel_check():
+                raise DownloadCancelled("Download cancelled by user")
+
             if d["status"] == "downloading":
                 percent_str = d.get("_percent_str", "").strip()
                 speed = d.get("_speed_str", "").strip()
@@ -128,6 +137,7 @@ class Downloader:
         url: str,
         output_dir: Path,
         progress_callback: ProgressCallback | None = None,
+        cancel_check: CancelCheck | None = None,
     ) -> DownloadResult:
         """
         Download all tracks from a YouTube Music album.
@@ -136,6 +146,7 @@ class Downloader:
             url: YouTube Music playlist URL
             output_dir: Directory to save downloaded files
             progress_callback: Optional callback for progress updates
+            cancel_check: Function returning True if download should cancel
 
         Returns:
             DownloadResult with success status and file paths
@@ -147,7 +158,9 @@ class Downloader:
 
         ydl_opts = self._get_ydl_opts(
             output_dir,
-            self._create_progress_hook(downloaded_files, progress_callback),
+            self._create_progress_hook(
+                downloaded_files, progress_callback, cancel_check
+            ),
         )
 
         try:
@@ -169,6 +182,14 @@ class Downloader:
                 downloaded_files=[str(f) for f in all_files],
             )
 
+        except DownloadCancelled:
+            return DownloadResult(
+                success=False,
+                album_info=album_info,
+                output_dir=str(output_dir),
+                error="Download cancelled",
+                cancelled=True,
+            )
         except yt_dlp.DownloadError as e:
             return DownloadResult(
                 success=False,
