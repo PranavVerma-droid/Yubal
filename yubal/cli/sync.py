@@ -18,10 +18,10 @@ from yubal.services.sync import SyncService
 
 def _cli_progress_callback(event: ProgressEvent) -> None:
     """Handle progress events for CLI output."""
-    if event.step == ProgressStep.ERROR:
+    if event.step == ProgressStep.FAILED:
         # Don't call echo_error here as it raises Exit
         typer.echo(f"Error: {event.message}", err=True)
-    elif event.step == ProgressStep.COMPLETE:
+    elif event.step == ProgressStep.COMPLETED:
         if "Cleaning up" in event.message:
             echo_info(event.message)
         else:
@@ -32,10 +32,10 @@ def _cli_progress_callback(event: ProgressEvent) -> None:
             print(f"\r  {event.message}", end="", flush=True)
         else:
             echo_info(event.message)
-    elif event.step == ProgressStep.STARTING:
+    elif event.step == ProgressStep.FETCHING_INFO:
         echo_info("\n--- Starting ---")
         echo_info(event.message)
-    elif event.step == ProgressStep.TAGGING:
+    elif event.step == ProgressStep.IMPORTING:
         if "[beets]" in event.message:
             echo_info(f"  {event.message}")
         else:

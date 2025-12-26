@@ -8,7 +8,7 @@ from fastapi import APIRouter, BackgroundTasks, HTTPException, status
 from fastapi.responses import StreamingResponse
 
 from yubal.core.config import DEFAULT_BEETS_CONFIG, DEFAULT_LIBRARY_DIR
-from yubal.core.jobs import Job, JobPhase, job_store
+from yubal.core.jobs import Job, JobStatus, job_store
 from yubal.core.models import AlbumInfo
 from yubal.core.progress import ProgressEvent
 from yubal.schemas.jobs import (
@@ -64,11 +64,11 @@ async def run_sync_job(job_id: str, url: str, audio_format: str) -> None:
     # Update job to started (fetching info phase)
     await job_store.update_job(
         job_id,
-        phase=JobPhase.FETCHING_INFO,
+        phase=JobStatus.FETCHING_INFO,
         started_at=datetime.now(UTC),
         message="Fetching album info...",
     )
-    await job_store.add_log(job_id, "starting", f"Starting sync from: {url}")
+    await job_store.add_log(job_id, "fetching_info", f"Starting sync from: {url}")
 
     # Capture the event loop BEFORE entering the thread
     loop = asyncio.get_running_loop()
@@ -83,16 +83,16 @@ async def run_sync_job(job_id: str, url: str, audio_format: str) -> None:
         if job_store.is_cancelled(job_id):
             return
 
-        # Map ProgressStep to JobPhase
+        # Map ProgressStep value to JobStatus enum
         phase_map = {
-            "starting": JobPhase.FETCHING_INFO,
-            "downloading": JobPhase.DOWNLOADING,
-            "tagging": JobPhase.IMPORTING,
-            "complete": JobPhase.COMPLETED,
-            "error": JobPhase.FAILED,
+            "fetching_info": JobStatus.FETCHING_INFO,
+            "downloading": JobStatus.DOWNLOADING,
+            "importing": JobStatus.IMPORTING,
+            "completed": JobStatus.COMPLETED,
+            "failed": JobStatus.FAILED,
         }
 
-        new_phase = phase_map.get(event.step.value, JobPhase.DOWNLOADING)
+        new_phase = phase_map.get(event.step.value, JobStatus.DOWNLOADING)
 
         # Schedule async update using the captured loop
         loop.call_soon_threadsafe(
@@ -132,14 +132,14 @@ async def run_sync_job(job_id: str, url: str, audio_format: str) -> None:
 
             await job_store.update_job(
                 job_id,
-                phase=JobPhase.COMPLETED,
+                phase=JobStatus.COMPLETED,
                 progress=100.0,
                 message=complete_msg,
                 album_info=result.album_info,
             )
             await job_store.add_log(
                 job_id,
-                "complete",
+                "completed",
                 complete_msg,
                 progress=100.0,
                 details={
@@ -154,24 +154,24 @@ async def run_sync_job(job_id: str, url: str, audio_format: str) -> None:
         else:
             await job_store.update_job(
                 job_id,
-                phase=JobPhase.FAILED,
+                phase=JobStatus.FAILED,
                 message=result.error or "Sync failed",
                 error=result.error,
             )
-            await job_store.add_log(job_id, "error", result.error or "Sync failed")
+            await job_store.add_log(job_id, "failed", result.error or "Sync failed")
 
     except Exception as e:
         await job_store.update_job(
             job_id,
-            phase=JobPhase.FAILED,
+            phase=JobStatus.FAILED,
             message=str(e),
             error=str(e),
         )
-        await job_store.add_log(job_id, "error", str(e))
+        await job_store.add_log(job_id, "failed", str(e))
 
 
 async def _update_job_from_event(
-    job_id: str, new_phase: JobPhase, event: ProgressEvent
+    job_id: str, new_phase: JobStatus, event: ProgressEvent
 ) -> None:
     """Helper to update job from progress event."""
     # Don't update cancelled jobs - prevents race condition with status overwrite
@@ -179,11 +179,11 @@ async def _update_job_from_event(
         return
 
     # Don't update to complete/failed from callback - final result handles that
-    if new_phase in (JobPhase.COMPLETED, JobPhase.FAILED):
+    if new_phase in (JobStatus.COMPLETED, JobStatus.FAILED):
         new_phase = (
-            JobPhase.IMPORTING
-            if event.step.value == "tagging"
-            else JobPhase.DOWNLOADING
+            JobStatus.IMPORTING
+            if event.step.value == "importing"
+            else JobStatus.DOWNLOADING
         )
 
     # Extract track info and album_info from event details
@@ -296,7 +296,7 @@ async def cancel_job(job_id: str) -> CancelJobResponse:
             detail=f"Job {job_id} not found",
         )
 
-    if job.phase in (JobPhase.COMPLETED, JobPhase.FAILED, JobPhase.CANCELLED):
+    if job.phase in (JobStatus.COMPLETED, JobStatus.FAILED, JobStatus.CANCELLED):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Job already finished",
@@ -351,9 +351,9 @@ async def stream_job(job_id: str) -> StreamingResponse:
 
                 # If job is finished, send complete event and exit
                 if current_job.phase in (
-                    JobPhase.COMPLETED,
-                    JobPhase.FAILED,
-                    JobPhase.CANCELLED,
+                    JobStatus.COMPLETED,
+                    JobStatus.FAILED,
+                    JobStatus.CANCELLED,
                 ):
                     event_id += 1
                     data = response.model_dump_json()
@@ -399,7 +399,7 @@ async def delete_job(job_id: str) -> None:
             detail=f"Job {job_id} not found",
         )
 
-    if job.phase not in (JobPhase.COMPLETED, JobPhase.FAILED, JobPhase.CANCELLED):
+    if job.phase not in (JobStatus.COMPLETED, JobStatus.FAILED, JobStatus.CANCELLED):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Cannot delete a running job",

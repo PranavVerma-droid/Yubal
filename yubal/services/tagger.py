@@ -140,7 +140,7 @@ class Tagger:
         if progress_callback:
             progress_callback(
                 ProgressEvent(
-                    step=ProgressStep.TAGGING,
+                    step=ProgressStep.IMPORTING,
                     message=msg,
                 )
             )
@@ -168,7 +168,7 @@ class Tagger:
             if progress_callback:
                 progress_callback(
                     ProgressEvent(
-                        step=ProgressStep.TAGGING,
+                        step=ProgressStep.IMPORTING,
                         message=f"[beets] {line}",
                     )
                 )
@@ -182,7 +182,7 @@ class Tagger:
         if progress_callback:
             progress_callback(
                 ProgressEvent(
-                    step=ProgressStep.TAGGING,
+                    step=ProgressStep.IMPORTING,
                     message=msg,
                     details={"returncode": process.returncode},
                 )

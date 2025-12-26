@@ -1,22 +1,22 @@
 import { useEffect, useRef, useState } from "react";
 import { Terminal } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import type { LogEntry, ProgressStep } from "../hooks/useJobs";
+import type { LogEntry, JobStatus } from "../hooks/useJobs";
 import { Panel, PanelHeader, PanelTitle, PanelContent } from "./ui/Panel";
 
 interface ConsolePanelProps {
   logs: LogEntry[];
-  status: ProgressStep;
+  status: JobStatus;
 }
 
-const stepColors: Record<ProgressStep, string> = {
+const stepColors: Record<JobStatus, string> = {
   idle: "text-foreground-400",
   pending: "text-foreground-500",
   fetching_info: "text-foreground-500",
   downloading: "text-primary",
   importing: "text-secondary",
-  complete: "text-success",
-  error: "text-danger",
+  completed: "text-success",
+  failed: "text-danger",
   cancelled: "text-warning",
 };
 
@@ -41,8 +41,8 @@ export function ConsolePanel({ logs, status }: ConsolePanelProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const isActive =
     status !== "idle" &&
-    status !== "complete" &&
-    status !== "error" &&
+    status !== "completed" &&
+    status !== "failed" &&
     status !== "cancelled";
   const [currentTime, setCurrentTime] = useState(getTimestamp());
 

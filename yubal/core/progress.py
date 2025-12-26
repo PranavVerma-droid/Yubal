@@ -6,13 +6,13 @@ from typing import Any, Protocol
 
 
 class ProgressStep(str, Enum):
-    """Steps in the sync workflow."""
+    """Steps in the sync workflow. Values match JobStatus."""
 
-    STARTING = "starting"
+    FETCHING_INFO = "fetching_info"
     DOWNLOADING = "downloading"
-    TAGGING = "tagging"
-    COMPLETE = "complete"
-    ERROR = "error"
+    IMPORTING = "importing"
+    COMPLETED = "completed"
+    FAILED = "failed"
 
 
 @dataclass

@@ -9,27 +9,19 @@ import {
   type AlbumInfo,
 } from "../api/jobs";
 
-export type ProgressStep =
-  | "idle"
-  | "pending"
-  | "fetching_info"
-  | "downloading"
-  | "importing"
-  | "complete"
-  | "error"
-  | "cancelled";
+export type { JobStatus } from "../api/jobs";
 
 export interface LogEntry {
   id: number;
   timestamp: Date;
-  step: ProgressStep;
+  step: JobStatus;
   message: string;
 }
 
 export interface UseJobsResult {
   // Current job state
   currentJobId: string | null;
-  status: ProgressStep;
+  status: JobStatus;
   progress: number;
   logs: LogEntry[];
   albumInfo: AlbumInfo | null;
@@ -51,52 +43,10 @@ export interface UseJobsResult {
 
 const POLL_INTERVAL = 2000; // 2 seconds
 
-function mapJobStatus(status: JobStatus): ProgressStep {
-  switch (status) {
-    case "pending":
-      return "pending";
-    case "fetching_info":
-      return "fetching_info";
-    case "downloading":
-      return "downloading";
-    case "importing":
-      return "importing";
-    case "completed":
-      return "complete";
-    case "failed":
-      return "error";
-    case "cancelled":
-      return "cancelled";
-    default:
-      return "idle";
-  }
-}
-
-// Map backend log step values to frontend ProgressStep
-// Backend ProgressStep: "starting", "downloading", "tagging", "complete", "error"
-function mapLogStep(step: string): ProgressStep {
-  switch (step) {
-    case "starting":
-      return "fetching_info";
-    case "downloading":
-      return "downloading";
-    case "tagging":
-      return "importing";
-    case "complete":
-      return "complete";
-    case "error":
-      return "error";
-    case "cancelled":
-      return "cancelled";
-    default:
-      return "pending";
-  }
-}
-
 export function useJobs(): UseJobsResult {
   // Current job state
   const [currentJobId, setCurrentJobId] = useState<string | null>(null);
-  const [status, setStatus] = useState<ProgressStep>("idle");
+  const [status, setStatus] = useState<JobStatus>("idle");
   const [progress, setProgress] = useState(0);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [albumInfo, setAlbumInfo] = useState<AlbumInfo | null>(null);
@@ -110,7 +60,7 @@ export function useJobs(): UseJobsResult {
   const logIdRef = useRef(0);
   const lastMessageRef = useRef<string>("");
 
-  const addLog = useCallback((step: ProgressStep, message: string) => {
+  const addLog = useCallback((step: JobStatus, message: string) => {
     // Skip if same message as last logged
     if (message === lastMessageRef.current) return;
     lastMessageRef.current = message;
@@ -153,11 +103,11 @@ export function useJobs(): UseJobsResult {
         if (!job) {
           stopPolling();
           setError("Job not found");
-          setStatus("error");
+          setStatus("failed");
           return;
         }
 
-        const newStatus = mapJobStatus(job.status as JobStatus);
+        const newStatus = job.status;
         setStatus(newStatus);
         setProgress(job.progress);
 
@@ -176,10 +126,10 @@ export function useJobs(): UseJobsResult {
           setError(job.error);
         }
 
-        // Stop polling if job is complete, failed, or cancelled
+        // Stop polling if job is completed, failed, or cancelled
         if (
-          newStatus === "complete" ||
-          newStatus === "error" ||
+          newStatus === "completed" ||
+          newStatus === "failed" ||
           newStatus === "cancelled"
         ) {
           stopPolling();
@@ -202,9 +152,9 @@ export function useJobs(): UseJobsResult {
       const result = await createJob(url, audioFormat);
 
       if (!result.success) {
-        setStatus("error");
+        setStatus("failed");
         setError(result.error);
-        addLog("error", result.error);
+        addLog("failed", result.error);
 
         // If there's an active job, set it as current so user can see it
         if (result.activeJobId) {
@@ -245,7 +195,7 @@ export function useJobs(): UseJobsResult {
       ) {
         // Resume the active job
         setCurrentJobId(activeJobId);
-        setStatus(mapJobStatus(activeJob.status as JobStatus));
+        setStatus(activeJob.status);
         setProgress(activeJob.progress);
         if (activeJob.album_info) {
           setAlbumInfo(activeJob.album_info);
@@ -255,7 +205,7 @@ export function useJobs(): UseJobsResult {
         const newLogs = activeJob.logs.map((log, i) => ({
           id: i + 1,
           timestamp: new Date(log.timestamp),
-          step: mapLogStep(log.step),
+          step: log.step as JobStatus,
           message: log.message,
         }));
         setLogs(newLogs);
@@ -290,7 +240,7 @@ export function useJobs(): UseJobsResult {
 
       resetState();
       setCurrentJobId(jobId);
-      setStatus(mapJobStatus(job.status as JobStatus));
+      setStatus(job.status);
       setProgress(job.progress);
       if (job.album_info) {
         setAlbumInfo(job.album_info);
@@ -303,7 +253,7 @@ export function useJobs(): UseJobsResult {
       const newLogs = job.logs.map((log, i) => ({
         id: i + 1,
         timestamp: new Date(log.timestamp),
-        step: mapLogStep(log.step),
+        step: log.step as JobStatus,
         message: log.message,
       }));
       setLogs(newLogs);

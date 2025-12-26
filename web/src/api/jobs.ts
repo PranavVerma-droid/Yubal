@@ -6,6 +6,7 @@ export type JobLog = components["schemas"]["LogEntrySchema"];
 export type AlbumInfo = components["schemas"]["AlbumInfo"];
 
 export type JobStatus =
+  | "idle" // UI-only: no active job
   | "pending"
   | "fetching_info"
   | "downloading"

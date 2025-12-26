@@ -70,7 +70,7 @@ class SyncService:
             if progress_callback:
                 progress_callback(
                     ProgressEvent(
-                        step=ProgressStep.STARTING,
+                        step=ProgressStep.FETCHING_INFO,
                         message="Fetching album info...",
                         progress=0.0,
                         details={"temp_dir": str(temp_dir)},
@@ -86,7 +86,7 @@ class SyncService:
                 if progress_callback:
                     progress_callback(
                         ProgressEvent(
-                            step=ProgressStep.ERROR,
+                            step=ProgressStep.FAILED,
                             message=f"Failed to fetch album info: {e}",
                         )
                     )
@@ -99,7 +99,7 @@ class SyncService:
             if progress_callback:
                 progress_callback(
                     ProgressEvent(
-                        step=ProgressStep.STARTING,
+                        step=ProgressStep.FETCHING_INFO,
                         message=f"Found {total_tracks} tracks: {album_info.title}",
                         progress=10.0,
                         details={
@@ -180,7 +180,7 @@ class SyncService:
                 if progress_callback:
                     progress_callback(
                         ProgressEvent(
-                            step=ProgressStep.ERROR,
+                            step=ProgressStep.FAILED,
                             message=download_result.error or "Download failed",
                         )
                     )
@@ -212,7 +212,7 @@ class SyncService:
             if progress_callback:
                 progress_callback(
                     ProgressEvent(
-                        step=ProgressStep.TAGGING,
+                        step=ProgressStep.IMPORTING,
                         message="Starting import...",
                         progress=90.0,
                     )
@@ -229,7 +229,7 @@ class SyncService:
                 if progress_callback:
                     progress_callback(
                         ProgressEvent(
-                            step=ProgressStep.ERROR,
+                            step=ProgressStep.FAILED,
                             message=tag_result.error or "Import failed",
                         )
                     )
@@ -245,7 +245,7 @@ class SyncService:
             if progress_callback:
                 progress_callback(
                     ProgressEvent(
-                        step=ProgressStep.COMPLETE,
+                        step=ProgressStep.COMPLETED,
                         message=f"Sync complete: {tag_result.dest_dir}",
                         progress=100.0,
                         details={
@@ -270,7 +270,7 @@ class SyncService:
             if progress_callback:
                 progress_callback(
                     ProgressEvent(
-                        step=ProgressStep.ERROR,
+                        step=ProgressStep.FAILED,
                         message=str(e),
                     )
                 )
