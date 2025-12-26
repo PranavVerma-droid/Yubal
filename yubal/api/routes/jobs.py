@@ -1,14 +1,16 @@
-"""Jobs API routes."""
+"""Jobs API endpoints."""
 
 import asyncio
 from collections.abc import AsyncGenerator
 from datetime import UTC, datetime
+from pathlib import Path
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException, status
 from fastapi.responses import StreamingResponse
 
-from yubal.core.config import DEFAULT_BEETS_CONFIG, DEFAULT_LIBRARY_DIR
-from yubal.core.jobs import Job, JobStatus, job_store
+from yubal.api.dependencies import SettingsDep
+from yubal.core.enums import JobStatus
+from yubal.core.jobs import Job
 from yubal.core.models import AlbumInfo
 from yubal.core.progress import ProgressEvent
 from yubal.schemas.jobs import (
@@ -21,6 +23,7 @@ from yubal.schemas.jobs import (
     JobResponse,
     LogEntrySchema,
 )
+from yubal.services.job_store import job_store
 from yubal.services.sync import SyncService
 
 router = APIRouter()
@@ -55,7 +58,13 @@ def job_to_response(job: Job) -> JobResponse:
     )
 
 
-async def run_sync_job(job_id: str, url: str, audio_format: str) -> None:
+async def run_sync_job(
+    job_id: str,
+    url: str,
+    audio_format: str,
+    library_dir: Path,
+    beets_config: Path,
+) -> None:
     """Background task that runs the sync operation."""
     # Check if cancelled before starting
     if job_store.is_cancelled(job_id):
@@ -103,8 +112,8 @@ async def run_sync_job(job_id: str, url: str, audio_format: str) -> None:
 
     try:
         service = SyncService(
-            library_dir=DEFAULT_LIBRARY_DIR,
-            beets_config=DEFAULT_BEETS_CONFIG,
+            library_dir=library_dir,
+            beets_config=beets_config,
             audio_format=audio_format,
         )
 
@@ -227,6 +236,7 @@ async def _update_job_from_event(
 async def create_job(
     request: CreateJobRequest,
     background_tasks: BackgroundTasks,
+    settings: SettingsDep,
 ) -> JobCreatedResponse:
     """
     Create a new sync job.
@@ -247,7 +257,14 @@ async def create_job(
         )
 
     # Start the sync in the background
-    background_tasks.add_task(run_sync_job, job.id, request.url, request.audio_format)
+    background_tasks.add_task(
+        run_sync_job,
+        job.id,
+        request.url,
+        request.audio_format,
+        settings.library_dir,
+        settings.beets_config,
+    )
 
     return JobCreatedResponse(id=job.id)
 

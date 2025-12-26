@@ -35,7 +35,7 @@ export async function createJob(
   url: string,
   audioFormat = "mp3"
 ): Promise<CreateJobResult> {
-  const { data, error, response } = await api.POST("/api/v1/jobs", {
+  const { data, error, response } = await api.POST("/jobs", {
     body: { url, audio_format: audioFormat },
   });
 
@@ -56,7 +56,7 @@ export async function createJob(
 }
 
 export async function getJob(jobId: string): Promise<Job | null> {
-  const { data, error } = await api.GET("/api/v1/jobs/{job_id}", {
+  const { data, error } = await api.GET("/jobs/{job_id}", {
     params: { path: { job_id: jobId } },
   });
 
@@ -68,7 +68,7 @@ export async function listJobs(): Promise<{
   jobs: Job[];
   activeJobId: string | null;
 }> {
-  const { data, error } = await api.GET("/api/v1/jobs");
+  const { data, error } = await api.GET("/jobs");
 
   if (error) return { jobs: [], activeJobId: null };
   return {
@@ -78,7 +78,7 @@ export async function listJobs(): Promise<{
 }
 
 export async function deleteJob(jobId: string): Promise<void> {
-  const { error } = await api.DELETE("/api/v1/jobs/{job_id}", {
+  const { error } = await api.DELETE("/jobs/{job_id}", {
     params: { path: { job_id: jobId } },
   });
 
@@ -86,14 +86,14 @@ export async function deleteJob(jobId: string): Promise<void> {
 }
 
 export async function clearJobs(): Promise<number> {
-  const { data, error } = await api.DELETE("/api/v1/jobs");
+  const { data, error } = await api.DELETE("/jobs");
 
   if (error) throw new Error("Failed to clear jobs");
   return data.cleared;
 }
 
 export async function cancelJob(jobId: string): Promise<void> {
-  const { error } = await api.POST("/api/v1/jobs/{job_id}/cancel", {
+  const { error } = await api.POST("/jobs/{job_id}/cancel", {
     params: { path: { job_id: jobId } },
   });
 

@@ -1,18 +1,9 @@
-"""Progress reporting system for CLI and API."""
+"""Progress reporting system for API."""
 
 from dataclasses import dataclass, field
-from enum import Enum
 from typing import Any, Protocol
 
-
-class ProgressStep(str, Enum):
-    """Steps in the sync workflow. Values match JobStatus."""
-
-    FETCHING_INFO = "fetching_info"
-    DOWNLOADING = "downloading"
-    IMPORTING = "importing"
-    COMPLETED = "completed"
-    FAILED = "failed"
+from yubal.core.enums import ProgressStep
 
 
 @dataclass

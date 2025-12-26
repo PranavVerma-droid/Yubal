@@ -1,58 +1,59 @@
-"""FastAPI application."""
-
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
 
-
-class HealthResponse(BaseModel):
-    """Health check response model."""
-
-    status: str
+from yubal.api.exceptions import register_exception_handlers
+from yubal.api.routes import health, jobs
+from yubal.settings import get_settings
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
-    """Application lifespan handler."""
-    # Startup
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    """Application lifespan handler for startup/shutdown."""
+    # Startup: initialize resources
     yield
-    # Shutdown
+    # Shutdown: cleanup resources
 
 
-app = FastAPI(
-    title="yubal API",
-    description="YouTube Album Downloader API",
-    version="0.1.0",
-    lifespan=lifespan,
-)
+def create_app() -> FastAPI:
+    """Create and configure the FastAPI application."""
+    settings = get_settings()
 
-# CORS middleware for development
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+    app = FastAPI(
+        title="yubal API",
+        description="YouTube Album Downloader API",
+        version="0.1.0",
+        lifespan=lifespan,
+        debug=settings.debug,
+    )
 
-# Import and include routers
-from yubal.api.routes import jobs  # noqa: E402
+    # CORS middleware
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.cors_origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
-app.include_router(jobs.router, prefix="/api/v1", tags=["jobs"])
+    # Register exception handlers
+    register_exception_handlers(app)
+
+    # API routes
+    app.include_router(health.router)
+    app.include_router(jobs.router, tags=["jobs"])
+
+    # Static files
+    web_build = Path(__file__).parent.parent.parent / "web" / "dist"
+    if web_build.exists():
+        app.mount("/", StaticFiles(directory=web_build, html=True), name="static")
+
+    return app
 
 
-@app.get("/health", response_model=HealthResponse)
-async def health_check() -> HealthResponse:
-    """Health check endpoint."""
-    return HealthResponse(status="healthy")
-
-
-# Static file serving for production frontend
-# Path: project root / web / dist
-WEB_BUILD = Path(__file__).parent.parent.parent / "web" / "dist"
-if WEB_BUILD.exists():
-    app.mount("/", StaticFiles(directory=WEB_BUILD, html=True), name="static")
+# Create app instance for uvicorn
+app = create_app()

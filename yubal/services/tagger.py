@@ -1,19 +1,13 @@
-"""Music tagging and organization using beets CLI."""
-
 import json
 import os
 import subprocess
 import sys
 from pathlib import Path
 
-from yubal.core import (
-    LibraryHealth,
-    ProgressCallback,
-    ProgressEvent,
-    ProgressStep,
-    TagResult,
-)
 from yubal.core.constants import AUDIO_EXTENSIONS
+from yubal.core.enums import ProgressStep
+from yubal.core.models import LibraryHealth, TagResult
+from yubal.core.progress import ProgressCallback, ProgressEvent
 
 
 class Tagger:

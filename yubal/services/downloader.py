@@ -8,15 +8,10 @@ import yt_dlp
 from yt_dlp.postprocessor.metadataparser import MetadataParserPP
 from yt_dlp.utils import DownloadCancelled
 
-from yubal.core import (
-    AlbumInfo,
-    DownloadResult,
-    ProgressCallback,
-    ProgressEvent,
-    ProgressStep,
-    TrackInfo,
-)
 from yubal.core.constants import AUDIO_EXTENSIONS
+from yubal.core.enums import ProgressStep
+from yubal.core.models import AlbumInfo, DownloadResult, TrackInfo
+from yubal.core.progress import ProgressCallback, ProgressEvent
 
 # Type for cancellation check function
 CancelCheck = Callable[[], bool]

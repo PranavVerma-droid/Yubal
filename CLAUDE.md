@@ -3,6 +3,7 @@
 ## API guidelines
 
 - Run `just gen-api` (from project root) if there have been API changes.
+- Use `__init__.py` empty files for packages.
 - Jobs
   - Support job queuing and in-memory persistance of jobs.
   - We always want to run one job at a time, sequentially. Avoid multiple youtube downloads and beet imports at the same time.

@@ -1,5 +1,3 @@
-"""Domain models shared across CLI and API."""
-
 from pydantic import BaseModel
 
 

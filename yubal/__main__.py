@@ -2,14 +2,17 @@
 
 import uvicorn
 
+from yubal.settings import get_settings
+
 
 def main() -> None:
     """Start the FastAPI server."""
+    settings = get_settings()
     uvicorn.run(
         "yubal.api.app:app",
-        host="127.0.0.1",
-        port=8000,
-        reload=True,
+        host=settings.host,
+        port=settings.port,
+        reload=settings.reload,
     )
 
 

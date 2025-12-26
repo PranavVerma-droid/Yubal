@@ -1,17 +1,11 @@
-"""Sync service - orchestrates download and tagging workflow."""
-
 import shutil
 import tempfile
 from collections.abc import Callable
 from pathlib import Path
 
-from yubal.core import (
-    AlbumInfo,
-    ProgressCallback,
-    ProgressEvent,
-    ProgressStep,
-    SyncResult,
-)
+from yubal.core.enums import ProgressStep
+from yubal.core.models import AlbumInfo, SyncResult
+from yubal.core.progress import ProgressCallback, ProgressEvent
 from yubal.services.downloader import Downloader
 from yubal.services.tagger import Tagger
 
