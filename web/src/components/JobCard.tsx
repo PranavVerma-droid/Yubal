@@ -1,20 +1,10 @@
 import { Button, Progress } from "@heroui/react";
-import {
-  Clock,
-  Loader2,
-  CheckCircle,
-  XCircle,
-  X,
-  Play,
-  Trash2,
-} from "lucide-react";
+import { Clock, Loader2, CheckCircle, XCircle, X, Trash2 } from "lucide-react";
 import type { Job, JobStatus } from "../api/jobs";
 
 interface JobCardProps {
   job: Job;
-  isActive?: boolean;
   onCancel?: (jobId: string) => void;
-  onResume?: (jobId: string) => void;
   onDelete?: (jobId: string) => void;
 }
 
@@ -66,13 +56,7 @@ function isFinishedStatus(status: JobStatus): boolean {
   return ["completed", "failed", "cancelled"].includes(status);
 }
 
-export function JobCard({
-  job,
-  isActive,
-  onCancel,
-  onResume,
-  onDelete,
-}: JobCardProps) {
+export function JobCard({ job, onCancel, onDelete }: JobCardProps) {
   const isRunning = isRunningStatus(job.status);
   const isFinished = isFinishedStatus(job.status);
   const showProgress = isRunning;
@@ -85,11 +69,9 @@ export function JobCard({
   return (
     <div
       className={`bg-background rounded-lg border px-3 py-2.5 transition-colors ${
-        isActive
-          ? "border-primary/50 bg-primary/5"
-          : job.status === "cancelled"
-            ? "border-default-200 opacity-50"
-            : "border-default-200"
+        job.status === "cancelled"
+          ? "border-default-200 opacity-50"
+          : "border-default-200"
       }`}
     >
       <div className="flex items-center gap-3">
@@ -131,17 +113,6 @@ export function JobCard({
             <X className="h-3.5 w-3.5" />
           </Button>
         )}
-        {isFinished && !isActive && onResume && (
-          <Button
-            variant="light"
-            size="sm"
-            isIconOnly
-            className="text-default-500 hover:text-primary h-7 w-7 shrink-0"
-            onPress={() => onResume(job.id)}
-          >
-            <Play className="h-3.5 w-3.5" />
-          </Button>
-        )}
         {isFinished && onDelete && (
           <Button
             variant="light"
@@ -159,7 +130,7 @@ export function JobCard({
           <Progress
             value={job.progress}
             size="sm"
-            color={getProgressColor(job.status as JobStatus)}
+            color={getProgressColor(job.status)}
             className="flex-1"
             classNames={{
               indicator: "transition-all duration-500 ease-out",

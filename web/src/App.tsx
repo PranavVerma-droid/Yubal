@@ -8,7 +8,7 @@ import { DownloadsPanel } from "./components/DownloadsPanel";
 import { Header } from "./components/Header";
 import { Footer } from "./components/Footer";
 import { useJobs } from "./hooks/useJobs";
-import { deleteJob, clearJobs } from "./api/jobs";
+import { deleteJob } from "./api/jobs";
 
 export default function App() {
   const [url, setUrl] = useState("");
@@ -21,7 +21,6 @@ export default function App() {
     clearCurrentJob,
     jobs,
     refreshJobs,
-    resumeJob,
   } = useJobs();
 
   const canSync = isValidUrl(url);
@@ -38,12 +37,6 @@ export default function App() {
     if (jobId === currentJobId) {
       clearCurrentJob();
     }
-    await refreshJobs();
-  };
-
-  const handleClear = async () => {
-    await clearJobs();
-    clearCurrentJob();
     await refreshJobs();
   };
 
@@ -72,11 +65,8 @@ export default function App() {
         <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
           <DownloadsPanel
             jobs={jobs}
-            currentJobId={currentJobId}
             onCancel={cancelJob}
-            onResume={resumeJob}
             onDelete={handleDelete}
-            onClear={handleClear}
           />
           <ConsoleOutput logs={logs} status={status} />
         </div>
