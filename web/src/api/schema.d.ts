@@ -208,6 +208,51 @@ export interface components {
       status: string;
     };
     /**
+     * Job
+     * @description A background sync job.
+     */
+    Job: {
+      /** Id */
+      id: string;
+      /** Url */
+      url: string;
+      /**
+       * Audio Format
+       * @default mp3
+       */
+      audio_format: string;
+      /** @default pending */
+      status: components["schemas"]["JobStatus"];
+      /**
+       * Progress
+       * @default 0
+       */
+      progress: number;
+      /**
+       * Message
+       * @default
+       */
+      message: string;
+      album_info?: components["schemas"]["AlbumInfo"] | null;
+      /** Current Track */
+      current_track?: number | null;
+      /** Total Tracks */
+      total_tracks?: number | null;
+      /** Logs */
+      logs?: components["schemas"]["LogEntry"][];
+      /** Error */
+      error?: string | null;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at?: string;
+      /** Started At */
+      started_at?: string | null;
+      /** Completed At */
+      completed_at?: string | null;
+    };
+    /**
      * JobConflictError
      * @description Error response when job creation is rejected.
      */
@@ -239,54 +284,28 @@ export interface components {
      */
     JobListResponse: {
       /** Jobs */
-      jobs: components["schemas"]["JobResponse"][];
+      jobs: components["schemas"]["Job"][];
       /** Active Job Id */
       active_job_id?: string | null;
     };
     /**
-     * JobResponse
-     * @description Response schema for a job.
+     * JobStatus
+     * @description Status of a background job.
+     * @enum {string}
      */
-    JobResponse: {
-      /** Id */
-      id: string;
-      /** Url */
-      url: string;
-      /** Audio Format */
-      audio_format: string;
-      /** Status */
-      status: string;
-      /** Progress */
-      progress: number;
-      /** Message */
-      message: string;
-      album_info?: components["schemas"]["AlbumInfo"] | null;
-      /** Current Track */
-      current_track?: number | null;
-      /** Total Tracks */
-      total_tracks?: number | null;
-      /**
-       * Logs
-       * @default []
-       */
-      logs: components["schemas"]["LogEntrySchema"][];
-      /** Error */
-      error?: string | null;
-      /**
-       * Created At
-       * Format: date-time
-       */
-      created_at: string;
-      /** Started At */
-      started_at?: string | null;
-      /** Completed At */
-      completed_at?: string | null;
-    };
+    JobStatus:
+      | "pending"
+      | "fetching_info"
+      | "downloading"
+      | "importing"
+      | "completed"
+      | "failed"
+      | "cancelled";
     /**
-     * LogEntrySchema
+     * LogEntry
      * @description A log entry for a job.
      */
-    LogEntrySchema: {
+    LogEntry: {
       /**
        * Timestamp
        * Format: date-time
@@ -456,7 +475,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": components["schemas"]["JobResponse"];
+          "application/json": components["schemas"]["Job"];
         };
       };
       /** @description Validation Error */

@@ -5,8 +5,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from yubal.core.enums import JobStatus
-from yubal.core.jobs import Job, LogEntry
-from yubal.core.models import AlbumInfo
+from yubal.core.models import AlbumInfo, Job, LogEntry
 
 
 class JobStore:
@@ -32,7 +31,7 @@ class JobStore:
             # Check if there's an active job
             if self._active_job_id is not None:
                 active = self._jobs.get(self._active_job_id)
-                if active and active.phase not in (
+                if active and active.status not in (
                     JobStatus.COMPLETED,
                     JobStatus.FAILED,
                     JobStatus.CANCELLED,
@@ -94,7 +93,7 @@ class JobStore:
                 return False
 
             # Cannot cancel already finished jobs
-            if job.phase in (
+            if job.status in (
                 JobStatus.COMPLETED,
                 JobStatus.FAILED,
                 JobStatus.CANCELLED,
@@ -103,7 +102,7 @@ class JobStore:
 
             # Mark as cancelled
             self._cancellation_requested.add(job_id)
-            job.phase = JobStatus.CANCELLED
+            job.status = JobStatus.CANCELLED
             job.message = "Job cancelled by user"
             job.completed_at = datetime.now(UTC)
 
@@ -120,7 +119,7 @@ class JobStore:
     async def update_job(
         self,
         job_id: str,
-        phase: JobStatus | None = None,
+        status: JobStatus | None = None,
         progress: float | None = None,
         message: str | None = None,
         album_info: AlbumInfo | None = None,
@@ -137,11 +136,11 @@ class JobStore:
                 return None
 
             # Don't update cancelled jobs (prevents race conditions)
-            if job.phase == JobStatus.CANCELLED:
+            if job.status == JobStatus.CANCELLED:
                 return job
 
-            if phase is not None:
-                job.phase = phase
+            if status is not None:
+                job.status = status
             if progress is not None:
                 job.progress = progress
             if message is not None:
@@ -160,7 +159,7 @@ class JobStore:
                 job.completed_at = completed_at
 
             # Clear active job if completed, failed, or cancelled
-            if job.phase in (
+            if job.status in (
                 JobStatus.COMPLETED,
                 JobStatus.FAILED,
                 JobStatus.CANCELLED,
@@ -186,7 +185,7 @@ class JobStore:
                 return
 
             # Don't add logs to cancelled jobs (prevents stale updates)
-            if job.phase == JobStatus.CANCELLED:
+            if job.status == JobStatus.CANCELLED:
                 return
 
             entry = LogEntry(
@@ -213,7 +212,7 @@ class JobStore:
             if not job:
                 return False
 
-            if job.phase not in (
+            if job.status not in (
                 JobStatus.COMPLETED,
                 JobStatus.FAILED,
                 JobStatus.CANCELLED,
@@ -235,7 +234,7 @@ class JobStore:
             to_remove = [
                 job_id
                 for job_id, job in self._jobs.items()
-                if job.phase
+                if job.status
                 in (JobStatus.COMPLETED, JobStatus.FAILED, JobStatus.CANCELLED)
             ]
             for job_id in to_remove:
@@ -249,14 +248,14 @@ class JobStore:
 
         Returns True if job was timed out.
         """
-        if job.started_at and job.phase not in (
+        if job.started_at and job.status not in (
             JobStatus.COMPLETED,
             JobStatus.FAILED,
             JobStatus.CANCELLED,
         ):
             elapsed = datetime.now(UTC) - job.started_at
             if elapsed.total_seconds() > self.TIMEOUT_SECONDS:
-                job.phase = JobStatus.FAILED
+                job.status = JobStatus.FAILED
                 job.error = "Job timed out after 30 minutes"
                 job.completed_at = datetime.now(UTC)
                 if self._active_job_id == job.id:

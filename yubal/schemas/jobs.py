@@ -1,11 +1,8 @@
 """Job API schemas."""
 
-from datetime import datetime
-from typing import Any
-
 from pydantic import BaseModel
 
-from yubal.core.models import AlbumInfo
+from yubal.core.models import Job
 
 
 class CreateJobRequest(BaseModel):
@@ -15,41 +12,10 @@ class CreateJobRequest(BaseModel):
     audio_format: str = "mp3"
 
 
-class LogEntrySchema(BaseModel):
-    """A log entry for a job."""
-
-    timestamp: datetime
-    step: str
-    message: str
-    progress: float | None = None
-    details: dict[str, Any] | None = None
-
-
-class JobResponse(BaseModel):
-    """Response schema for a job."""
-
-    id: str
-    url: str
-    audio_format: str
-    status: (
-        str  # "pending", "fetching_info", "downloading", "importing", "completed", etc.
-    )
-    progress: float
-    message: str
-    album_info: AlbumInfo | None = None
-    current_track: int | None = None  # 1-based track number being processed
-    total_tracks: int | None = None  # Total tracks in album
-    logs: list[LogEntrySchema] = []
-    error: str | None = None
-    created_at: datetime
-    started_at: datetime | None = None
-    completed_at: datetime | None = None
-
-
 class JobListResponse(BaseModel):
     """Response for listing jobs."""
 
-    jobs: list[JobResponse]
+    jobs: list[Job]
     active_job_id: str | None = None
 
 

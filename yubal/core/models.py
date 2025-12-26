@@ -1,4 +1,9 @@
-from pydantic import BaseModel
+from datetime import UTC, datetime
+from typing import Any
+
+from pydantic import BaseModel, Field
+
+from yubal.core.enums import JobStatus
 
 
 class TrackInfo(BaseModel):
@@ -65,3 +70,34 @@ class SyncResult(BaseModel):
     album_info: AlbumInfo | None = None
     destination: str | None = None
     error: str | None = None
+
+
+class LogEntry(BaseModel):
+    """A log entry for a job."""
+
+    timestamp: datetime
+    step: str
+    message: str
+    progress: float | None = None
+    details: dict[str, Any] | None = None
+
+
+class Job(BaseModel):
+    """A background sync job."""
+
+    model_config = {"validate_assignment": True}
+
+    id: str
+    url: str
+    audio_format: str = "mp3"
+    status: JobStatus = JobStatus.PENDING
+    progress: float = 0.0
+    message: str = ""
+    album_info: AlbumInfo | None = None
+    current_track: int | None = None
+    total_tracks: int | None = None
+    logs: list[LogEntry] = Field(default_factory=list)
+    error: str | None = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    started_at: datetime | None = None
+    completed_at: datetime | None = None
