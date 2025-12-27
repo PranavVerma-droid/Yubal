@@ -4,7 +4,7 @@ from enum import Enum
 class JobStatus(str, Enum):
     """Status of a background job."""
 
-    PENDING = "pending"  # Job created, not started
+    PENDING = "pending"  # Waiting to start
     FETCHING_INFO = "fetching_info"  # Extracting album metadata
     DOWNLOADING = "downloading"  # Downloading tracks (0-80%)
     IMPORTING = "importing"  # Beets import (80-100%)

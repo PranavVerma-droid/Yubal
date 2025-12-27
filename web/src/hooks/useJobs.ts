@@ -1,7 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import {
   createJob,
-  getJob,
   listJobs,
   cancelJob as cancelJobApi,
   type Job,
@@ -35,8 +34,6 @@ export interface UseJobsResult {
 
   // Job list
   jobs: Job[];
-  activeJobs: Job[];
-  completedJobs: Job[];
   refreshJobs: () => Promise<void>;
   resumeJob: (jobId: string) => void;
 }
@@ -44,7 +41,7 @@ export interface UseJobsResult {
 const POLL_INTERVAL = 2000; // 2 seconds
 
 export function useJobs(): UseJobsResult {
-  // Current job state
+  // Current job state (for console display)
   const [currentJobId, setCurrentJobId] = useState<string | null>(null);
   const [status, setStatus] = useState<JobStatus>("idle");
   const [progress, setProgress] = useState(0);
@@ -59,6 +56,7 @@ export function useJobs(): UseJobsResult {
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
   const logIdRef = useRef(0);
   const lastMessageRef = useRef<string>("");
+  const isPollingRef = useRef(false);
 
   const addLog = useCallback((step: JobStatus, message: string) => {
     // Skip if same message as last logged
@@ -94,54 +92,54 @@ export function useJobs(): UseJobsResult {
     }
   }, []);
 
-  const startPolling = useCallback(
-    (jobId: string) => {
-      stopPolling();
+  const startPolling = useCallback(() => {
+    if (isPollingRef.current) return;
+    isPollingRef.current = true;
+    stopPolling();
 
-      const poll = async () => {
-        const job = await getJob(jobId);
-        if (!job) {
-          stopPolling();
-          setError("Job not found");
-          setStatus("failed");
-          return;
-        }
+    const poll = async () => {
+      const { jobs: jobList } = await listJobs();
+      setJobs(jobList);
 
-        const newStatus = job.status;
-        setStatus(newStatus);
-        setProgress(job.progress);
+      // Check if there are any active jobs
+      const hasActiveJobs = jobList.some(
+        (j) => !["completed", "failed", "cancelled"].includes(j.status)
+      );
 
-        // Update the job in the jobs array so DownloadsPanel gets live updates
-        setJobs((prevJobs) => prevJobs.map((j) => (j.id === jobId ? job : j)));
+      // Stop polling if no active jobs
+      if (!hasActiveJobs) {
+        stopPolling();
+        isPollingRef.current = false;
+      }
+    };
 
-        if (job.album_info) {
-          setAlbumInfo(job.album_info);
-        }
+    // Poll immediately, then at interval
+    poll();
+    pollingRef.current = setInterval(poll, POLL_INTERVAL);
+  }, [stopPolling]);
 
-        if (job.message) {
-          addLog(newStatus, job.message);
-        }
+  // Update current job state when jobs change
+  useEffect(() => {
+    if (!currentJobId) return;
+    const job = jobs.find((j) => j.id === currentJobId);
+    if (!job) return;
 
-        if (job.error) {
-          setError(job.error);
-        }
+    setStatus(job.status);
+    setProgress(job.progress);
 
-        // Stop polling if job is completed, failed, or cancelled
-        if (
-          newStatus === "completed" ||
-          newStatus === "failed" ||
-          newStatus === "cancelled"
-        ) {
-          stopPolling();
-        }
-      };
+    if (job.album_info) {
+      setAlbumInfo(job.album_info);
+    }
 
-      // Poll immediately, then at interval
-      poll();
-      pollingRef.current = setInterval(poll, POLL_INTERVAL);
-    },
-    [addLog, stopPolling]
-  );
+    if (job.message && job.message !== lastMessageRef.current) {
+      lastMessageRef.current = job.message;
+      addLog(job.status, job.message);
+    }
+
+    if (job.error) {
+      setError(job.error);
+    }
+  }, [jobs, currentJobId, addLog]);
 
   const startJob = useCallback(
     async (url: string, audioFormat = "mp3") => {
@@ -155,12 +153,6 @@ export function useJobs(): UseJobsResult {
         setStatus("failed");
         setError(result.error);
         addLog("failed", result.error);
-
-        // If there's an active job, set it as current so user can see it
-        if (result.activeJobId) {
-          setCurrentJobId(result.activeJobId);
-          addLog("pending", `Active job: ${result.activeJobId}`);
-        }
         return;
       }
 
@@ -171,7 +163,7 @@ export function useJobs(): UseJobsResult {
       const { jobs: jobList } = await listJobs();
       setJobs(jobList);
 
-      startPolling(result.jobId);
+      startPolling();
     },
     [addLog, resetState, startPolling]
   );
@@ -185,6 +177,11 @@ export function useJobs(): UseJobsResult {
   const refreshJobs = useCallback(async () => {
     const { jobs: jobList, activeJobId } = await listJobs();
     setJobs(jobList);
+
+    // Check if there are any active jobs
+    const hasActiveJobs = jobList.some(
+      (j) => !["completed", "failed", "cancelled"].includes(j.status)
+    );
 
     // Auto-resume active job if we're not tracking any
     if (activeJobId && !currentJobId) {
@@ -210,10 +207,12 @@ export function useJobs(): UseJobsResult {
         }));
         setLogs(newLogs);
         logIdRef.current = newLogs.length;
-
-        // Start polling
-        startPolling(activeJobId);
       }
+    }
+
+    // Start polling if there are active jobs
+    if (hasActiveJobs) {
+      startPolling();
     }
   }, [currentJobId, startPolling]);
 
@@ -261,20 +260,10 @@ export function useJobs(): UseJobsResult {
 
       // If job is still running, start polling
       if (!["completed", "failed", "cancelled"].includes(job.status)) {
-        startPolling(jobId);
+        startPolling();
       }
     },
     [jobs, resetState, startPolling]
-  );
-
-  // Computed job lists
-  const activeJobs = jobs.filter((job) =>
-    ["pending", "fetching_info", "downloading", "importing"].includes(
-      job.status
-    )
-  );
-  const completedJobs = jobs.filter((job) =>
-    ["completed", "failed", "cancelled"].includes(job.status)
   );
 
   // Refresh jobs on mount and check for active job
@@ -302,8 +291,6 @@ export function useJobs(): UseJobsResult {
     clearCurrentJob,
     cancelJob,
     jobs,
-    activeJobs,
-    completedJobs,
     refreshJobs,
     resumeJob,
   };

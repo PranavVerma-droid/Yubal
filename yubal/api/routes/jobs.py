@@ -146,6 +146,20 @@ async def run_sync_job(
         )
         await job_store.add_log(job_id, "failed", str(e))
 
+    # Start next pending job if any (fire-and-forget, no blocking)
+    next_job = await job_store.pop_next_pending()
+    if next_job:
+        task = asyncio.create_task(
+            run_sync_job(
+                next_job.id,
+                next_job.url,
+                next_job.audio_format,
+                library_dir,
+                beets_config,
+            )
+        )
+        del task  # Fire-and-forget
+
 
 async def _update_job_from_event(
     job_id: str, new_status: JobStatus, event: ProgressEvent
@@ -199,7 +213,7 @@ async def _update_job_from_event(
     "/jobs",
     response_model=JobCreatedResponse,
     status_code=status.HTTP_201_CREATED,
-    responses={409: {"model": JobConflictError, "description": "Job already running"}},
+    responses={409: {"model": JobConflictError, "description": "Queue is full"}},
 )
 async def create_job(
     request: CreateJobRequest,
@@ -209,30 +223,27 @@ async def create_job(
     """
     Create a new sync job.
 
-    Only one job can run at a time. If a job is already running,
-    returns 409 Conflict with the active job ID.
+    Jobs are queued and executed sequentially. Returns 409 only if queue is full.
     """
-    job = await job_store.create_job(request.url, request.audio_format)
+    result = await job_store.create_job(request.url, request.audio_format)
 
-    if job is None:
-        active_job = await job_store.get_active_job()
+    if result is None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail={
-                "error": "A job is already running",
-                "active_job_id": active_job.id if active_job else None,
-            },
+            detail={"error": "Queue is full", "active_job_id": None},
         )
 
-    # Start the sync in the background
-    background_tasks.add_task(
-        run_sync_job,
-        job.id,
-        request.url,
-        request.audio_format,
-        settings.library_dir,
-        settings.beets_config,
-    )
+    job, should_start = result
+
+    if should_start:
+        background_tasks.add_task(
+            run_sync_job,
+            job.id,
+            request.url,
+            request.audio_format,
+            settings.library_dir,
+            settings.beets_config,
+        )
 
     return JobCreatedResponse(id=job.id)
 
@@ -268,9 +279,9 @@ async def get_job(job_id: str) -> Job:
 
 
 @router.post("/jobs/{job_id}/cancel", response_model=CancelJobResponse)
-async def cancel_job(job_id: str) -> CancelJobResponse:
+async def cancel_job(job_id: str, settings: SettingsDep) -> CancelJobResponse:
     """
-    Cancel a running job.
+    Cancel a running or queued job.
 
     Returns 404 if job not found, 409 if job already finished.
     """
@@ -293,6 +304,20 @@ async def cancel_job(job_id: str) -> CancelJobResponse:
             status_code=status.HTTP_409_CONFLICT,
             detail="Could not cancel job",
         )
+
+    # Start next pending job if any
+    next_job = await job_store.pop_next_pending()
+    if next_job:
+        task = asyncio.create_task(
+            run_sync_job(
+                next_job.id,
+                next_job.url,
+                next_job.audio_format,
+                settings.library_dir,
+                settings.beets_config,
+            )
+        )
+        del task  # Fire-and-forget
 
     return CancelJobResponse()
 

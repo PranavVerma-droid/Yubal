@@ -21,28 +21,31 @@ class JobStore:
         self._active_job_id: str | None = None
         self._cancellation_requested: set[str] = set()
 
-    async def create_job(self, url: str, audio_format: str = "mp3") -> Job | None:
+    async def create_job(
+        self, url: str, audio_format: str = "mp3"
+    ) -> tuple[Job, bool] | None:
         """
         Create a new job.
 
-        Returns None if a job is already running (caller should return 409).
+        Returns (job, should_start_immediately) or None if queue is full.
         """
         async with self._lock:
-            # Check if there's an active job
-            if self._active_job_id is not None:
-                active = self._jobs.get(self._active_job_id)
-                if active and active.status not in (
-                    JobStatus.COMPLETED,
-                    JobStatus.FAILED,
-                    JobStatus.CANCELLED,
-                ):
-                    return None  # Job already running
-
-            # Prune old jobs if at capacity
+            # Prune completed/failed jobs if at capacity
             while len(self._jobs) >= self.MAX_JOBS:
-                # Remove oldest job (first item in OrderedDict)
-                oldest_id = next(iter(self._jobs))
-                del self._jobs[oldest_id]
+                pruneable = [
+                    j
+                    for j in self._jobs.values()
+                    if j.status
+                    in (JobStatus.COMPLETED, JobStatus.FAILED, JobStatus.CANCELLED)
+                ]
+                if not pruneable:
+                    return None  # Queue full, all jobs active/queued
+                oldest = min(pruneable, key=lambda j: j.created_at)
+                del self._jobs[oldest.id]
+                self._cancellation_requested.discard(oldest.id)
+
+            # Check if we should start immediately
+            should_start = self._active_job_id is None
 
             # Create new job
             job = Job(
@@ -51,9 +54,11 @@ class JobStore:
                 audio_format=audio_format,
             )
             self._jobs[job.id] = job
-            self._active_job_id = job.id
 
-            return job
+            if should_start:
+                self._active_job_id = job.id
+
+            return job, should_start
 
     async def get_job(self, job_id: str) -> Job | None:
         """Get a job by ID. Also checks for timeout."""
@@ -64,12 +69,12 @@ class JobStore:
             return job
 
     async def get_all_jobs(self) -> list[Job]:
-        """Get all jobs, most recent first."""
+        """Get all jobs, oldest first (FIFO order)."""
         async with self._lock:
             # Check timeouts on all active jobs
             for job in self._jobs.values():
                 self._check_timeout(job)
-            return list(reversed(self._jobs.values()))
+            return list(self._jobs.values())
 
     async def get_active_job(self) -> Job | None:
         """Get the currently active job, if any."""
@@ -80,6 +85,20 @@ class JobStore:
                     self._check_timeout(job)
                 return job
             return None
+
+    async def pop_next_pending(self) -> Job | None:
+        """Get and activate the next pending job (FIFO). Returns None if none."""
+        async with self._lock:
+            pending = [
+                j
+                for j in self._jobs.values()
+                if j.status == JobStatus.PENDING and j.id != self._active_job_id
+            ]
+            if not pending:
+                return None
+            oldest = min(pending, key=lambda j: j.created_at)
+            self._active_job_id = oldest.id
+            return oldest
 
     async def cancel_job(self, job_id: str) -> bool:
         """

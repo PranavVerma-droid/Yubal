@@ -40,8 +40,7 @@ export interface paths {
      * Create Job
      * @description Create a new sync job.
      *
-     *     Only one job can run at a time. If a job is already running,
-     *     returns 409 Conflict with the active job ID.
+     *     Jobs are queued and executed sequentially. Returns 409 only if queue is full.
      */
     post: operations["create_job_api_jobs_post"];
     /**
@@ -93,7 +92,7 @@ export interface paths {
     put?: never;
     /**
      * Cancel Job
-     * @description Cancel a running job.
+     * @description Cancel a running or queued job.
      *
      *     Returns 404 if job not found, 409 if job already finished.
      */
@@ -418,7 +417,7 @@ export interface operations {
           "application/json": components["schemas"]["JobCreatedResponse"];
         };
       };
-      /** @description Job already running */
+      /** @description Queue is full */
       409: {
         headers: {
           [name: string]: unknown;

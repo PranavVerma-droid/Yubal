@@ -15,15 +15,8 @@ export function DownloadsPanel({
   onCancel,
   onDelete,
 }: DownloadsPanelProps) {
-  // Split jobs into active (queue) and completed (history)
-  const activeJobs = jobs.filter((job) =>
-    ["pending", "fetching_info", "downloading", "importing"].includes(
-      job.status
-    )
-  );
-  const completedJobs = jobs.filter((job) =>
-    ["completed", "failed", "cancelled"].includes(job.status)
-  );
+  const isActive = (status: string) =>
+    ["pending", "fetching_info", "downloading", "importing"].includes(status);
 
   return (
     <Panel>
@@ -50,18 +43,7 @@ export function DownloadsPanel({
           </div>
         ) : (
           <AnimatePresence initial={false}>
-            {activeJobs.map((job) => (
-              <motion.div
-                key={job.id}
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.2 }}
-              >
-                <JobCard job={job} onCancel={onCancel} />
-              </motion.div>
-            ))}
-            {completedJobs.map((job) => (
+            {jobs.map((job) => (
               <motion.div
                 key={job.id}
                 initial={{ opacity: 0, y: -10 }}
@@ -69,7 +51,11 @@ export function DownloadsPanel({
                 exit={{ opacity: 0, height: 0, marginBottom: 0 }}
                 transition={{ duration: 0.2 }}
               >
-                <JobCard job={job} onDelete={onDelete} />
+                <JobCard
+                  job={job}
+                  onCancel={isActive(job.status) ? onCancel : undefined}
+                  onDelete={!isActive(job.status) ? onDelete : undefined}
+                />
               </motion.div>
             ))}
           </AnimatePresence>
