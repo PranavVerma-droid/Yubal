@@ -4,6 +4,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+from loguru import logger
+
 from yubal.core.constants import AUDIO_EXTENSIONS
 from yubal.core.enums import ProgressStep
 from yubal.core.models import LibraryHealth, TagResult
@@ -64,10 +66,12 @@ class Tagger:
             )
 
             if result.returncode != 0:
+                error_msg = f"Beets failed (code {result.returncode}): {result.stdout}"
+                logger.error(error_msg)
                 return TagResult(
                     success=False,
                     source_dir=str(source_dir),
-                    error=f"Beets import failed: {result.stderr}",
+                    error=error_msg,
                 )
 
             # Find where the album was imported
@@ -131,6 +135,7 @@ class Tagger:
         cmd.append(str(source_dir))
 
         msg = f"Running beets: {' '.join(cmd)}"
+        logger.info(msg)
         if progress_callback:
             progress_callback(
                 ProgressEvent(
@@ -138,8 +143,6 @@ class Tagger:
                     message=msg,
                 )
             )
-        else:
-            print(msg)
 
         # Use Popen to stream output in real-time
         # Pipe stdin with newlines to auto-accept prompts (beets -q needs stdin open)
@@ -159,6 +162,10 @@ class Tagger:
         stdout_lines = []
         for line in process.stdout:
             line = line.rstrip()
+            if "error" in line.lower():
+                logger.error("[beets] {}", line)
+            else:
+                logger.info("[beets] {}", line)
             if progress_callback:
                 progress_callback(
                     ProgressEvent(
@@ -166,13 +173,12 @@ class Tagger:
                         message=f"[beets] {line}",
                     )
                 )
-            else:
-                print(f"  [beets] {line}")
             stdout_lines.append(line)
 
         process.wait(timeout=300)
 
         msg = f"Beets returncode: {process.returncode}"
+        logger.info(msg)
         if progress_callback:
             progress_callback(
                 ProgressEvent(
@@ -181,8 +187,6 @@ class Tagger:
                     details={"returncode": process.returncode},
                 )
             )
-        else:
-            print(msg)
 
         # Return a CompletedProcess-like result for compatibility
         return subprocess.CompletedProcess(

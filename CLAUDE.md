@@ -1,5 +1,27 @@
 # CLAUDE.md
 
+## My Preferences
+
+- Lint and format after finishing modifying source code.
+  - Use the justfile commands.
+  - If only typescript has been modified, run only the format and lintingn for typescript
+  - If only backend has been modified, run only the format and linting for python
+  - If both are modified. Format and lint everything
+- Pragmatic over clever
+- Minimal dependencies
+- Modern Python (3.12+, Pydantic v2, etc.)
+- Question assumptions before implementing
+
+## Decision Making
+
+When suggesting libraries, tools, or patterns:
+- Compare 2-3 options with trade-offs before choosing
+- Check maintenance status (last commit, open issues)
+- Prefer modern, actively maintained solutions
+- Consider what's already in the stack
+
+Don't just grab the first library that solves the problem.
+
 ## API guidelines
 
 - Run `just gen-api` (from project root) if there have been API changes.
@@ -80,15 +102,6 @@ border-primary         # Active/focus states
 - Use `foreground` scale for text, `default` scale for UI elements
 - Match HeroUI components: `rounded-medium`, `border-medium`, `bg-default-100`
 - Don't use arbitrary colors — stick to semantic tokens
-
-## General
-
-- Lint and format after finishing modifying source code.
-  - Use the justfile commands.
-  - If only typescript has been modified, run only the format and lintingn for typescript
-  - If only backend has been modified, run only the format and linting for python
-  - If both are modified. Format and lint everything
-
 
 ## justfile commands
 

@@ -2,6 +2,9 @@
 directory: ../data
 library: ./beets.db
 
+include:
+  - secrets.yaml
+
 plugins: fetchart embedart fromfilename spotify zero lastgenre
 
 threaded: yes
@@ -51,8 +54,6 @@ embedart:
 spotify:
   data_source_mismatch_penalty: 0.0
   search_limit: 10
-  client_id: $SPOTIFY_CLIENT_ID
-  client_secret: $SPOTIFY_CLIENT_SECRET
 
 lastgenre:
   auto: yes

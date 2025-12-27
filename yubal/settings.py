@@ -3,17 +3,16 @@
 from functools import lru_cache
 from pathlib import Path
 
-from dotenv import load_dotenv
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-load_dotenv()
+_PROJECT_ROOT = Path(__file__).parent.parent
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_prefix="YUBAL_",
-        env_file=".env",
+        env_file=_PROJECT_ROOT / ".env",
         env_file_encoding="utf-8",
         extra="ignore",
     )
@@ -21,16 +20,16 @@ class Settings(BaseSettings):
     # Server settings
     host: str = Field(default="127.0.0.1", description="Server host")
     port: int = Field(default=8000, description="Server port")
-    reload: bool = Field(default=True, description="Enable auto-reload")
+    reload: bool = Field(default=False, description="Enable auto-reload")
     debug: bool = Field(default=False, description="Enable debug mode")
 
     # Path settings
     data_dir: Path = Field(
-        default=Path(__file__).parent / "data",
+        default=_PROJECT_ROOT / "data",
         description="Music library directory",
     )
     beets_dir: Path = Field(
-        default=Path(__file__).parent / "beets",
+        default=_PROJECT_ROOT / "beets",
         description="Beets directory",
     )
 

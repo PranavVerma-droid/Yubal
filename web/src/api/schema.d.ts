@@ -4,7 +4,7 @@
  */
 
 export interface paths {
-  "/health": {
+  "/api/health": {
     parameters: {
       query?: never;
       header?: never;
@@ -12,7 +12,7 @@ export interface paths {
       cookie?: never;
     };
     /** Health Check */
-    get: operations["health_check_health_get"];
+    get: operations["health_check_api_health_get"];
     put?: never;
     post?: never;
     delete?: never;
@@ -21,7 +21,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  "/jobs": {
+  "/api/jobs": {
     parameters: {
       query?: never;
       header?: never;
@@ -34,7 +34,7 @@ export interface paths {
      *
      *     Returns up to 50 jobs with their current status.
      */
-    get: operations["list_jobs_jobs_get"];
+    get: operations["list_jobs_api_jobs_get"];
     put?: never;
     /**
      * Create Job
@@ -43,20 +43,20 @@ export interface paths {
      *     Only one job can run at a time. If a job is already running,
      *     returns 409 Conflict with the active job ID.
      */
-    post: operations["create_job_jobs_post"];
+    post: operations["create_job_api_jobs_post"];
     /**
      * Clear Jobs
      * @description Clear all completed/failed jobs.
      *
      *     Running jobs are not affected.
      */
-    delete: operations["clear_jobs_jobs_delete"];
+    delete: operations["clear_jobs_api_jobs_delete"];
     options?: never;
     head?: never;
     patch?: never;
     trace?: never;
   };
-  "/jobs/{job_id}": {
+  "/api/jobs/{job_id}": {
     parameters: {
       query?: never;
       header?: never;
@@ -67,7 +67,7 @@ export interface paths {
      * Get Job
      * @description Get a specific job by ID.
      */
-    get: operations["get_job_jobs__job_id__get"];
+    get: operations["get_job_api_jobs__job_id__get"];
     put?: never;
     post?: never;
     /**
@@ -76,13 +76,13 @@ export interface paths {
      *
      *     Running jobs cannot be deleted (returns 409).
      */
-    delete: operations["delete_job_jobs__job_id__delete"];
+    delete: operations["delete_job_api_jobs__job_id__delete"];
     options?: never;
     head?: never;
     patch?: never;
     trace?: never;
   };
-  "/jobs/{job_id}/cancel": {
+  "/api/jobs/{job_id}/cancel": {
     parameters: {
       query?: never;
       header?: never;
@@ -97,14 +97,14 @@ export interface paths {
      *
      *     Returns 404 if job not found, 409 if job already finished.
      */
-    post: operations["cancel_job_jobs__job_id__cancel_post"];
+    post: operations["cancel_job_api_jobs__job_id__cancel_post"];
     delete?: never;
     options?: never;
     head?: never;
     patch?: never;
     trace?: never;
   };
-  "/jobs/{job_id}/stream": {
+  "/api/jobs/{job_id}/stream": {
     parameters: {
       query?: never;
       header?: never;
@@ -118,7 +118,7 @@ export interface paths {
      *     Immediately sends current job state, then streams updates until
      *     job completes or client disconnects.
      */
-    get: operations["stream_job_jobs__job_id__stream_get"];
+    get: operations["stream_job_api_jobs__job_id__stream_get"];
     put?: never;
     post?: never;
     delete?: never;
@@ -356,7 +356,7 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
-  health_check_health_get: {
+  health_check_api_health_get: {
     parameters: {
       query?: never;
       header?: never;
@@ -376,7 +376,7 @@ export interface operations {
       };
     };
   };
-  list_jobs_jobs_get: {
+  list_jobs_api_jobs_get: {
     parameters: {
       query?: never;
       header?: never;
@@ -396,7 +396,7 @@ export interface operations {
       };
     };
   };
-  create_job_jobs_post: {
+  create_job_api_jobs_post: {
     parameters: {
       query?: never;
       header?: never;
@@ -438,7 +438,7 @@ export interface operations {
       };
     };
   };
-  clear_jobs_jobs_delete: {
+  clear_jobs_api_jobs_delete: {
     parameters: {
       query?: never;
       header?: never;
@@ -458,7 +458,7 @@ export interface operations {
       };
     };
   };
-  get_job_jobs__job_id__get: {
+  get_job_api_jobs__job_id__get: {
     parameters: {
       query?: never;
       header?: never;
@@ -489,7 +489,7 @@ export interface operations {
       };
     };
   };
-  delete_job_jobs__job_id__delete: {
+  delete_job_api_jobs__job_id__delete: {
     parameters: {
       query?: never;
       header?: never;
@@ -518,7 +518,7 @@ export interface operations {
       };
     };
   };
-  cancel_job_jobs__job_id__cancel_post: {
+  cancel_job_api_jobs__job_id__cancel_post: {
     parameters: {
       query?: never;
       header?: never;
@@ -549,7 +549,7 @@ export interface operations {
       };
     };
   };
-  stream_job_jobs__job_id__stream_get: {
+  stream_job_api_jobs__job_id__stream_get: {
     parameters: {
       query?: never;
       header?: never;

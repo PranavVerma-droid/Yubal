@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any
 
 import yt_dlp
+from loguru import logger
 from yt_dlp.postprocessor.metadataparser import MetadataParserPP
 from yt_dlp.utils import DownloadCancelled
 
@@ -12,6 +13,26 @@ from yubal.core.constants import AUDIO_EXTENSIONS
 from yubal.core.enums import ProgressStep
 from yubal.core.models import AlbumInfo, DownloadResult, TrackInfo
 from yubal.core.progress import ProgressCallback, ProgressEvent
+
+
+class YtdlpLogger:
+    """Custom logger for yt-dlp that uses loguru."""
+
+    def debug(self, msg: str) -> None:
+        # yt-dlp sends most output as debug, filter noise
+        if msg.startswith("[debug]"):
+            return
+        logger.debug("[yt-dlp] {}", msg)
+
+    def info(self, msg: str) -> None:
+        logger.info("[yt-dlp] {}", msg)
+
+    def warning(self, msg: str) -> None:
+        logger.warning("[yt-dlp] {}", msg)
+
+    def error(self, msg: str) -> None:
+        logger.error("[yt-dlp] {}", msg)
+
 
 # Type for cancellation check function
 CancelCheck = Callable[[], bool]
@@ -365,6 +386,5 @@ class Downloader:
             "writethumbnail": True,
             "progress_hooks": [progress_hook],
             "ignoreerrors": True,  # Continue on individual track errors
-            "no_warnings": False,
-            "quiet": False,
+            "logger": YtdlpLogger(),
         }

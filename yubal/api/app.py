@@ -44,8 +44,8 @@ def create_app() -> FastAPI:
     register_exception_handlers(app)
 
     # API routes
-    app.include_router(health.router)
-    app.include_router(jobs.router, tags=["jobs"])
+    app.include_router(health.router, prefix="/api")
+    app.include_router(jobs.router, prefix="/api", tags=["jobs"])
 
     # Static files
     web_build = Path(__file__).parent.parent.parent / "web" / "dist"
