@@ -51,8 +51,8 @@ embedart:
 spotify:
   data_source_mismatch_penalty: 0.0
   search_limit: 10
-  client_id: fde699cf3cef46a796cdf80b0c714701
-  client_secret: a07797d4a0894aab939a26545f38dc56
+  client_id: $SPOTIFY_CLIENT_ID
+  client_secret: $SPOTIFY_CLIENT_SECRET
 
 lastgenre:
   auto: yes

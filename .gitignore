@@ -1,6 +1,3 @@
-/beets
-!/beets/config.yaml
-
 ### macOS ###
 # General
 .DS_Store
@@ -184,3 +181,8 @@ pip-selfcheck.json
 .ionide
 
 # End of https://www.toptal.com/developers/gitignore/api/python,deno,react,visualstudiocode,macos,venv
+
+/beets/
+!/beets/config.yaml
+.env
+
