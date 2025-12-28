@@ -60,6 +60,8 @@ export function JobCard({ job, onCancel, onDelete }: JobCardProps) {
   const year = job.album_info?.year || null;
   const trackCount = job.album_info?.track_count || null;
   const thumbnailUrl = job.album_info?.thumbnail_url || null;
+  const audioCodec = job.album_info?.audio_codec || null;
+  const audioBitrate = job.album_info?.audio_bitrate || null;
 
   return (
     <div
@@ -104,6 +106,15 @@ export function JobCard({ job, onCancel, onDelete }: JobCardProps) {
                     <span className="text-foreground-400/30 text-xs">·</span>
                     <span className="text-foreground-500/70 font-mono text-xs">
                       {trackCount} tracks
+                    </span>
+                  </>
+                )}
+                {isJobFinished && audioCodec && (
+                  <>
+                    <span className="text-foreground-400/30 text-xs">·</span>
+                    <span className="text-foreground-500/70 font-mono text-xs uppercase">
+                      {audioCodec}
+                      {audioBitrate && ` ${audioBitrate}kbps`}
                     </span>
                   </>
                 )}

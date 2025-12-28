@@ -10,7 +10,6 @@ from yt_dlp.postprocessor.metadataparser import MetadataParserPP
 from yt_dlp.utils import DownloadCancelled
 
 from yubal.core.callbacks import ProgressCallback, ProgressEvent
-from yubal.core.constants import AUDIO_EXTENSIONS
 from yubal.core.enums import ProgressStep
 from yubal.core.models import AlbumInfo, DownloadResult
 
@@ -111,11 +110,10 @@ class Downloader:
 
     def _create_progress_hook(
         self,
-        downloaded_files: list[Path],
         progress_callback: ProgressCallback | None = None,
         cancel_check: CancelCheck | None = None,
     ) -> Callable[[dict[str, Any]], None]:
-        """Create a progress hook that tracks downloaded files."""
+        """Create a progress hook for download progress (percent, speed)."""
 
         def hook(d: dict[str, Any]) -> None:
             # Check for cancellation before processing
@@ -156,24 +154,31 @@ class Downloader:
                     )
             elif d["status"] == "finished":
                 print()  # New line after progress
-                filename = d.get("info_dict", {}).get("filepath") or d.get("filename")
-                if filename:
-                    downloaded_files.append(Path(filename))
-                    msg = f"Track {track_idx + 1} completed: {Path(filename).name}"
-                    if progress_callback:
-                        progress_callback(
-                            ProgressEvent(
-                                step=ProgressStep.DOWNLOADING,
-                                message=msg,
-                                progress=100.0,
-                                details={
-                                    "filename": Path(filename).name,
-                                    "track_index": track_idx,
-                                },
-                            )
+                if progress_callback:
+                    progress_callback(
+                        ProgressEvent(
+                            step=ProgressStep.DOWNLOADING,
+                            message=f"Track {track_idx + 1} download complete",
+                            progress=100.0,
+                            details={"track_index": track_idx},
                         )
-                    else:
-                        print(f"  {msg}")
+                    )
+
+        return hook
+
+    def _create_postprocessor_hook(
+        self,
+        downloaded_files: set[Path],
+    ) -> Callable[[dict[str, Any]], None]:
+        """Capture filepaths from postprocessors, dedupe with set."""
+
+        def hook(d: dict[str, Any]) -> None:
+            if d["status"] != "finished":
+                return
+
+            filepath = d.get("info_dict", {}).get("filepath")
+            if filepath:
+                downloaded_files.add(Path(filepath))
 
         return hook
 
@@ -198,33 +203,29 @@ class Downloader:
         """
         output_dir.mkdir(parents=True, exist_ok=True)
 
-        downloaded_files: list[Path] = []
+        downloaded_files: set[Path] = set()
         album_info: AlbumInfo | None = None
 
         ydl_opts = self._get_ydl_opts(
             output_dir,
-            self._create_progress_hook(
-                downloaded_files, progress_callback, cancel_check
-            ),
+            self._create_progress_hook(progress_callback, cancel_check),
         )
 
         try:
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                # Bug workaround: must call add_postprocessor_hook() explicitly
+                # See: https://github.com/yt-dlp/yt-dlp/issues/1650
+                ydl.add_postprocessor_hook(
+                    self._create_postprocessor_hook(downloaded_files)
+                )
                 info = ydl.extract_info(url, download=True)
                 album_info = self._parse_album_info(info, url)
-
-            # Find all audio files in output directory
-            all_files = [
-                f
-                for f in output_dir.iterdir()
-                if f.is_file() and f.suffix.lower() in AUDIO_EXTENSIONS
-            ]
 
             return DownloadResult(
                 success=True,
                 album_info=album_info,
                 output_dir=str(output_dir),
-                downloaded_files=[str(f) for f in all_files],
+                downloaded_files=[str(f) for f in downloaded_files],
             )
 
         except DownloadCancelled:
@@ -249,6 +250,25 @@ class Downloader:
                 output_dir=str(output_dir),
                 error=f"Unexpected error: {e!s}",
             )
+
+    def _extract_audio_info(
+        self, info: dict[str, Any]
+    ) -> tuple[str | None, int | None]:
+        """Extract audio codec and bitrate from yt-dlp info dict.
+
+        Returns the target format (what user gets), not necessarily the source.
+        """
+        # Use configured format, fall back to source codec for "best"
+        if self.audio_format != "best":
+            audio_codec = self.audio_format
+        else:
+            audio_codec = info.get("acodec")
+
+        # Bitrate from source (close enough for display purposes)
+        abr = info.get("abr")
+        audio_bitrate = int(abr) if abr else None
+
+        return audio_codec, audio_bitrate
 
     def _parse_album_info(self, info: dict[str, Any], url: str) -> AlbumInfo:
         """Parse album info from yt-dlp extraction result."""
@@ -288,9 +308,12 @@ class Downloader:
             # Prefer first track's data over playlist-level data
             year = None
             thumbnail_url = None
+            audio_codec = None
+            audio_bitrate = None
             if entries and entries[0]:
                 year = self._extract_year(entries[0])
                 thumbnail_url = self._extract_thumbnail(entries[0])
+                audio_codec, audio_bitrate = self._extract_audio_info(entries[0])
             if not year:
                 year = self._extract_year(info)
             if not thumbnail_url:
@@ -304,9 +327,12 @@ class Downloader:
                 playlist_id=_eval("%(id|)s", info),
                 url=url,
                 thumbnail_url=thumbnail_url,
+                audio_codec=audio_codec,
+                audio_bitrate=audio_bitrate,
             )
 
         # Single track
+        audio_codec, audio_bitrate = self._extract_audio_info(info)
         return AlbumInfo(
             title=_eval("%(album,title|Unknown)s", info),
             artist=_eval("%(artists.0,artist,uploader|Unknown)s", info),
@@ -315,22 +341,31 @@ class Downloader:
             playlist_id=_eval("%(id|)s", info),
             url=url,
             thumbnail_url=self._extract_thumbnail(info),
+            audio_codec=audio_codec,
+            audio_bitrate=audio_bitrate,
         )
 
     def _get_ydl_opts(
         self, output_dir: Path, progress_hook: Callable[[dict[str, Any]], None]
     ) -> dict[str, Any]:
         """Build yt-dlp options dictionary."""
-        return {
-            "format": "bestaudio/best",
-            "remote_components": ["ejs:github"],
-            "outtmpl": str(output_dir / "%(playlist_index|0)02d - %(title)s.%(ext)s"),
-            "postprocessors": [
+        postprocessors: list[dict[str, Any]] = []
+
+        # Only add FFmpegExtractAudio when format conversion needed
+        # When source matches target (e.g. opus→opus), FFmpeg uses -acodec copy (fast)
+        # When "best", keep original format without any processing
+        if self.audio_format != "best":
+            postprocessors.append(
                 {
                     "key": "FFmpegExtractAudio",
                     "preferredcodec": self.audio_format,
                     "preferredquality": self.audio_quality,
-                },
+                }
+            )
+
+        # Add metadata and thumbnail postprocessors
+        postprocessors.extend(
+            [
                 # Set track number from playlist index, use release_date
                 {
                     "key": "MetadataParser",
@@ -360,7 +395,14 @@ class Downloader:
                 {
                     "key": "EmbedThumbnail",
                 },
-            ],
+            ]
+        )
+
+        return {
+            "format": "bestaudio/best",
+            "remote_components": ["ejs:github"],
+            "outtmpl": str(output_dir / "%(playlist_index|0)02d - %(title)s.%(ext)s"),
+            "postprocessors": postprocessors,
             "writethumbnail": True,
             "progress_hooks": [progress_hook],
             "ignoreerrors": True,  # Continue on individual track errors

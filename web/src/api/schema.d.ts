@@ -128,6 +128,10 @@ export interface components {
       url: string;
       /** Thumbnail Url */
       thumbnail_url?: string | null;
+      /** Audio Codec */
+      audio_codec?: string | null;
+      /** Audio Bitrate */
+      audio_bitrate?: number | null;
     };
     /**
      * CancelJobResponse

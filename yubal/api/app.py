@@ -1,3 +1,4 @@
+import shutil
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -5,6 +6,7 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from loguru import logger
 
 from yubal.api.exceptions import register_exception_handlers
 from yubal.api.routes import health, jobs
@@ -16,7 +18,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Application lifespan handler for startup/shutdown."""
     # Startup: initialize resources
     yield
-    # Shutdown: cleanup resources
+    # Shutdown: cleanup temp directory
+    temp_dir = get_settings().temp_dir
+    if temp_dir.exists():
+        logger.info("Cleaning up temp directory: {}", temp_dir)
+        shutil.rmtree(temp_dir, ignore_errors=True)
 
 
 def create_api() -> FastAPI:

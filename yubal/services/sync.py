@@ -1,5 +1,4 @@
 import shutil
-import tempfile
 from collections.abc import Callable
 from pathlib import Path
 
@@ -8,6 +7,7 @@ from yubal.core.enums import ProgressStep
 from yubal.core.models import AlbumInfo, SyncResult
 from yubal.services.downloader import Downloader
 from yubal.services.tagger import Tagger
+from yubal.settings import get_settings
 
 # Type for cancellation check function
 CancelCheck = Callable[[], bool]
@@ -37,6 +37,7 @@ class SyncService:
     def sync_album(
         self,
         url: str,
+        job_id: str,
         progress_callback: ProgressCallback | None = None,
         cancel_check: CancelCheck | None = None,
     ) -> SyncResult:
@@ -50,13 +51,16 @@ class SyncService:
 
         Args:
             url: YouTube Music album/playlist URL
+            job_id: Unique job identifier (used for temp directory)
             progress_callback: Optional callback for progress updates
             cancel_check: Function returning True if operation should cancel
 
         Returns:
             SyncResult with success status and details
         """
-        temp_dir = Path(tempfile.mkdtemp(prefix="yubal_"))
+        # Create temp subfolder per job for easier cleanup/debugging
+        temp_dir = get_settings().temp_dir / job_id
+        temp_dir.mkdir(parents=True, exist_ok=True)
         album_info: AlbumInfo | None = None
 
         try:
@@ -197,7 +201,10 @@ class SyncService:
                 library_dir=self.library_dir,
                 beets_db=self.beets_config.parent / "beets.db",
             )
-            tag_result = tagger.tag_album(temp_dir, progress_callback=progress_callback)
+            audio_files = [Path(f) for f in download_result.downloaded_files]
+            tag_result = tagger.tag_album(
+                audio_files, progress_callback=progress_callback
+            )
 
             if not tag_result.success:
                 if progress_callback:

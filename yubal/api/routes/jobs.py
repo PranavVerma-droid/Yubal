@@ -85,6 +85,7 @@ async def run_sync_job(
         result = await asyncio.to_thread(
             service.sync_album,
             url,
+            job_id,
             progress_callback,
             cancel_check,
         )

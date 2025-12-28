@@ -1,5 +1,6 @@
 """Application settings using pydantic-settings."""
 
+import tempfile
 from functools import lru_cache
 from pathlib import Path
 
@@ -33,9 +34,15 @@ class Settings(BaseSettings):
         description="Beets directory",
     )
 
-    # Audio settings
-    audio_format: str = Field(default="mp3", description="Default audio format")
+    # Audio settings (opus = best quality/size, no transcoding when source matches)
+    audio_format: str = Field(default="opus", description="Audio format")
     audio_quality: str = Field(default="0", description="Audio quality (0 = best)")
+
+    # Temp directory for job downloads (cleaned up on shutdown)
+    temp_dir: Path = Field(
+        default=Path(tempfile.gettempdir()) / "yubal",
+        description="Temp directory for downloads",
+    )
 
     # CORS settings
     cors_origins: list[str] = Field(default=["*"], description="Allowed CORS origins")

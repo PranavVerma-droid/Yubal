@@ -7,7 +7,6 @@ from pathlib import Path
 from loguru import logger
 
 from yubal.core.callbacks import ProgressCallback, ProgressEvent
-from yubal.core.constants import AUDIO_EXTENSIONS
 from yubal.core.enums import ProgressStep
 from yubal.core.models import LibraryHealth, TagResult
 
@@ -33,7 +32,7 @@ class Tagger:
 
     def tag_album(
         self,
-        source_dir: Path,
+        audio_files: list[Path],
         copy: bool = False,
         progress_callback: ProgressCallback | None = None,
     ) -> TagResult:
@@ -44,21 +43,22 @@ class Tagger:
         and move files to the organized library.
 
         Args:
-            source_dir: Directory containing downloaded audio files
+            audio_files: List of audio file paths to import
             copy: If True, copy files instead of moving (originals stay)
             progress_callback: Optional callback for progress updates
 
         Returns:
             TagResult with success status and final location
         """
-        # Check source directory has files
-        audio_files = self._find_audio_files(source_dir)
         if not audio_files:
             return TagResult(
                 success=False,
-                source_dir=str(source_dir),
-                error="No audio files found in source directory",
+                source_dir="",
+                error="No audio files provided",
             )
+
+        # All files should be in the same directory (temp dir from downloader)
+        source_dir = audio_files[0].parent
 
         try:
             result = self._run_beets_import(
@@ -198,14 +198,6 @@ class Tagger:
             stderr="",
         )
 
-    def _find_audio_files(self, directory: Path) -> list[Path]:
-        """Find all audio files in a directory."""
-        return [
-            f
-            for f in directory.iterdir()
-            if f.is_file() and f.suffix.lower() in AUDIO_EXTENSIONS
-        ]
-
     def _get_album_metadata(self, audio_file: Path) -> tuple[str | None, str | None]:
         """Extract album and artist from an audio file using ffprobe."""
         try:
@@ -299,7 +291,10 @@ class Tagger:
         for artist_dir in self.library_dir.iterdir():
             if artist_dir.is_dir():
                 for album_dir in artist_dir.iterdir():
-                    if album_dir.is_dir() and self._find_audio_files(album_dir):
+                    # Count directories that contain any files
+                    if album_dir.is_dir() and any(
+                        f.is_file() for f in album_dir.iterdir()
+                    ):
                         count += 1
         return count
 
