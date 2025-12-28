@@ -9,8 +9,9 @@ alias f := format
 alias l := lint
 alias t := typecheck
 alias d := dev
-alias b := build
+alias b := build-web
 alias i := install
+alias p := prod
 
 # Dev
 dev:
@@ -19,15 +20,19 @@ dev:
     just dev-api & just dev-web & wait
 
 dev-api:
-    uv run python -m yubal
+    YUBAL_RELOAD=true YUBAL_DEBUG=true uv run python -m yubal
 
 dev-web:
     cd web && bun run dev
 
+# Production
+prod: build-web serve
+
+serve:
+    YUBAL_HOST=0.0.0.0 uv run python -m yubal
+
 # Build
-build: build-api build-web
-build-api:
-    uv build
+build: build-web
 build-web:
     cd web && bun run build
 
