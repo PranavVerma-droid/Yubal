@@ -1,0 +1,13 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/compose-spec/compose-spec/master/schema/compose-spec.json
+---
+services:
+  yubal:
+    build: .
+    env_file:
+      - .env.docker
+    ports:
+      - "8000:${YUBAL_PORT}"
+    volumes:
+      - ./data:/app/data
+      - ./beets:/app/beets
+    restart: unless-stopped

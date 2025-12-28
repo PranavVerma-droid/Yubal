@@ -1,0 +1,30 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.py[cod]
+*.pyo
+.venv
+.pytest_cache
+.ruff_cache
+
+# Node
+web/node_modules
+web/dist
+
+# Data
+data
+beets/beets.db
+beets/secrets.yaml
+beets/beets_import.log
+
+# IDE
+.vscode
+.idea
+
+# Misc
+.env
+*.log
+.DS_Store

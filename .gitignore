@@ -185,5 +185,7 @@ pip-selfcheck.json
 /data
 /beets/
 !/beets/config.yaml
+!/beets/secrets.example.yaml
 .env
+.env.docker
 *.tsbuildinfo

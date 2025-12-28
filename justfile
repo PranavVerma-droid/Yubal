@@ -36,6 +36,10 @@ build: build-web
 build-web:
     cd web && bun run build
 
+# Docker
+build-docker:
+    docker build -t yubal .
+
 # Lint
 lint: lint-api lint-web
 lint-api:
