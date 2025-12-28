@@ -13,6 +13,12 @@ class JobStatus(str, Enum):
     CANCELLED = "cancelled"
 
 
+# Terminal states that indicate job is finished
+FINISHED_STATUSES = frozenset(
+    {JobStatus.COMPLETED, JobStatus.FAILED, JobStatus.CANCELLED}
+)
+
+
 class ProgressStep(str, Enum):
     """Steps in the sync workflow. Values match JobStatus."""
 

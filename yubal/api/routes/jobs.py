@@ -7,7 +7,7 @@ from pathlib import Path
 from fastapi import APIRouter, BackgroundTasks, HTTPException, status
 
 from yubal.api.dependencies import SettingsDep
-from yubal.core.enums import JobStatus
+from yubal.core.enums import FINISHED_STATUSES, JobStatus
 from yubal.core.models import AlbumInfo
 from yubal.core.progress import ProgressEvent
 from yubal.schemas.jobs import (
@@ -237,7 +237,7 @@ async def cancel_job(job_id: str, settings: SettingsDep) -> CancelJobResponse:
             detail=f"Job {job_id} not found",
         )
 
-    if job.status in (JobStatus.COMPLETED, JobStatus.FAILED, JobStatus.CANCELLED):
+    if job.status in FINISHED_STATUSES:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Job already finished",
@@ -292,7 +292,7 @@ async def delete_job(job_id: str) -> None:
             detail=f"Job {job_id} not found",
         )
 
-    if job.status not in (JobStatus.COMPLETED, JobStatus.FAILED, JobStatus.CANCELLED):
+    if job.status not in FINISHED_STATUSES:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Cannot delete a running job",

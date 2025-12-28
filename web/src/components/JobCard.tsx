@@ -1,6 +1,7 @@
 import { Button, Progress } from "@heroui/react";
 import { Clock, Loader2, CheckCircle, XCircle, X, Trash2 } from "lucide-react";
 import type { Job, JobStatus } from "../api/jobs";
+import { isActive, isFinished } from "../utils/job-status";
 
 interface JobCardProps {
   job: Job;
@@ -48,19 +49,9 @@ function getProgressColor(
   }
 }
 
-function isRunningStatus(status: JobStatus): boolean {
-  return ["pending", "fetching_info", "downloading", "importing"].includes(
-    status
-  );
-}
-
-function isFinishedStatus(status: JobStatus): boolean {
-  return ["completed", "failed", "cancelled"].includes(status);
-}
-
 export function JobCard({ job, onCancel, onDelete }: JobCardProps) {
-  const isRunning = isRunningStatus(job.status);
-  const isFinished = isFinishedStatus(job.status);
+  const isRunning = isActive(job.status);
+  const isJobFinished = isFinished(job.status);
   const showProgress = isRunning;
 
   // Get display info - prefer album_info if available
@@ -108,7 +99,7 @@ export function JobCard({ job, onCancel, onDelete }: JobCardProps) {
                   {artist}
                   {year && ` · ${year}`}
                 </p>
-                {isFinished && trackCount && (
+                {isJobFinished && trackCount && (
                   <>
                     <span className="text-foreground-400/30 text-xs">·</span>
                     <span className="text-foreground-500/70 font-mono text-xs">
@@ -135,7 +126,7 @@ export function JobCard({ job, onCancel, onDelete }: JobCardProps) {
             <X className="h-3.5 w-3.5" />
           </Button>
         )}
-        {isFinished && onDelete && (
+        {isJobFinished && onDelete && (
           <Button
             variant="light"
             size="sm"

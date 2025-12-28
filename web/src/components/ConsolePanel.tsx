@@ -3,6 +3,7 @@ import { Terminal } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Job, JobLog } from "../hooks/useJobs";
 import { Panel, PanelHeader, PanelTitle, PanelContent } from "./ui/Panel";
+import { isActive } from "../utils/job-status";
 
 interface ConsolePanelProps {
   logs: JobLog[];
@@ -10,7 +11,6 @@ interface ConsolePanelProps {
 }
 
 const statusColors: Record<string, string> = {
-  idle: "text-foreground-400",
   pending: "text-foreground-500",
   fetching_info: "text-foreground-500",
   downloading: "text-primary",
@@ -39,9 +39,7 @@ function getTimestamp(): string {
 
 export function ConsolePanel({ logs, jobs }: ConsolePanelProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const isActive = jobs.some(
-    (j) => !["completed", "failed", "cancelled"].includes(j.status)
-  );
+  const hasActiveJobs = jobs.some((j) => isActive(j.status));
   const [currentTime, setCurrentTime] = useState(getTimestamp());
 
   useEffect(() => {
@@ -52,13 +50,13 @@ export function ConsolePanel({ logs, jobs }: ConsolePanelProps) {
 
   // Update blinking cursor timestamp
   useEffect(() => {
-    if (isActive) {
+    if (hasActiveJobs) {
       const interval = setInterval(() => {
         setCurrentTime(getTimestamp());
       }, 1000);
       return () => clearInterval(interval);
     }
-  }, [isActive]);
+  }, [hasActiveJobs]);
 
   return (
     <Panel>
@@ -95,7 +93,7 @@ export function ConsolePanel({ logs, jobs }: ConsolePanelProps) {
           </AnimatePresence>
         )}
         {/* Blinking cursor when active */}
-        {isActive && (
+        {hasActiveJobs && (
           <div className="flex gap-2">
             <span className="text-foreground-400/50">[{currentTime}]</span>
             <span className="text-foreground-500 animate-pulse">&#9608;</span>

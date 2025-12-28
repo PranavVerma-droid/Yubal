@@ -6,7 +6,6 @@ export type JobLog = components["schemas"]["LogEntry"];
 export type AlbumInfo = components["schemas"]["AlbumInfo"];
 
 export type JobStatus =
-  | "idle" // UI-only: no active job
   | "pending"
   | "fetching_info"
   | "downloading"
@@ -74,13 +73,6 @@ export async function deleteJob(jobId: string): Promise<void> {
   });
 
   if (error) throw new Error("Failed to delete job");
-}
-
-export async function clearJobs(): Promise<number> {
-  const { data, error } = await api.DELETE("/jobs");
-
-  if (error) throw new Error("Failed to clear jobs");
-  return data.cleared;
 }
 
 export async function cancelJob(jobId: string): Promise<void> {

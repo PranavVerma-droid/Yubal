@@ -7,6 +7,7 @@ import {
   type Job,
   type JobLog,
 } from "../api/jobs";
+import { isActive } from "../utils/job-status";
 
 export type { Job, JobLog } from "../api/jobs";
 
@@ -45,9 +46,7 @@ export function useJobs(): UseJobsResult {
     setLogs(logList);
 
     // Check if there are any active jobs
-    const hasActiveJobs = jobList.some(
-      (j) => !["completed", "failed", "cancelled"].includes(j.status)
-    );
+    const hasActiveJobs = jobList.some((j) => isActive(j.status));
 
     // Stop polling if no active jobs
     if (!hasActiveJobs) {
@@ -102,9 +101,7 @@ export function useJobs(): UseJobsResult {
 
     // Check if there are any active jobs and start polling
     const { jobs: jobList } = await listJobs();
-    const hasActiveJobs = jobList.some(
-      (j) => !["completed", "failed", "cancelled"].includes(j.status)
-    );
+    const hasActiveJobs = jobList.some((j) => isActive(j.status));
 
     if (hasActiveJobs) {
       startPolling();
