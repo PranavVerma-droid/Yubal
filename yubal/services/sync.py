@@ -3,9 +3,9 @@ import tempfile
 from collections.abc import Callable
 from pathlib import Path
 
+from yubal.core.callbacks import ProgressCallback, ProgressEvent
 from yubal.core.enums import ProgressStep
 from yubal.core.models import AlbumInfo, SyncResult
-from yubal.core.progress import ProgressCallback, ProgressEvent
 from yubal.services.downloader import Downloader
 from yubal.services.tagger import Tagger
 

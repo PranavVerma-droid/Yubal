@@ -6,10 +6,10 @@ from pathlib import Path
 
 from loguru import logger
 
+from yubal.core.callbacks import ProgressCallback, ProgressEvent
 from yubal.core.constants import AUDIO_EXTENSIONS
 from yubal.core.enums import ProgressStep
 from yubal.core.models import LibraryHealth, TagResult
-from yubal.core.progress import ProgressCallback, ProgressEvent
 
 
 class Tagger:

@@ -9,10 +9,10 @@ from loguru import logger
 from yt_dlp.postprocessor.metadataparser import MetadataParserPP
 from yt_dlp.utils import DownloadCancelled
 
+from yubal.core.callbacks import ProgressCallback, ProgressEvent
 from yubal.core.constants import AUDIO_EXTENSIONS
 from yubal.core.enums import ProgressStep
 from yubal.core.models import AlbumInfo, DownloadResult, TrackInfo
-from yubal.core.progress import ProgressCallback, ProgressEvent
 
 
 class YtdlpLogger:

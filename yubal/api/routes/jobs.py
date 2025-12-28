@@ -7,9 +7,9 @@ from pathlib import Path
 from fastapi import APIRouter, BackgroundTasks, HTTPException, status
 
 from yubal.api.dependencies import SettingsDep
+from yubal.core.callbacks import ProgressEvent
 from yubal.core.enums import FINISHED_STATUSES, JobStatus
 from yubal.core.models import AlbumInfo
-from yubal.core.progress import ProgressEvent
 from yubal.schemas.jobs import (
     CancelJobResponse,
     ClearJobsResponse,
