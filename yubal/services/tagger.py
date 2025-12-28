@@ -155,6 +155,8 @@ class Tagger:
             env=self._get_beets_env(),
             cwd=str(self.beets_config.parent.parent),
         )
+        if process.stdin is None or process.stdout is None:
+            raise RuntimeError("Process pipes not available")
         # Send newlines to accept any prompts, then close stdin
         process.stdin.write("\n" * 10)
         process.stdin.close()
@@ -430,6 +432,8 @@ class Tagger:
                 env=self._get_beets_env(),
                 cwd=str(self.beets_config.parent.parent),
             )
+            if process.stdout is None:
+                raise RuntimeError("Process stdout not available")
 
             for line in process.stdout:
                 line = line.rstrip()
@@ -500,6 +504,8 @@ class Tagger:
                 env=self._get_beets_env(),
                 cwd=str(self.beets_config.parent.parent),
             )
+            if process.stdin is None or process.stdout is None:
+                raise RuntimeError("Process pipes not available")
 
             # Send newlines to accept any prompts
             process.stdin.write("\n" * 10)

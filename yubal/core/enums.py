@@ -12,11 +12,9 @@ class JobStatus(str, Enum):
     FAILED = "failed"
     CANCELLED = "cancelled"
 
-
-# Terminal states that indicate job is finished
-FINISHED_STATUSES = frozenset(
-    {JobStatus.COMPLETED, JobStatus.FAILED, JobStatus.CANCELLED}
-)
+    @property
+    def is_finished(self) -> bool:
+        return self in (self.COMPLETED, self.FAILED, self.CANCELLED)
 
 
 class ProgressStep(str, Enum):

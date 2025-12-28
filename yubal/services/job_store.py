@@ -3,7 +3,7 @@ import uuid
 from collections import OrderedDict
 from datetime import UTC, datetime
 
-from yubal.core.enums import FINISHED_STATUSES, JobStatus
+from yubal.core.enums import JobStatus
 from yubal.core.models import AlbumInfo, Job, LogEntry
 
 
@@ -33,9 +33,7 @@ class JobStore:
         async with self._lock:
             # Prune completed/failed jobs if at capacity
             while len(self._jobs) >= self.MAX_JOBS:
-                pruneable = [
-                    j for j in self._jobs.values() if j.status in FINISHED_STATUSES
-                ]
+                pruneable = [j for j in self._jobs.values() if j.status.is_finished]
                 if not pruneable:
                     return None  # Queue full, all jobs active/queued
                 oldest = min(pruneable, key=lambda j: j.created_at)
@@ -111,7 +109,7 @@ class JobStore:
                 return False
 
             # Cannot cancel already finished jobs
-            if job.status in FINISHED_STATUSES:
+            if job.status.is_finished:
                 return False
 
             # Mark as cancelled
@@ -160,7 +158,7 @@ class JobStore:
                 job.completed_at = completed_at
 
             # Clear active job if finished
-            if job.status in FINISHED_STATUSES:
+            if job.status.is_finished:
                 job.completed_at = job.completed_at or datetime.now(UTC)
                 if self._active_job_id == job_id:
                     self._active_job_id = None
@@ -219,7 +217,7 @@ class JobStore:
             if not job:
                 return False
 
-            if job.status not in FINISHED_STATUSES:
+            if not job.status.is_finished:
                 return False  # Cannot delete running job
 
             del self._jobs[job_id]
@@ -235,9 +233,7 @@ class JobStore:
         """
         async with self._lock:
             to_remove = [
-                job_id
-                for job_id, job in self._jobs.items()
-                if job.status in FINISHED_STATUSES
+                job_id for job_id, job in self._jobs.items() if job.status.is_finished
             ]
             for job_id in to_remove:
                 del self._jobs[job_id]
@@ -251,7 +247,7 @@ class JobStore:
 
         Returns True if job was timed out.
         """
-        if job.started_at and job.status not in FINISHED_STATUSES:
+        if job.started_at and not job.status.is_finished:
             elapsed = datetime.now(UTC) - job.started_at
             if elapsed.total_seconds() > self.TIMEOUT_SECONDS:
                 job.status = JobStatus.FAILED
