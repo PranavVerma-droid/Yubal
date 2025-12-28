@@ -108,26 +108,29 @@ border-primary         # Active/focus states
 
 ```bash
 Available recipes:
-    build            # Build both apps
-    build-api        # Build Python package
-    build-web        # Build frontend for production
-    check            # Run all checks (lint + format)
-    clean            # Clean build artifacts
-    default          # List available commands
-    dev              # Run API + frontend dev servers
-    dev-api          # Run FastAPI backend with reload
-    dev-web          # Run Vite frontend
-    format           # Format both apps
-    format-api       # Format Python with ruff
-    format-check     # Check formatting without changes
-    format-check-api # Check Python formatting
-    format-check-web # Check frontend formatting
-    format-web       # Format frontend with prettier
-    gen-api          # Generate TypeScript types from OpenAPI
-    install          # Install all dependencies
-    install-api      # Install Python dependencies
-    install-web      # Install frontend dependencies
-    lint             # Lint both apps
-    lint-api         # Lint Python with ruff
-    lint-web         # Lint frontend with eslint
+    build            # Build [alias: b]
+    build-api
+    build-web
+    check            # [alias: c]
+    clean
+    default
+    dev              # Dev [alias: d]
+    dev-api
+    dev-web
+    format           # Format [alias: f]
+    format-api
+    format-check
+    format-check-api
+    format-check-web
+    format-web
+    gen-api          # Utils
+    install          # [alias: i]
+    install-api
+    install-web
+    lint             # Lint [alias: l]
+    lint-api
+    lint-web
+    typecheck        # Typecheck [alias: t]
+    typecheck-api
+    typecheck-web
 ```
