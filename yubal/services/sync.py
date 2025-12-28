@@ -16,23 +16,17 @@ CancelCheck = Callable[[], bool]
 
 
 def _get_file_bitrate(file_path: Path) -> int | None:
-    """Get actual bitrate from audio file using mutagen."""
+    """Get actual average bitrate from audio file (calculated from size/duration)."""
     try:
         audio = MutagenFile(str(file_path))
-        if not audio or not audio.info:
+        if not audio or not audio.info or not audio.info.length:
             return None
 
-        # Most formats have bitrate directly
-        if hasattr(audio.info, "bitrate") and audio.info.bitrate:
-            return audio.info.bitrate // 1000
+        file_size = file_path.stat().st_size
+        duration = audio.info.length
 
-        # FLAC: calculate from sample rate, bits, channels
-        if hasattr(audio.info, "bits_per_sample"):
-            return (
-                audio.info.sample_rate
-                * audio.info.bits_per_sample
-                * audio.info.channels
-            ) // 1000
+        # Calculate actual average bitrate: (bytes * 8 bits) / seconds / 1000
+        return int((file_size * 8) / duration / 1000)
 
     except Exception:  # noqa: S110  # Best-effort, non-critical
         pass
