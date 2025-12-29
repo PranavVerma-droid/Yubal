@@ -2,24 +2,26 @@
 
 from fastapi import APIRouter, HTTPException
 
+from yubal.api.dependencies import SettingsDep
 from yubal.schemas.cookies import (
     CookiesStatusResponse,
     CookiesUploadRequest,
     CookiesUploadResponse,
 )
-from yubal.settings import get_settings
 
 router = APIRouter(prefix="/cookies", tags=["cookies"])
 
 
 @router.get("/status", response_model=CookiesStatusResponse)
-async def cookies_status() -> CookiesStatusResponse:
+async def cookies_status(settings: SettingsDep) -> CookiesStatusResponse:
     """Check if cookies file is configured."""
-    return CookiesStatusResponse(configured=get_settings().cookies_file.exists())
+    return CookiesStatusResponse(configured=settings.cookies_file.exists())
 
 
 @router.post("", response_model=CookiesUploadResponse)
-async def upload_cookies(body: CookiesUploadRequest) -> CookiesUploadResponse:
+async def upload_cookies(
+    body: CookiesUploadRequest, settings: SettingsDep
+) -> CookiesUploadResponse:
     """Upload cookies.txt content (Netscape format)."""
     if not body.content.strip():
         raise HTTPException(400, "Empty cookie file")
@@ -30,16 +32,14 @@ async def upload_cookies(body: CookiesUploadRequest) -> CookiesUploadResponse:
             400, "Invalid cookie file format (expected Netscape format)"
         )
 
-    settings = get_settings()
     settings.ytdlp_dir.mkdir(parents=True, exist_ok=True)
     settings.cookies_file.write_text(body.content)
     return CookiesUploadResponse(status="ok")
 
 
 @router.delete("", response_model=CookiesUploadResponse)
-async def delete_cookies() -> CookiesUploadResponse:
+async def delete_cookies(settings: SettingsDep) -> CookiesUploadResponse:
     """Delete cookies file."""
-    cookies_file = get_settings().cookies_file
-    if cookies_file.exists():
-        cookies_file.unlink()
+    if settings.cookies_file.exists():
+        settings.cookies_file.unlink()
     return CookiesUploadResponse(status="ok")

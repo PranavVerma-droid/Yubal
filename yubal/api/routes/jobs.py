@@ -6,7 +6,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException, status
 
-from yubal.api.dependencies import SettingsDep
+from yubal.api.dependencies import JobStoreDep, SettingsDep
 from yubal.core.callbacks import ProgressEvent
 from yubal.core.enums import JobStatus
 from yubal.core.models import AlbumInfo
@@ -18,7 +18,7 @@ from yubal.schemas.jobs import (
     JobCreatedResponse,
     JobListResponse,
 )
-from yubal.services.job_store import job_store
+from yubal.services.job_store import JobStore
 from yubal.services.sync import SyncService
 
 router = APIRouter()
@@ -30,6 +30,7 @@ async def run_sync_job(
     audio_format: str,
     library_dir: Path,
     beets_config: Path,
+    job_store: JobStore,
 ) -> None:
     """Background task that runs the sync operation."""
     # Check if cancelled before starting
@@ -71,7 +72,7 @@ async def run_sync_job(
         # Schedule async update using the captured loop
         loop.call_soon_threadsafe(
             lambda: asyncio.create_task(
-                _update_job_from_event(job_id, new_status, event)
+                _update_job_from_event(job_id, new_status, event, job_store)
             )
         )
 
@@ -136,13 +137,14 @@ async def run_sync_job(
                 next_job.audio_format,
                 library_dir,
                 beets_config,
+                job_store,
             )
         )
         del task  # Fire-and-forget
 
 
 async def _update_job_from_event(
-    job_id: str, new_status: JobStatus, event: ProgressEvent
+    job_id: str, new_status: JobStatus, event: ProgressEvent, job_store: JobStore
 ) -> None:
     """Helper to update job from progress event."""
     # Don't update cancelled jobs - prevents race condition with status overwrite
@@ -182,6 +184,7 @@ async def create_job(
     request: CreateJobRequest,
     background_tasks: BackgroundTasks,
     settings: SettingsDep,
+    job_store: JobStoreDep,
 ) -> JobCreatedResponse:
     """
     Create a new sync job.
@@ -208,13 +211,14 @@ async def create_job(
             audio_format,
             settings.library_dir,
             settings.beets_config,
+            job_store,
         )
 
     return JobCreatedResponse(id=job.id)
 
 
 @router.get("/jobs", response_model=JobListResponse)
-async def list_jobs() -> JobListResponse:
+async def list_jobs(job_store: JobStoreDep) -> JobListResponse:
     """
     List all jobs (oldest first, FIFO order).
 
@@ -227,7 +231,9 @@ async def list_jobs() -> JobListResponse:
 
 
 @router.post("/jobs/{job_id}/cancel", response_model=CancelJobResponse)
-async def cancel_job(job_id: str, settings: SettingsDep) -> CancelJobResponse:
+async def cancel_job(
+    job_id: str, settings: SettingsDep, job_store: JobStoreDep
+) -> CancelJobResponse:
     """
     Cancel a running or queued job.
 
@@ -263,6 +269,7 @@ async def cancel_job(job_id: str, settings: SettingsDep) -> CancelJobResponse:
                 next_job.audio_format,
                 settings.library_dir,
                 settings.beets_config,
+                job_store,
             )
         )
         del task  # Fire-and-forget
@@ -271,7 +278,7 @@ async def cancel_job(job_id: str, settings: SettingsDep) -> CancelJobResponse:
 
 
 @router.delete("/jobs", response_model=ClearJobsResponse)
-async def clear_jobs() -> ClearJobsResponse:
+async def clear_jobs(job_store: JobStoreDep) -> ClearJobsResponse:
     """
     Clear all completed/failed jobs.
 
@@ -282,7 +289,7 @@ async def clear_jobs() -> ClearJobsResponse:
 
 
 @router.delete("/jobs/{job_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_job(job_id: str) -> None:
+async def delete_job(job_id: str, job_store: JobStoreDep) -> None:
     """
     Delete a completed, failed, or cancelled job.
 

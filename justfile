@@ -72,7 +72,7 @@ format-check-web:
 gen-api:
     cd web && bun run generate-api
 dead:
-    uv run dead --exclude 'yubal/(api|schemas)/.*'
+    uv run dead --exclude '^yubal/(api|schemas)/.*'
 
 check: lint format-check typecheck
 
