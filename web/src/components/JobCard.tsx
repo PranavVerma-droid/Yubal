@@ -31,7 +31,7 @@ function getStatusIcon(status: JobStatus) {
 }
 
 function getProgressColor(
-  status: JobStatus
+  status: JobStatus,
 ): "default" | "primary" | "secondary" | "success" | "warning" | "danger" {
   switch (status) {
     case "downloading":

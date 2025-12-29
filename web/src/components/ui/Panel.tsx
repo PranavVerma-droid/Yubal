@@ -16,7 +16,7 @@ export const Panel = forwardRef<HTMLElement, PanelProps>(
         {children}
       </section>
     );
-  }
+  },
 );
 Panel.displayName = "Panel";
 
@@ -30,7 +30,7 @@ export interface PanelHeaderProps extends HTMLAttributes<HTMLElement> {
 export const PanelHeader = forwardRef<HTMLElement, PanelHeaderProps>(
   (
     { leadingIcon, badge, trailingIcon, children, className = "", ...props },
-    ref
+    ref,
   ) => {
     return (
       <header
@@ -52,7 +52,7 @@ export const PanelHeader = forwardRef<HTMLElement, PanelHeaderProps>(
         </div>
       </header>
     );
-  }
+  },
 );
 PanelHeader.displayName = "PanelHeader";
 
@@ -71,6 +71,6 @@ export const PanelContent = forwardRef<HTMLDivElement, PanelContentProps>(
         {children}
       </div>
     );
-  }
+  },
 );
 PanelContent.displayName = "PanelContent";

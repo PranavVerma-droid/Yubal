@@ -71,6 +71,8 @@ format-check-web:
 # Utils
 gen-api:
     cd web && bun run generate-api
+dead:
+    uv run dead --exclude 'yubal/(api|schemas)/.*'
 
 check: lint format-check typecheck
 

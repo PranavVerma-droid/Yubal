@@ -5,22 +5,23 @@ description = "YouTube Album Downloader with auto-tagging via beets"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "beets[lastgenre,lyrics]>=2.5.1",
-    "fastapi>=0.127.1",
-    "loguru>=0.7.3",
-    "mutagen>=1.47.0",  # Audio metadata (also via beets)
-    "pillow>=12.0.0",
-    "pydantic-settings>=2.12.0",
-    "uvicorn[standard]>=0.40.0",
-    "yt-dlp>=2025.12.8",
+  "beets[lastgenre,lyrics]>=2.5.1",
+  "fastapi>=0.127.1",
+  "loguru>=0.7.3",
+  "mutagen>=1.47.0",                # Audio metadata (also via beets)
+  "pillow>=12.0.0",
+  "pydantic-settings>=2.12.0",
+  "uvicorn[standard]>=0.40.0",
+  "yt-dlp>=2025.12.8",
 ]
 
 [dependency-groups]
 dev = [
-    "pytest>=9.0.2",
-    "pytest-cov>=7.0.0",
-    "ruff>=0.14.10",
-    "ty>=0.0.7",
+  "dead>=2.1.0",
+  "pytest>=9.0.2",
+  "pytest-cov>=7.0.0",
+  "ruff>=0.14.10",
+  "ty>=0.0.7",
 ]
 
 [build-system]
@@ -33,28 +34,21 @@ packages = ["yubal"]
 [tool.ruff]
 target-version = "py312"
 line-length = 88
-exclude = [
-    ".venv",
-    "__pycache__",
-    ".git",
-    "build",
-    "dist",
-    "web",
-]
+exclude = [".venv", "__pycache__", ".git", "build", "dist", "web"]
 
 [tool.ruff.lint]
 select = [
-    "E",   # pycodestyle errors
-    "F",   # pyflakes
-    "I",   # isort
-    "B",   # bugbear
-    "UP",  # pyupgrade
-    "S",   # bandit security
-    "RUF", # ruff-specific
+  "E",   # pycodestyle errors
+  "F",   # pyflakes
+  "I",   # isort
+  "B",   # bugbear
+  "UP",  # pyupgrade
+  "S",   # bandit security
+  "RUF", # ruff-specific
 ]
 ignore = [
-    "S603",  # subprocess calls are internal tools, not untrusted
-    "S607",  # partial paths are fine for ffprobe/beets
+  "S603", # subprocess calls are internal tools, not untrusted
+  "S607", # partial paths are fine for ffprobe/beets
 ]
 
 [tool.ruff.format]

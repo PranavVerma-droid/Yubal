@@ -77,7 +77,7 @@ export function useJobs(): UseJobsResult {
       await poll();
       startPolling();
     },
-    [poll, startPolling]
+    [poll, startPolling],
   );
 
   const cancelJob = useCallback(
@@ -85,7 +85,7 @@ export function useJobs(): UseJobsResult {
       await cancelJobApi(jobId);
       await poll();
     },
-    [poll]
+    [poll],
   );
 
   const deleteJob = useCallback(
@@ -93,7 +93,7 @@ export function useJobs(): UseJobsResult {
       await deleteJobApi(jobId);
       await poll();
     },
-    [poll]
+    [poll],
   );
 
   const refreshJobs = useCallback(async () => {

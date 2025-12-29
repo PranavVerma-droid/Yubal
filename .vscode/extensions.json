@@ -5,6 +5,7 @@
     "prettier.prettier-vscode",
     "charliermarsh.ruff",
     "bradlc.vscode-tailwindcss",
-    "EditorConfig.EditorConfig"
+    "EditorConfig.EditorConfig",
+    "tamasfe.even-better-toml"
   ]
 }

@@ -14,6 +14,14 @@
     }
   },
 
+  "[toml]": {
+    "editor.defaultFormatter": "tamasfe.even-better-toml",
+    "editor.formatOnSave": true
+  },
+
+  "evenBetterToml.formatter.indentTables": false,
+  "evenBetterToml.formatter.indentEntries": false,
+
   "ty.diagnosticMode": "workspace",
   "typescript.tsserver.experimental.enableProjectDiagnostics": true,
 

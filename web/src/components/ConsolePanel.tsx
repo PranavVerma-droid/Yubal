@@ -53,7 +53,7 @@ export function ConsolePanel({ logs, jobs }: ConsolePanelProps) {
   const [currentTime, setCurrentTime] = useState(getTimestamp());
   const [isExpanded, setIsExpanded] = useLocalStorage(
     "yubal-console-expanded",
-    false
+    false,
   );
 
   const statusColors: Record<string, string> = {
