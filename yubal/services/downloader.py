@@ -400,7 +400,6 @@ class Downloader:
 
         ydl_opts: dict[str, Any] = {
             "format": "bestaudio/best",
-            "remote_components": ["ejs:github"],
             "outtmpl": str(output_dir / "%(playlist_index|0)02d - %(title)s.%(ext)s"),
             "postprocessors": postprocessors,
             "writethumbnail": True,
