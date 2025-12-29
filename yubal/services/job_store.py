@@ -73,16 +73,6 @@ class JobStore:
                 self._check_timeout(job)
             return list(self._jobs.values())
 
-    async def get_active_job(self) -> Job | None:
-        """Get the currently active job, if any."""
-        async with self._lock:
-            if self._active_job_id:
-                job = self._jobs.get(self._active_job_id)
-                if job:
-                    self._check_timeout(job)
-                return job
-            return None
-
     async def pop_next_pending(self) -> Job | None:
         """Get and activate the next pending job (FIFO). Returns None if none."""
         async with self._lock:

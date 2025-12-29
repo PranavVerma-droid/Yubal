@@ -42,15 +42,6 @@ class TagResult(BaseModel):
     error: str | None = None
 
 
-class LibraryHealth(BaseModel):
-    """Result of a library health check."""
-
-    healthy: bool
-    library_album_count: int
-    database_album_count: int
-    message: str
-
-
 class SyncResult(BaseModel):
     """Result of a sync operation."""
 
