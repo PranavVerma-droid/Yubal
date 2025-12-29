@@ -1,18 +1,13 @@
 import shutil
-from collections.abc import Callable
 from pathlib import Path
 
 from mutagen import File as MutagenFile
 
-from yubal.core.callbacks import ProgressCallback, ProgressEvent
+from yubal.core.callbacks import CancelCheck, ProgressCallback, ProgressEvent
 from yubal.core.enums import ProgressStep
 from yubal.core.models import AlbumInfo, SyncResult
 from yubal.services.downloader import Downloader
 from yubal.services.tagger import Tagger
-from yubal.settings import get_settings
-
-# Type for cancellation check function
-CancelCheck = Callable[[], bool]
 
 
 def _get_file_bitrate(file_path: Path) -> int | None:
@@ -40,7 +35,10 @@ class SyncService:
         self,
         library_dir: Path,
         beets_config: Path,
-        audio_format: str = "mp3",
+        audio_format: str,
+        temp_dir: Path,
+        downloader: Downloader,
+        tagger: Tagger,
     ):
         """
         Initialize the sync service.
@@ -49,10 +47,16 @@ class SyncService:
             library_dir: Directory for the organized music library
             beets_config: Path to beets configuration file
             audio_format: Audio format for downloads (mp3, m4a, opus, etc.)
+            temp_dir: Directory for temporary download files
+            downloader: Downloader instance for fetching from YouTube
+            tagger: Tagger instance for organizing with beets
         """
         self.library_dir = library_dir
         self.beets_config = beets_config
         self.audio_format = audio_format
+        self.temp_dir = temp_dir
+        self._downloader = downloader
+        self._tagger = tagger
 
     def sync_album(
         self,
@@ -79,8 +83,8 @@ class SyncService:
             SyncResult with success status and details
         """
         # Create temp subfolder per job for easier cleanup/debugging
-        temp_dir = get_settings().temp_dir / job_id
-        temp_dir.mkdir(parents=True, exist_ok=True)
+        job_temp_dir = self.temp_dir / job_id
+        job_temp_dir.mkdir(parents=True, exist_ok=True)
         album_info: AlbumInfo | None = None
 
         try:
@@ -94,7 +98,7 @@ class SyncService:
                     )
                 )
 
-            downloader = Downloader(audio_format=self.audio_format)
+            downloader = self._downloader
 
             try:
                 album_info = downloader.extract_info(url)
@@ -166,7 +170,7 @@ class SyncService:
 
             download_result = downloader.download_album(
                 url,
-                temp_dir,
+                job_temp_dir,
                 progress_callback=download_progress_wrapper,
                 cancel_check=cancel_check,
             )
@@ -224,11 +228,7 @@ class SyncService:
                     )
                 )
 
-            tagger = Tagger(
-                beets_config=self.beets_config,
-                library_dir=self.library_dir,
-                beets_db=self.beets_config.parent / "beets.db",
-            )
+            tagger = self._tagger
             audio_files = [Path(f) for f in download_result.downloaded_files]
             tag_result = tagger.tag_album(
                 audio_files, progress_callback=progress_callback
@@ -285,5 +285,5 @@ class SyncService:
 
         finally:
             # Cleanup temp directory
-            if temp_dir.exists():
-                shutil.rmtree(temp_dir, ignore_errors=True)
+            if job_temp_dir.exists():
+                shutil.rmtree(job_temp_dir, ignore_errors=True)

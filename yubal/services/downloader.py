@@ -9,10 +9,9 @@ from loguru import logger
 from yt_dlp.postprocessor.metadataparser import MetadataParserPP
 from yt_dlp.utils import DownloadCancelled
 
-from yubal.core.callbacks import ProgressCallback, ProgressEvent
+from yubal.core.callbacks import CancelCheck, ProgressCallback, ProgressEvent
 from yubal.core.enums import ProgressStep
 from yubal.core.models import AlbumInfo, DownloadResult
-from yubal.settings import get_settings
 
 
 class YtdlpLogger:
@@ -34,9 +33,6 @@ class YtdlpLogger:
         logger.error("[yt-dlp] {}", msg)
 
 
-# Type for cancellation check function
-CancelCheck = Callable[[], bool]
-
 # Shared yt-dlp instance for template evaluation
 _ydl = yt_dlp.YoutubeDL({"quiet": True})
 
@@ -49,9 +45,15 @@ def _eval(template: str, info: dict[str, Any]) -> str:
 class Downloader:
     """Handles YouTube Music album downloads via yt-dlp."""
 
-    def __init__(self, audio_format: str = "mp3", audio_quality: str = "0"):
+    def __init__(
+        self,
+        audio_format: str = "mp3",
+        audio_quality: str = "0",
+        cookies_file: Path | None = None,
+    ):
         self.audio_format = audio_format
         self.audio_quality = audio_quality
+        self.cookies_file = cookies_file
 
     def extract_info(self, url: str) -> AlbumInfo:
         """
@@ -148,13 +150,10 @@ class Downloader:
                         )
                     )
                 elif percent_str:
-                    print(
-                        f"\r  Track {track_idx + 1}: {percent_str} at {speed}",
-                        end="",
-                        flush=True,
+                    logger.debug(
+                        "Track {}: {} at {}", track_idx + 1, percent_str, speed
                     )
             elif d["status"] == "finished":
-                print()  # New line after progress
                 if progress_callback:
                     progress_callback(
                         ProgressEvent(
@@ -411,8 +410,7 @@ class Downloader:
         }
 
         # Use cookies if available (for Premium quality, bypassing rate limits, etc.)
-        cookies_file = get_settings().cookies_file
-        if cookies_file.exists():
-            ydl_opts["cookiefile"] = str(cookies_file)
+        if self.cookies_file and self.cookies_file.exists():
+            ydl_opts["cookiefile"] = str(self.cookies_file)
 
         return ydl_opts

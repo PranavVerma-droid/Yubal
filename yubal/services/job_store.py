@@ -246,7 +246,3 @@ class JobStore:
                     self._active_job_id = None
                 return True
         return False
-
-
-# Global singleton instance
-job_store = JobStore()

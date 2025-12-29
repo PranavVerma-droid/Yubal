@@ -2,11 +2,10 @@
 
 import asyncio
 from datetime import UTC, datetime
-from pathlib import Path
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException, status
 
-from yubal.api.dependencies import JobStoreDep, SettingsDep
+from yubal.api.dependencies import JobStoreDep, SettingsDep, SyncServiceDep
 from yubal.core.callbacks import ProgressEvent
 from yubal.core.enums import JobStatus
 from yubal.core.models import AlbumInfo
@@ -27,10 +26,8 @@ router = APIRouter()
 async def run_sync_job(
     job_id: str,
     url: str,
-    audio_format: str,
-    library_dir: Path,
-    beets_config: Path,
     job_store: JobStore,
+    sync_service: SyncService,
 ) -> None:
     """Background task that runs the sync operation."""
     # Check if cancelled before starting
@@ -77,14 +74,8 @@ async def run_sync_job(
         )
 
     try:
-        service = SyncService(
-            library_dir=library_dir,
-            beets_config=beets_config,
-            audio_format=audio_format,
-        )
-
         result = await asyncio.to_thread(
-            service.sync_album,
+            sync_service.sync_album,
             url,
             job_id,
             progress_callback,
@@ -131,14 +122,7 @@ async def run_sync_job(
     next_job = await job_store.pop_next_pending()
     if next_job:
         task = asyncio.create_task(
-            run_sync_job(
-                next_job.id,
-                next_job.url,
-                next_job.audio_format,
-                library_dir,
-                beets_config,
-                job_store,
-            )
+            run_sync_job(next_job.id, next_job.url, job_store, sync_service)
         )
         del task  # Fire-and-forget
 
@@ -185,15 +169,14 @@ async def create_job(
     background_tasks: BackgroundTasks,
     settings: SettingsDep,
     job_store: JobStoreDep,
+    sync_service: SyncServiceDep,
 ) -> JobCreatedResponse:
     """
     Create a new sync job.
 
     Jobs are queued and executed sequentially. Returns 409 only if queue is full.
     """
-    audio_format = request.audio_format or settings.audio_format
-
-    result = await job_store.create_job(request.url, audio_format)
+    result = await job_store.create_job(request.url, settings.audio_format)
 
     if result is None:
         raise HTTPException(
@@ -208,10 +191,8 @@ async def create_job(
             run_sync_job,
             job.id,
             request.url,
-            audio_format,
-            settings.library_dir,
-            settings.beets_config,
             job_store,
+            sync_service,
         )
 
     return JobCreatedResponse(id=job.id)
@@ -232,7 +213,7 @@ async def list_jobs(job_store: JobStoreDep) -> JobListResponse:
 
 @router.post("/jobs/{job_id}/cancel", response_model=CancelJobResponse)
 async def cancel_job(
-    job_id: str, settings: SettingsDep, job_store: JobStoreDep
+    job_id: str, job_store: JobStoreDep, sync_service: SyncServiceDep
 ) -> CancelJobResponse:
     """
     Cancel a running or queued job.
@@ -263,14 +244,7 @@ async def cancel_job(
     next_job = await job_store.pop_next_pending()
     if next_job:
         task = asyncio.create_task(
-            run_sync_job(
-                next_job.id,
-                next_job.url,
-                next_job.audio_format,
-                settings.library_dir,
-                settings.beets_config,
-                job_store,
-            )
+            run_sync_job(next_job.id, next_job.url, job_store, sync_service)
         )
         del task  # Fire-and-forget
 

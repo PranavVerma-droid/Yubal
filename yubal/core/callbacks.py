@@ -19,3 +19,6 @@ class ProgressEvent(BaseModel):
 
 ProgressCallback = Callable[[ProgressEvent], None]
 """Type alias for progress callback functions."""
+
+CancelCheck = Callable[[], bool]
+"""Type alias for cancellation check functions."""
