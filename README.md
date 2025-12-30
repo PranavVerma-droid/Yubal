@@ -63,6 +63,7 @@ services:
 
 Open [http://localhost:8000](http://localhost:8000) and paste a YouTube Music album URL.
 
+> [!NOTE]
 > You can upload your YouTube cookies to be used by yubal from the Web UI or by adding `cookies.txt` to your `yt-dlp` folder.
 >
 > This is only required for age-restricted or private content.
@@ -72,6 +73,7 @@ Open [http://localhost:8000](http://localhost:8000) and paste a YouTube Music al
 
 ## Configuration
 
+> [!NOTE]
 > Default audio settings will output `opus` audio files without transcoding.
 >
 > Transcoding at best quality will be performed if source is different from `opus` (rare cases).
