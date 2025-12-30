@@ -72,7 +72,8 @@ class Downloader:
         ydl_opts = {
             "quiet": True,
             "no_warnings": True,
-            "extract_flat": False,
+            "extract_flat": False,  # Full extraction to get year/album/codec
+            "playlist_items": "1",  # Only extract first item (still get playlist_count)
         }
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -323,7 +324,7 @@ class Downloader:
                 title=album_title,
                 artist=album_artist,
                 year=year,
-                track_count=len(entries),
+                track_count=info.get("playlist_count") or len(entries),
                 playlist_id=_eval("%(id|)s", info),
                 url=url,
                 thumbnail_url=thumbnail_url,

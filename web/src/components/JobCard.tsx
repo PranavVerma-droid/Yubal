@@ -101,7 +101,7 @@ export function JobCard({ job, onCancel, onDelete }: JobCardProps) {
                   {artist}
                   {year && ` · ${year}`}
                 </p>
-                {isJobFinished && trackCount && (
+                {trackCount && (
                   <>
                     <span className="text-foreground-400/30 text-xs">·</span>
                     <span className="text-foreground-500/70 font-mono text-xs">
