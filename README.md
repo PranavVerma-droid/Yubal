@@ -13,6 +13,8 @@ _Powered by yt-dlp and beets._
 [![Docker Image](https://img.shields.io/badge/ghcr.io-blue?logo=docker&logoColor=white)](https://ghcr.io/guillevc/yubal)
 [![License: MIT](https://img.shields.io/badge/License-MIT-white)](LICENSE)
 
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/guillevc)
+
 <picture>
   <img src="docs/demo.gif" alt="Yubal Demo Interface" width="600">
 </picture>
