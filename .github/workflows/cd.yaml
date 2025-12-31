@@ -51,6 +51,9 @@ jobs:
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}}
+      - name: Get version
+        id: version
+        run: echo "version=$(git describe --tags --always)" >> $GITHUB_OUTPUT
       - uses: docker/build-push-action@v6
         with:
           context: .
@@ -59,7 +62,7 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            COMMIT_SHA=${{ github.sha }}
+            VERSION=${{ steps.version.outputs.version }}
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
       - name: Update cache

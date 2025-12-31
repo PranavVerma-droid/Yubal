@@ -1,11 +1,11 @@
 # Build frontend
 FROM oven/bun:1-alpine AS web
-ARG COMMIT_SHA=dev
+ARG VERSION=dev
 WORKDIR /app/web
 COPY web/package.json web/bun.lock ./
 RUN bun install --frozen-lockfile
 COPY web/ ./
-RUN VITE_COMMIT_SHA=$COMMIT_SHA bun run build
+RUN VITE_VERSION=$VERSION bun run build
 
 # Builder - install Python deps
 FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim AS builder
@@ -18,7 +18,6 @@ FROM python:3.12-slim-bookworm
 WORKDIR /app
 
 ARG TARGETARCH
-ARG COMMIT_SHA=dev
 
 # Install ffmpeg (johnvansickle static) + deno
 RUN apt-get update \
@@ -40,7 +39,6 @@ RUN chmod +x /app/docker-entrypoint.sh
 
 ENV PATH="/app/.venv/bin:$PATH" \
     PYTHONUNBUFFERED=1 \
-    COMMIT_SHA=$COMMIT_SHA \
     YUBAL_HOST=0.0.0.0 \
     YUBAL_PORT=8000 \
     YUBAL_DATA_DIR=/app/data \

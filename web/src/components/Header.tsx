@@ -108,12 +108,12 @@ export function Header() {
         </h1>
         <p className="text-foreground-500 font-mono text-xs">
           <a
-            href={`https://github.com/guillevc/yubal/releases/tag/v${__APP_VERSION__}`}
+            href={`https://github.com/guillevc/yubal/${/^v\d+\.\d+\.\d+$/.test(__VERSION__) ? "releases/tag/" : "commit/"}${__VERSION__}`}
             target="_blank"
             rel="noopener noreferrer"
             className="hover:underline"
           >
-            v{__APP_VERSION__}
+            {__VERSION__}
           </a>
         </p>
       </div>
