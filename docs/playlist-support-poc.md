@@ -1,11 +1,27 @@
 # YouTube Music Playlist Support - POC Findings & Implementation Plan
 
 > **Date:** 2025-01-02
+> **Updated:** 2026-01-02
 > **Status:** POC Complete, Ready for Implementation
 
 ## Executive Summary
 
-This document captures the research and POC testing for adding YouTube Music **playlist** support to Yubal. The key finding is that playlists require fundamentally different handling than albums due to metadata availability differences in yt-dlp.
+This document captures the research and POC testing for adding YouTube Music **playlist** support to Yubal.
+
+### Key Finding (Refined)
+
+**Track type determines metadata availability, not playlist type.**
+
+| Track Type | Has Metadata? | Description Pattern |
+|------------|---------------|---------------------|
+| Album track (auto-generated) | ✅ Full (album, artist, track) | "Provided to YouTube by..." |
+| Music video (manual upload) | ❌ None (only channel, messy title) | Custom description |
+
+This means:
+- **Album URLs** (`OLAK*`) → Always have metadata (album tracks)
+- **Playlist URLs** (`PL*`) → Depends on what tracks were added
+- **User playlists with album tracks** → Have full metadata!
+- **Curated playlists (Top 100, etc.)** → Usually music videos, no metadata
 
 ---
 
@@ -27,10 +43,12 @@ This document captures the research and POC testing for adding YouTube Music **p
 
 ### Test URLs Used
 
-| Type | URL | Title |
-|------|-----|-------|
-| Album | `https://music.youtube.com/playlist?list=OLAK5uy_kqKSSUvhqlZJQUlvZzxdhm4fXg7mLtpVQ` | LUX by ROSALÍA |
-| Playlist | `https://music.youtube.com/playlist?list=OLAK5uy_mzYnlaHgFOvLaxqIPnnouEr-idiUn4NIM` | Trending 20 Spain |
+| Type | URL | Title | Has Metadata? |
+|------|-----|-------|---------------|
+| Album | `OLAK5uy_kckr2V4WvGQVbCsUNmNSLgYIM_od9SoFs` | DINASTÍA by Peso Pluma | ✅ Yes |
+| Playlist (curated) | `PL4fGSI1pDJn6sMPCoD7PdSlEgyUylgxuT` | Top 100 Songs Spain | ❌ No |
+| Playlist (user) | `PLbE6wFkAlDUeDUu98GuzkCWm60QjYvagQ` | test123 public playlist | ✅ Yes |
+| Personal mix | `RDTMAK5uy_lz2owBgwWf1mjzyn_NbxzMViQzIg8IAIg` | My Mix 2 | ⚠️ Needs auth |
 
 ### Key Finding: Same Song, Different Metadata
 
@@ -55,6 +73,47 @@ We tested "La Perla" by ROSALÍA in both contexts:
 - **Album tracks** point to album-specific audio versions with rich metadata
 - **Playlist tracks** point to music videos with minimal metadata
 - These are literally different videos on YouTube's backend
+
+### Refined Understanding: Track Type, Not Playlist Type
+
+**Original assumption:** "Albums have metadata, playlists don't"
+**Corrected understanding:** "Album tracks have metadata, music videos don't"
+
+Testing revealed that **user-created playlists can have full metadata** if the user added album tracks (not music videos) when creating the playlist:
+
+| Source | Contains | Has Metadata? |
+|--------|----------|---------------|
+| Album URL (OLAK*) | Album tracks | ✅ Always |
+| Top 100 Spain (PL*) | Music videos | ❌ Never |
+| test123 playlist (PL*) | Album tracks | ✅ Yes! |
+
+**Detection method:** Check the video description's first line:
+```python
+def is_album_track(track_info: dict) -> bool:
+    """Album tracks are auto-generated uploads from distributors."""
+    desc = track_info.get('description', '')
+    return desc.startswith('Provided to YouTube by')
+
+def has_album_metadata(track_info: dict) -> bool:
+    """Check if track has rich album metadata."""
+    return (
+        track_info.get('album') is not None
+        and track_info.get('artist') is not None
+    )
+```
+
+### Cookie Testing Results
+
+Cookies were tested to see if authentication provides additional metadata:
+
+| Test | Result |
+|------|--------|
+| Metadata with cookies | No additional fields |
+| Metadata without cookies | Same fields available |
+| Bot detection | Cookies may trigger signature extraction errors |
+| Personal playlists (RDTMAK*) | Require auth, but follow same metadata rules |
+
+**Conclusion:** Cookies provide no benefit for metadata extraction and may cause issues with YouTube's bot detection. Unauthenticated extraction is preferred.
 
 ### Available Fields for Playlist Tracks
 
@@ -168,12 +227,118 @@ ydl_opts = {
 | Decision | Choice | Rationale |
 |----------|--------|-----------|
 | Folder organization | `Playlists/{playlist_title}/` | Keeps playlists together, separate from albums |
-| Metadata source | yt-dlp only | Beets can't match playlist tracks |
-| Album field | playlist_title | Creates pseudo-album for music players |
-| Artist field | channel | Most reliable source |
+| Metadata source | Depends on track type | Album tracks have metadata; music videos don't |
+| Album field | `album` if present, else `playlist_title` | Use real album when available |
+| Artist field | `artist` if present, else `channel` | Use structured artist when available |
 | Artwork | Playlist thumbnail | Consistent for all tracks |
-| Beets usage | Skip entirely | Tested - both album and singleton modes fail |
-| Detection | User toggle in UI | Always ask, don't auto-detect |
+| Beets usage | Skip for music video playlists | Can't match without album/artist metadata |
+| Detection | Check first track's metadata | Auto-detect, allow user override |
+
+### Implementation Strategy Options
+
+Given the refined understanding, there are three possible approaches:
+
+#### Option A: Simple (Recommended for v1)
+Treat all playlist imports as pseudo-albums regardless of track metadata.
+
+**What "pseudo-album" means:** Use the playlist itself as the organizing unit, ignoring any album/artist metadata that individual tracks might have.
+
+Example - playlist "test123" containing:
+- Track 1: "S P E Y S I D E" (has `album: "SABLE, fABLE"`, `artist: "Bon Iver"`)
+- Track 2: "Latin Girl" (has `album: "OT GALA 9"`, `artist: "Claudia Arenas"`)
+
+**Pseudo-album result:**
+```
+Playlists/
+└── test123 public playlist/      ← playlist_title becomes "album"
+    ├── 01 - Bon Iver - S P E Y S I D E.opus
+    └── 02 - Claudia Arenas - Latin Girl.opus
+
+Embedded metadata:
+  album: "test123 public playlist"  ← IGNORES the real album
+  artist: "Bon Iver"                ← from channel field
+  track: 1
+```
+
+**Alternative (use real metadata) would scatter tracks:**
+```
+Bon Iver/
+└── 2024 - SABLE, fABLE/
+    └── S P E Y S I D E.opus
+
+Claudia Arenas/
+└── OT GALA 9/
+    └── Latin Girl.opus
+```
+
+The pseudo-album approach keeps the playlist together as a cohesive unit, which is typically what users want when importing a playlist.
+
+**Example - playlist with only music videos (no metadata):**
+
+"Top 100 Spain" containing:
+- Track 1: title="Niña Pastori - Palillos y Panderos", channel="Niña Pastori Oficial", album=None
+- Track 2: title="ROSALÍA - La Perla (Official Video)", channel="ROSALÍA", album=None
+
+```
+Playlists/
+└── Top 100 Songs Spain/
+    ├── 01 - Niña Pastori Oficial - Niña Pastori - Palillos y Panderos.opus
+    └── 02 - ROSALÍA - ROSALÍA - La Perla (Official Video).opus
+
+Embedded metadata:
+  album: "Top 100 Songs Spain"
+  artist: "Niña Pastori Oficial"  ← channel (only option)
+  track: 1
+```
+
+Note: Titles are messy ("Official Video", artist in title) but this is unavoidable for music video tracks.
+
+**Example - mixed playlist (some album tracks, some videos):**
+
+Hypothetical "My Favorites" containing:
+- Track 1: "S P E Y S I D E" (album track - has `album: "SABLE, fABLE"`)
+- Track 2: "La Perla (Official Video)" (music video - `album: None`)
+
+```
+Playlists/
+└── My Favorites/
+    ├── 01 - Bon Iver - S P E Y S I D E.opus         ← clean title (album track)
+    └── 02 - ROSALÍA - La Perla (Official Video).opus  ← messy title (video)
+
+Embedded metadata for track 1:
+  album: "My Favorites"    ← pseudo-album (ignores real "SABLE, fABLE")
+  artist: "Bon Iver"
+  track: 1
+
+Embedded metadata for track 2:
+  album: "My Favorites"    ← pseudo-album (no real album anyway)
+  artist: "ROSALÍA"
+  track: 2
+```
+
+Both tracks get consistent handling despite different source types.
+
+- **Pro:** Simple, consistent behavior
+- **Pro:** Works for all playlist types
+- **Pro:** Keeps playlist as a collection
+- **Con:** Doesn't leverage available metadata on some playlists
+- **Con:** Messy titles on music video tracks
+
+#### Option B: Smart Detection
+Check each track for metadata and branch:
+- Tracks with `album` field → Could use beets for enrichment
+- Tracks without `album` field → Use pseudo-album approach
+- **Pro:** Best metadata when available
+- **Con:** Complex, mixed playlists get inconsistent handling
+
+#### Option C: Per-Playlist Detection
+Check first track to determine playlist type, apply consistent strategy:
+- If first track has metadata → Treat as collection of album tracks
+- If first track lacks metadata → Use pseudo-album approach
+- **Pro:** Consistent per-playlist
+- **Con:** May misclassify mixed playlists
+
+**Recommendation:** Start with Option A for simplicity, consider Option C later.
 
 ### Files to Modify
 
@@ -246,10 +411,13 @@ ydl_opts = {
 
 ```python
 # Album test (existing flow should still work)
-album_url = "https://music.youtube.com/playlist?list=OLAK5uy_kqKSSUvhqlZJQUlvZzxdhm4fXg7mLtpVQ"
+album_url = "https://music.youtube.com/playlist?list=OLAK5uy_kckr2V4WvGQVbCsUNmNSLgYIM_od9SoFs"  # DINASTÍA
 
-# Playlist test (new flow)
-playlist_url = "https://music.youtube.com/playlist?list=OLAK5uy_mzYnlaHgFOvLaxqIPnnouEr-idiUn4NIM"
+# Playlist test - music videos (no metadata)
+playlist_no_meta = "https://music.youtube.com/playlist?list=PL4fGSI1pDJn6sMPCoD7PdSlEgyUylgxuT"  # Top 100 Spain
+
+# Playlist test - album tracks (has metadata)
+playlist_with_meta = "https://music.youtube.com/playlist?list=PLbE6wFkAlDUeDUu98GuzkCWm60QjYvagQ"  # test123
 ```
 
 ### Expected Results
@@ -257,21 +425,31 @@ playlist_url = "https://music.youtube.com/playlist?list=OLAK5uy_mzYnlaHgFOvLaxqI
 **Album Import:**
 ```
 data/
-└── ROSALIA/
-    └── 2025 - LUX/
-        ├── 01 - Sexo, Violencia y Llantas.opus
+└── Peso Pluma/
+    └── 2025 - DINASTÍA/
+        ├── 01 - intro.opus
         ├── 02 - ...
         └── (beets-enriched metadata)
 ```
 
-**Playlist Import:**
+**Playlist Import (music videos - no metadata):**
 ```
 data/
 └── Playlists/
-    └── Trending 20 Spain/
-        ├── 01 - Bizarrap - J BALVIN __ BZRP Music Sessions.opus
+    └── Top 100 Songs Spain/
+        ├── 01 - Niña Pastori - Palillos y Panderos.opus
         ├── 02 - ROSALÍA - La Perla (Official Video).opus
-        └── (yt-dlp metadata only)
+        └── (yt-dlp pseudo-album metadata)
+```
+
+**Playlist Import (album tracks - has metadata):**
+```
+data/
+└── Playlists/
+    └── test123 public playlist/
+        ├── 01 - S P E Y S I D E.opus          # Has album: "SABLE, fABLE"
+        ├── 02 - Latin Girl.opus               # Has album: "OT GALA 9"
+        └── (original album metadata preserved)
 ```
 
 ---
