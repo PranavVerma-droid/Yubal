@@ -115,6 +115,7 @@ yubal is configured via Environment Variables.
 
 > [!NOTE]
 > **Audio Transcoding**
+> 
 > By default, yubal keeps the original `opus` stream from YouTube to maintain maximum quality and processing speed. Transcoding only occurs if you change `YUBAL_AUDIO_FORMAT` or if the source is not natively available in your chosen format.
 
 ## 🗺️ Roadmap
