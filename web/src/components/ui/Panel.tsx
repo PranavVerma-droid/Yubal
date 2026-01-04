@@ -59,16 +59,16 @@ PanelHeader.displayName = "PanelHeader";
 
 export interface PanelContentProps extends HTMLAttributes<HTMLDivElement> {
   children: ReactNode;
+  height?: string;
 }
 
 export const PanelContent = forwardRef<HTMLDivElement, PanelContentProps>(
-  ({ children, className = "", ...props }, ref) => {
+  ({ children, className = "", height = "h-72", ...props }, ref) => {
     return (
       <div className="border-divider border-t-small">
         <ScrollShadow
           ref={ref}
-          orientation="vertical"
-          className={`h-72 p-3 ${className}`}
+          className={`${height} p-3 ${className}`}
           {...props}
         >
           {children}

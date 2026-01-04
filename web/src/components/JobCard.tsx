@@ -76,15 +76,15 @@ export function JobCard({ job, onCancel, onDelete }: JobCardProps) {
             <img
               src={thumbnailUrl}
               alt=""
-              className="h-10 w-10 rounded object-cover"
+              className="h-12 w-12 rounded object-cover"
             />
           ) : (
-            <div className="bg-content3 flex h-10 w-10 items-center justify-center rounded">
+            <div className="bg-content3 flex h-12 w-12 items-center justify-center rounded">
               {getStatusIcon(job.status)}
             </div>
           )}
           {thumbnailUrl && (
-            <div className="bg-content2/80 absolute -right-1 -bottom-1 rounded-full p-1">
+            <div className="bg-content2/80 absolute right-0.5 bottom-0.5 rounded-full p-0.5">
               {getStatusIcon(job.status)}
             </div>
           )}
@@ -93,24 +93,25 @@ export function JobCard({ job, onCancel, onDelete }: JobCardProps) {
         <div className="min-w-0 flex-1 space-y-0.5 font-mono">
           {title ? (
             <>
-              <div className="flex min-w-0 items-center gap-1.5 text-sm">
-                <p className="text-foreground min-w-0 truncate">{title}</p>
+              <div className="flex min-w-0 items-baseline gap-1 text-sm">
+                <span className="text-foreground truncate">{title}</span>
                 {year && (
                   <span className="text-foreground-500 shrink-0">({year})</span>
                 )}
               </div>
-              <div className="flex min-w-0 items-center gap-1.5 text-xs">
-                <p className="text-foreground-500 min-w-0 truncate">{artist}</p>
-                {trackCount && (
-                  <span className="text-foreground-500 shrink-0">
-                    · {trackCount} tracks
-                  </span>
-                )}
+              <p className="text-foreground-500 min-w-0 truncate text-xs">
+                {artist}
+              </p>
+              <div className="text-foreground-500 flex items-center gap-1.5 text-xs">
+                {trackCount && <span>{trackCount} tracks</span>}
                 {audioCodec && (
-                  <span className="text-foreground-500 shrink-0">
-                    · <span className="uppercase">{audioCodec}</span>
-                    {isJobFinished && audioBitrate && ` ${audioBitrate}kbps`}
-                  </span>
+                  <>
+                    {trackCount && <span>·</span>}
+                    <span className="uppercase">{audioCodec}</span>
+                    {isJobFinished && audioBitrate && (
+                      <span>{audioBitrate}kbps</span>
+                    )}
+                  </>
                 )}
               </div>
             </>
