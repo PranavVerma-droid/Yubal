@@ -42,7 +42,7 @@ export function useJobs(): UseJobsResult {
 
   const poll = useCallback(async () => {
     const { jobs: jobList, logs: logList } = await listJobs();
-    setJobs(jobList);
+    setJobs([...jobList].reverse()); // Display newest first
     setLogs(logList);
 
     // Check if there are any active jobs
