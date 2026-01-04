@@ -93,6 +93,11 @@ Open your browser to `http://localhost:8000` and paste a YouTube Music album URL
 > 2. Save the file as `cookies.txt`.
 > 3. Place it in your mounted `ytdlp` volume (or upload via the Web UI).
 
+> [!CAUTION]
+> **Cookie usage can backfire.** Paradoxically, authenticated requests may trigger stricter rate limiting from YouTube. Only use cookies if you need Premium quality or age-restricted content.
+>
+> More info: [#3](https://github.com/guillevc/yubal/issues/3)
+
 ## ⚙️ Configuration
 
 yubal is configured via Environment Variables.
