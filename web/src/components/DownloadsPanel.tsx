@@ -1,5 +1,5 @@
 import { Download } from "lucide-react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion } from "motion/react";
 import type { Job } from "../api/jobs";
 import { JobCard } from "./JobCard";
 import { Panel, PanelHeader, PanelContent } from "./ui/Panel";

@@ -2,9 +2,7 @@
 
 ## MCP Tools
 
-### context7
-
-Use context7 MCP to look up documentation for frameworks and libraries before implementing.
+Use enabled MCP servers to look up documentation for frameworks and libraries before implementing.
 
 **When to use:**
 

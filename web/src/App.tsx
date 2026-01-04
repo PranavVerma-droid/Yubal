@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Button } from "@heroui/react";
 import { Download } from "lucide-react";
+import { motion } from "motion/react";
 import { UrlInput } from "./components/UrlInput";
 import { isValidUrl } from "./utils/url";
 import { ConsolePanel } from "./components/ConsolePanel";
@@ -8,6 +9,13 @@ import { DownloadsPanel } from "./components/DownloadsPanel";
 import { Header } from "./components/Header";
 import { Footer } from "./components/Footer";
 import { useJobs } from "./hooks/useJobs";
+
+// Shared spring transition for appearance animations
+const appearTransition = {
+  type: "spring" as const,
+  bounce: 0.15,
+  duration: 0.5,
+};
 
 export default function App() {
   const [url, setUrl] = useState("");
@@ -29,10 +37,21 @@ export default function App() {
   return (
     <div className="bg-background flex min-h-screen flex-col justify-center px-4 py-6">
       <main className="mx-auto w-full max-w-2xl">
-        <Header />
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={appearTransition}
+        >
+          <Header />
+        </motion.div>
 
         {/* URL Input Section */}
-        <section className="mb-6 flex gap-2">
+        <motion.section
+          className="mb-6 flex gap-2"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ ...appearTransition, delay: 0.05 }}
+        >
           <div className="flex-1">
             <UrlInput value={url} onChange={setUrl} />
           </div>
@@ -45,19 +64,30 @@ export default function App() {
           >
             Download
           </Button>
-        </section>
+        </motion.section>
 
         {/* Stacked Panels */}
-        <section className="mb-6 flex flex-col gap-4">
+        <motion.section
+          className="mb-6 flex flex-col gap-4"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ ...appearTransition, delay: 0.1 }}
+        >
           <DownloadsPanel
             jobs={jobs}
             onCancel={cancelJob}
             onDelete={handleDelete}
           />
           <ConsolePanel logs={logs} jobs={jobs} />
-        </section>
+        </motion.section>
 
-        <Footer />
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ ...appearTransition, delay: 0.15 }}
+        >
+          <Footer />
+        </motion.div>
       </main>
     </div>
   );
