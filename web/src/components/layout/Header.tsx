@@ -9,8 +9,12 @@ import {
 } from "@heroui/react";
 import { Cookie, Disc3, Star, Trash2, Upload } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { deleteCookies, getCookiesStatus, uploadCookies } from "../api/cookies";
-import { AnimatedThemeToggler } from "./ui/AnimatedThemeToggler";
+import {
+  deleteCookies,
+  getCookiesStatus,
+  uploadCookies,
+} from "../../api/cookies";
+import { AnimatedThemeToggler } from "../ui/AnimatedThemeToggler";
 
 export function Header() {
   const [cookiesConfigured, setCookiesConfigured] = useState(false);
