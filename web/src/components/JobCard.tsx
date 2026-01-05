@@ -60,7 +60,7 @@ function Thumbnail({ url, status }: { url: string | null; status: JobStatus }) {
   if (url) {
     return (
       <div className="relative shrink-0">
-        <img src={url} alt="" className="h-14 w-14 rounded object-cover" />
+        <img src={url} alt="" className="h-16 w-16 rounded object-cover" />
         <div className="bg-content2/80 absolute right-0.5 bottom-0.5 rounded-full p-0.5">
           <StatusIcon status={status} />
         </div>
@@ -69,7 +69,7 @@ function Thumbnail({ url, status }: { url: string | null; status: JobStatus }) {
   }
 
   return (
-    <div className="bg-content3 flex h-14 w-14 shrink-0 items-center justify-center rounded">
+    <div className="bg-content3 flex h-16 w-16 shrink-0 items-center justify-center rounded">
       <StatusIcon status={status} />
     </div>
   );
@@ -98,7 +98,7 @@ function AlbumInfo({
         <span className="text-foreground truncate">{title}</span>
         {year && <span className="text-foreground-500 shrink-0">({year})</span>}
       </div>
-      <p className="text-foreground-500 mb-0.5 min-w-0 truncate text-xs">
+      <p className="text-foreground-500 mb-1 min-w-0 truncate text-xs">
         {artist}
       </p>
       <div className="flex items-center gap-1">
@@ -139,7 +139,7 @@ export function JobCard({ job, onCancel, onDelete }: JobCardProps) {
           status={job.status}
         />
 
-        <div className="min-w-0 flex-1 space-y-0.5 font-mono">
+        <div className="min-w-0 flex-1 font-mono">
           {album_info?.title ? (
             <AlbumInfo
               title={album_info.title}
