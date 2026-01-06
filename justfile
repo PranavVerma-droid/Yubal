@@ -70,8 +70,11 @@ format-check-web:
     cd web && bun run format:check
 
 # Tests
-test:
+test: test-api test-web
+test-api:
     uv run pytest
+test-web:
+    cd web && bun run test
 test-cov:
     uv run pytest --cov
 

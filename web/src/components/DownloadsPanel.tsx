@@ -1,8 +1,8 @@
 import { Download } from "lucide-react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion } from "motion/react";
 import type { Job } from "../api/jobs";
 import { JobCard } from "./JobCard";
-import { Panel, PanelHeader, PanelContent } from "./ui/Panel";
+import { Panel, PanelContent, PanelHeader } from "./ui/Panel";
 
 interface DownloadsPanelProps {
   jobs: Job[];
@@ -32,7 +32,7 @@ export function DownloadsPanel({
       >
         Downloads
       </PanelHeader>
-      <PanelContent className="space-y-2">
+      <PanelContent height="h-[500px]" className="space-y-2">
         {jobs.length === 0 ? (
           <div className="flex h-full items-center justify-center">
             <p className="text-foreground-400 font-mono text-xs">

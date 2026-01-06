@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown, Terminal } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 import type { Job, JobLog } from "../hooks/useJobs";
 import { Panel, PanelHeader, PanelContent } from "./ui/Panel";
 import { isActive } from "../utils/job-status";

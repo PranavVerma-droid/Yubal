@@ -7,13 +7,16 @@ import {
   DropdownTrigger,
   Tooltip,
 } from "@heroui/react";
-import { Cookie, Disc3, Moon, Sun, Trash2, Upload } from "lucide-react";
+import { Cookie, Disc3, Star, Trash2, Upload } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { deleteCookies, getCookiesStatus, uploadCookies } from "../api/cookies";
-import { useTheme } from "../hooks/useTheme";
+import {
+  deleteCookies,
+  getCookiesStatus,
+  uploadCookies,
+} from "../../api/cookies";
+import { AnimatedThemeToggler } from "../ui/AnimatedThemeToggler";
 
 export function Header() {
-  const { theme, toggle } = useTheme();
   const [cookiesConfigured, setCookiesConfigured] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -106,17 +109,34 @@ export function Header() {
         <h1 className="text-foreground font-mono text-xl font-semibold tracking-tight">
           yubal
         </h1>
-        <p className="text-foreground-500 font-mono text-xs">
+        <p className="font-mono text-xs">
           <a
             href={`https://github.com/guillevc/yubal/${__IS_RELEASE__ ? `releases/tag/${__VERSION__}` : `commit/${__COMMIT_SHA__}`}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="hover:underline"
+            className="text-primary/70 hover:text-primary underline-offset-2 transition-colors hover:underline"
           >
             {__VERSION__}
           </a>
         </p>
       </div>
+      <Button
+        as="a"
+        href="https://github.com/guillevc/yubal"
+        target="_blank"
+        rel="noopener noreferrer"
+        radius="full"
+        size="sm"
+        variant="ghost"
+        startContent={
+          <Star
+            className="h-4 w-4 fill-amber-400 text-amber-400 dark:fill-amber-300 dark:text-amber-300"
+            strokeWidth={1}
+          />
+        }
+      >
+        Star on GitHub
+      </Button>
       <input
         ref={fileInputRef}
         type="file"
@@ -163,6 +183,7 @@ export function Header() {
         >
           <Button
             isIconOnly
+            size="sm"
             variant="light"
             aria-label="Upload cookies"
             isLoading={isUploading}
@@ -172,18 +193,7 @@ export function Header() {
           </Button>
         </Tooltip>
       )}
-      <Button
-        isIconOnly
-        variant="light"
-        aria-label="Toggle theme"
-        onPress={toggle}
-      >
-        {theme === "dark" ? (
-          <Moon className="h-5 w-5" />
-        ) : (
-          <Sun className="h-5 w-5" />
-        )}
-      </Button>
+      <AnimatedThemeToggler />
     </header>
   );
 }

@@ -1,5 +1,7 @@
-import { Button, Progress } from "@heroui/react";
+import { Button, Chip, Progress } from "@heroui/react";
 import { CheckCircle, Clock, Loader2, Trash2, X, XCircle } from "lucide-react";
+import { motion } from "motion/react";
+import { useState } from "react";
 import type { Job, JobStatus } from "../api/jobs";
 import { isActive, isFinished } from "../utils/job-status";
 
@@ -9,58 +11,117 @@ interface JobCardProps {
   onDelete?: (jobId: string) => void;
 }
 
-function getStatusIcon(status: JobStatus) {
-  switch (status) {
-    case "pending":
-      return <Clock className="text-foreground-400 h-3.5 w-3.5" />;
-    case "fetching_info":
-      return (
-        <Loader2 className="text-foreground-500 h-3.5 w-3.5 animate-spin" />
-      );
-    case "downloading":
-      return <Loader2 className="text-primary h-3.5 w-3.5 animate-spin" />;
-    case "importing":
-      return <Loader2 className="text-secondary h-3.5 w-3.5 animate-spin" />;
-    case "completed":
-      return <CheckCircle className="text-success h-3.5 w-3.5" />;
-    case "failed":
-      return <XCircle className="text-danger h-3.5 w-3.5" />;
-    case "cancelled":
-      return <X className="text-warning h-3.5 w-3.5" />;
-  }
+const STATUS_ICON_CLASS = "h-4 w-4";
+const STATUS_CONFIG: Record<
+  JobStatus,
+  { icon: typeof Clock; color: string; spin?: boolean }
+> = {
+  pending: { icon: Clock, color: "text-foreground-400" },
+  fetching_info: { icon: Loader2, color: "text-foreground-500", spin: true },
+  downloading: { icon: Loader2, color: "text-primary", spin: true },
+  importing: { icon: Loader2, color: "text-secondary", spin: true },
+  completed: { icon: CheckCircle, color: "text-success" },
+  failed: { icon: XCircle, color: "text-danger" },
+  cancelled: { icon: X, color: "text-warning" },
+};
+
+const PROGRESS_COLORS: Record<
+  JobStatus,
+  "default" | "primary" | "secondary" | "success" | "warning" | "danger"
+> = {
+  pending: "default",
+  fetching_info: "default",
+  downloading: "primary",
+  importing: "secondary",
+  completed: "success",
+  failed: "danger",
+  cancelled: "warning",
+};
+
+function StatusIcon({ status }: { status: JobStatus }) {
+  const config = STATUS_CONFIG[status];
+  const Icon = config.icon;
+  return (
+    <Icon
+      className={`${STATUS_ICON_CLASS} ${config.color} ${config.spin ? "animate-spin" : ""}`}
+    />
+  );
 }
 
-function getProgressColor(
-  status: JobStatus,
-): "default" | "primary" | "secondary" | "success" | "warning" | "danger" {
-  switch (status) {
-    case "downloading":
-      return "primary";
-    case "importing":
-      return "secondary";
-    case "completed":
-      return "success";
-    case "failed":
-      return "danger";
-    case "cancelled":
-      return "warning";
-    default:
-      return "default";
+function MetadataChip({ children }: { children: React.ReactNode }) {
+  return (
+    <Chip size="sm" variant="faded" className="text-foreground-500">
+      {children}
+    </Chip>
+  );
+}
+
+function Thumbnail({ url, status }: { url: string | null; status: JobStatus }) {
+  if (url) {
+    return (
+      <div className="relative shrink-0">
+        <img src={url} alt="" className="h-16 w-16 rounded object-cover" />
+        <div className="bg-content2/80 absolute right-0.5 bottom-0.5 rounded-full p-0.5">
+          <StatusIcon status={status} />
+        </div>
+      </div>
+    );
   }
+
+  return (
+    <div className="bg-content3 flex h-16 w-16 shrink-0 items-center justify-center rounded">
+      <StatusIcon status={status} />
+    </div>
+  );
+}
+
+function AlbumInfo({
+  title,
+  artist,
+  year,
+  trackCount,
+  audioCodec,
+  audioBitrate,
+  showBitrate,
+}: {
+  title: string;
+  artist: string | null;
+  year: number | null;
+  trackCount: number | null;
+  audioCodec: string | null;
+  audioBitrate: number | null;
+  showBitrate: boolean;
+}) {
+  return (
+    <>
+      <div className="flex min-w-0 items-baseline gap-1 text-sm">
+        <span className="text-foreground truncate">{title}</span>
+        {year && <span className="text-foreground-500 shrink-0">({year})</span>}
+      </div>
+      <p className="text-foreground-500 mb-1 min-w-0 truncate text-xs">
+        {artist}
+      </p>
+      <div className="flex items-center gap-1">
+        {trackCount && <MetadataChip>{trackCount} tracks</MetadataChip>}
+        {audioCodec && (
+          <MetadataChip>
+            <span className="uppercase">{audioCodec}</span>
+          </MetadataChip>
+        )}
+        {showBitrate && audioBitrate && (
+          <MetadataChip>{audioBitrate}kbps</MetadataChip>
+        )}
+      </div>
+    </>
+  );
 }
 
 export function JobCard({ job, onCancel, onDelete }: JobCardProps) {
+  const [isHovered, setIsHovered] = useState(false);
   const isRunning = isActive(job.status);
   const isJobFinished = isFinished(job.status);
-  const showProgress = isRunning;
 
-  const title = job.album_info?.title || null;
-  const artist = job.album_info?.artist || null;
-  const year = job.album_info?.year || null;
-  const trackCount = job.album_info?.track_count || null;
-  const thumbnailUrl = job.album_info?.thumbnail_url || null;
-  const audioCodec = job.album_info?.audio_codec || null;
-  const audioBitrate = job.album_info?.audio_bitrate || null;
+  const { album_info } = job;
 
   return (
     <div
@@ -69,51 +130,26 @@ export function JobCard({ job, onCancel, onDelete }: JobCardProps) {
           ? "border-divider opacity-50"
           : "border-divider"
       }`}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
       <div className="flex items-center gap-3">
-        <div className="relative shrink-0">
-          {thumbnailUrl ? (
-            <img
-              src={thumbnailUrl}
-              alt=""
-              className="h-10 w-10 rounded object-cover"
-            />
-          ) : (
-            <div className="bg-content3 flex h-10 w-10 items-center justify-center rounded">
-              {getStatusIcon(job.status)}
-            </div>
-          )}
-          {thumbnailUrl && (
-            <div className="bg-content2/80 absolute -right-1 -bottom-1 rounded-full p-1">
-              {getStatusIcon(job.status)}
-            </div>
-          )}
-        </div>
+        <Thumbnail
+          url={album_info?.thumbnail_url ?? null}
+          status={job.status}
+        />
 
-        <div className="min-w-0 flex-1 space-y-0.5 font-mono">
-          {title ? (
-            <>
-              <div className="flex min-w-0 items-center gap-1.5 text-sm">
-                <p className="text-foreground min-w-0 truncate">{title}</p>
-                {year && (
-                  <span className="text-foreground-500 shrink-0">({year})</span>
-                )}
-              </div>
-              <div className="flex min-w-0 items-center gap-1.5 text-xs">
-                <p className="text-foreground-500 min-w-0 truncate">{artist}</p>
-                {trackCount && (
-                  <span className="text-foreground-500 shrink-0">
-                    · {trackCount} tracks
-                  </span>
-                )}
-                {audioCodec && (
-                  <span className="text-foreground-500 shrink-0">
-                    · <span className="uppercase">{audioCodec}</span>
-                    {isJobFinished && audioBitrate && ` ${audioBitrate}kbps`}
-                  </span>
-                )}
-              </div>
-            </>
+        <div className="min-w-0 flex-1 font-mono">
+          {album_info?.title ? (
+            <AlbumInfo
+              title={album_info.title}
+              artist={album_info.artist ?? null}
+              year={album_info.year ?? null}
+              trackCount={album_info.track_count ?? null}
+              audioCodec={album_info.audio_codec ?? null}
+              audioBitrate={album_info.audio_bitrate ?? null}
+              showBitrate={isJobFinished}
+            />
           ) : (
             <p className="text-foreground-500 truncate text-xs">{job.url}</p>
           )}
@@ -127,28 +163,38 @@ export function JobCard({ job, onCancel, onDelete }: JobCardProps) {
             className="text-foreground-500 hover:text-danger h-7 w-7 shrink-0"
             onPress={() => onCancel(job.id)}
           >
-            <X className="h-3.5 w-3.5" />
+            <X className="h-4 w-4" />
           </Button>
         )}
+
         {isJobFinished && onDelete && (
-          <Button
-            variant="light"
-            size="sm"
-            isIconOnly
-            className="text-foreground-500 hover:text-danger h-7 w-7 shrink-0"
-            onPress={() => onDelete(job.id)}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{
+              opacity: isHovered ? 1 : 0,
+              scale: isHovered ? 1 : 0.8,
+            }}
+            transition={{ type: "spring", stiffness: 500, damping: 30 }}
           >
-            <Trash2 className="h-3.5 w-3.5" />
-          </Button>
+            <Button
+              variant="light"
+              size="sm"
+              isIconOnly
+              className="text-foreground-500 hover:text-danger h-7 w-7 shrink-0"
+              onPress={() => onDelete(job.id)}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </motion.div>
         )}
       </div>
 
-      {showProgress && (
+      {isRunning && (
         <div className="mt-2 flex items-center gap-2">
           <Progress
             value={job.progress}
             size="sm"
-            color={getProgressColor(job.status)}
+            color={PROGRESS_COLORS[job.status]}
             className="flex-1"
             classNames={{
               indicator: "transition-all duration-500 ease-out",
