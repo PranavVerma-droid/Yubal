@@ -1,8 +1,8 @@
 import { Download } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import type { Job } from "../api/jobs";
-import { JobCard } from "./JobCard";
-import { Panel, PanelContent, PanelHeader } from "./ui/Panel";
+import { JobCard } from "./common/JobCard";
+import { Panel, PanelContent, PanelHeader } from "./common/Panel";
 
 interface DownloadsPanelProps {
   jobs: Job[];

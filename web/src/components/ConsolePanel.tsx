@@ -1,10 +1,10 @@
-import { useEffect, useRef, useState } from "react";
 import { ChevronDown, Terminal } from "lucide-react";
-import { motion, AnimatePresence } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
+import { useEffect, useRef, useState } from "react";
 import type { Job, JobLog } from "../hooks/useJobs";
-import { Panel, PanelHeader, PanelContent } from "./ui/Panel";
-import { isActive } from "../utils/job-status";
 import { useLocalStorage } from "../hooks/useLocalStorage";
+import { isActive } from "../utils/job-status";
+import { Panel, PanelContent, PanelHeader } from "./common/Panel";
 
 interface ConsolePanelProps {
   logs: JobLog[];
