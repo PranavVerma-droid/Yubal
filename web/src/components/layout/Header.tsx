@@ -14,7 +14,7 @@ import {
   getCookiesStatus,
   uploadCookies,
 } from "../../api/cookies";
-import { AnimatedThemeToggler } from "../ui/AnimatedThemeToggler";
+import { AnimatedThemeToggler } from "../magicui/AnimatedThemeToggler";
 
 export function Header() {
   const [cookiesConfigured, setCookiesConfigured] = useState(false);
