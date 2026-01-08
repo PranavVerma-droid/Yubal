@@ -13,7 +13,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from loguru import logger
 
-from yubal.api.dependencies import set_services
 from yubal.api.exceptions import register_exception_handlers
 from yubal.api.routes import cookies, health, jobs
 from yubal.services.downloader import Downloader
@@ -32,7 +31,6 @@ class Services:
     """Container for application services with proper lifecycle management.
 
     All services are created at startup and cleaned up at shutdown.
-    This replaces the @cache singleton pattern with explicit lifecycle.
     """
 
     job_store: JobStore
@@ -45,6 +43,20 @@ class Services:
         """Clean up resources. Called at application shutdown."""
         self.metadata_patcher.close()
         logger.info("Services cleaned up")
+
+
+# Module-level services container, set by lifespan
+_services: Services | None = None
+
+
+def get_services() -> Services:
+    """Get the services container.
+
+    Raises RuntimeError if called before lifespan initialization.
+    """
+    if _services is None:
+        raise RuntimeError("Services not initialized. Is the app running?")
+    return _services
 
 
 def create_services() -> Services:
@@ -108,18 +120,20 @@ def create_services() -> Services:
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Application lifespan handler for startup/shutdown."""
+    global _services
+
     # Startup: initialize services
     logger.info("Starting application...")
-    services = create_services()
-    set_services(services)
-    app.state.services = services  # Also store in app.state for direct access
+    _services = create_services()
+    app.state.services = _services  # Also store in app.state for direct access
     logger.info("Services initialized")
 
     yield
 
     # Shutdown: cleanup
     logger.info("Shutting down...")
-    app.state.services.close()
+    _services.close()
+    _services = None
 
     temp_dir = get_settings().temp_dir
     if temp_dir.exists():
