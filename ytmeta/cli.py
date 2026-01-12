@@ -36,6 +36,14 @@ def fetch_all(ytm: TrackedYTMusic, url: str) -> None:
             ytm.get_song(video_id)
         if album_id := (track.get("album") or {}).get("id"):
             ytm.get_album(album_id)
+        else:
+            # Fallback search for tracks without album info (e.g., OMV)
+            # Note: limit param is a minimum, not max (YT returns 20+ per page)
+            artists = " ".join(a.get("name", "") for a in track.get("artists", []))
+            title = track.get("title", "")
+            if artists or title:
+                query = f"{artists} {title}".strip()
+                ytm.search(query, filter="songs", limit=1, ignore_spelling=True)
 
 
 @click.command()
