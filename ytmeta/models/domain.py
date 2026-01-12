@@ -1,4 +1,7 @@
-"""Pydantic models for track metadata."""
+"""Domain models for ytmeta.
+
+These are the public models that represent the output of the library.
+"""
 
 from enum import StrEnum
 
@@ -13,7 +16,10 @@ class VideoType(StrEnum):
 
 
 class TrackMetadata(BaseModel):
-    """Metadata for a single track."""
+    """Metadata for a single track.
+
+    This is the primary output model of the library.
+    """
 
     omv_video_id: str  # Canonical ID (OMV from album)
     atv_video_id: str | None = None  # ATV video ID if available

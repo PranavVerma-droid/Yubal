@@ -1,4 +1,8 @@
-"""Pydantic models for ytmusicapi responses."""
+"""Models for parsing ytmusicapi responses.
+
+These are internal models used to parse and validate responses from
+the YouTube Music API. They may change if the API changes.
+"""
 
 from pydantic import BaseModel, ConfigDict, Field
 
