@@ -3,122 +3,31 @@ set dotenv-load
 default:
     @just --list
 
-# Aliases
-alias c := check
-alias f := format
-alias l := lint
-alias tc := typecheck
-alias t := test
-alias d := dev
-alias b := build-web
-alias i := install
-alias p := prod
+install:
+    uv sync
+    cd web && bun install
 
-# Dev
+cli *args:
+    uv run yubal {{ args }}
+
 dev:
     #!/usr/bin/env bash
     trap 'kill 0' EXIT
     just dev-api & just dev-web & wait
 
 dev-api:
-    YUBAL_RELOAD=true YUBAL_DEBUG=true uv run python -m yubal
+    uv run uvicorn yubal_api.main:app --reload
 
 dev-web:
     cd web && bun run dev
 
-# Production
-prod: build-web serve
+lint:
+    uv run ruff check packages
 
-serve:
-    YUBAL_HOST=0.0.0.0 uv run python -m yubal
+format:
+    uv run ruff format packages
 
-# Build
-build: build-web
-build-web:
-    cd web && bun run build
+test *args:
+    uv run pytest {{ args }}
 
-# Lint
-lint: lint-api lint-web
-lint-api:
-    uv run ruff check .
-lint-web:
-    cd web && bun run lint
-
-# Typecheck
-typecheck: typecheck-api typecheck-web
-typecheck-api:
-    uv run ty check
-typecheck-web:
-    cd web && bun run typecheck
-
-# Format
-format: format-api format-web
-format-api:
-    uv run ruff format .
-    uv run ruff check --fix .
-format-web:
-    cd web && bun run format
-
-format-check: format-check-api format-check-web
-format-check-api:
-    uv run ruff format --check .
-format-check-web:
-    cd web && bun run format:check
-
-# Tests
-test: test-api test-web
-test-api:
-    uv run pytest
-test-web:
-    cd web && bun run test
-test-cov:
-    uv run pytest --cov
-
-# Utils
-gen-api:
-    cd web && bun run generate-api
-dead-exclusions:
-    uv run dead --exclude '^yubal/(api|schemas)/.*'
-
-check: lint format-check typecheck test
-
-install: install-api install-web
-install-api:
-    uv sync --frozen
-install-web:
-    cd web && bun install --frozen-lockfile
-
-sync: sync-api sync-web
-sync-api:
-    uv sync
-sync-web:
-    cd web && bun install
-
-upgrade: upgrade-api upgrade-web
-upgrade-api:
-    uv lock --upgrade && uv sync
-upgrade-web:
-    cd web && bun update
-
-# Docker
-
-docker-build:
-    docker build --no-cache -t yubal:local .
-
-docker-check-size:
-    docker build --no-cache -t yubal:check-size .
-    @echo "📦 Image size: $(docker images yubal:check-size --format '{{{{.Size}}')"
-    docker rmi yubal:check-size
-    @echo '✅ Docker build successful!'
-
-# Version
-version VERSION:
-    sed -i '' 's/^version = ".*"/version = "{{VERSION}}"/' pyproject.toml
-    cd web && npm pkg set version={{VERSION}}
-    just sync
-    git add pyproject.toml uv.lock web/package.json web/bun.lock
-    git commit -m "chore: bump version to {{VERSION}}"
-    git tag v{{VERSION}}
-
-clean:
-    rm -rf dist/ .pytest_cache/ .ruff_cache/ web/dist/ web/node_modules/.vite/
+check: lint test
