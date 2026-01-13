@@ -43,12 +43,12 @@ class TestTrackMetadata:
             title="Test Song",
             artist="Test Artist",
             album="Test Album",
-            albumartist="Test Artist",
+            album_artist="Test Artist",
             video_type=VideoType.ATV,
         )
         assert track.omv_video_id == "abc123"
         assert track.atv_video_id is None
-        assert track.tracknumber is None
+        assert track.track_number is None
 
     def test_full_creation(self) -> None:
         """Should create with all fields."""
@@ -58,14 +58,14 @@ class TestTrackMetadata:
             title="Test Song",
             artist="Artist One; Artist Two",
             album="Test Album",
-            albumartist="Various Artists",
-            tracknumber=5,
+            album_artist="Various Artists",
+            track_number=5,
             year="2024",
             cover_url="https://example.com/cover.jpg",
             video_type=VideoType.OMV,
         )
         assert track.atv_video_id == "atv123"
-        assert track.tracknumber == 5
+        assert track.track_number == 5
         assert track.year == "2024"
 
     def test_model_dump(self) -> None:
@@ -75,7 +75,7 @@ class TestTrackMetadata:
             title="Test",
             artist="Artist",
             album="Album",
-            albumartist="Artist",
+            album_artist="Artist",
             video_type=VideoType.ATV,
         )
         data = track.model_dump()

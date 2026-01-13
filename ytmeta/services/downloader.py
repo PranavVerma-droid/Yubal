@@ -189,10 +189,10 @@ class DownloadService:
         """
         return build_track_path(
             base=self._config.base_path,
-            artist=track.albumartist or track.artist,
+            artist=track.album_artist or track.artist,
             year=track.year,
             album=track.album,
-            track_number=track.tracknumber,
+            track_number=track.track_number,
             title=track.title,
         )
 

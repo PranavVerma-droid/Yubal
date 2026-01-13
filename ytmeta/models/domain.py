@@ -16,18 +16,16 @@ class VideoType(StrEnum):
 
 
 class TrackMetadata(BaseModel):
-    """Metadata for a single track.
+    """Metadata for a single track."""
 
-    This is the primary output model of the library.
-    """
-
-    omv_video_id: str | None = None  # OMV video ID if available
-    atv_video_id: str | None = None  # ATV video ID if available
+    omv_video_id: str | None = None
+    atv_video_id: str | None = None
     title: str
-    artist: str  # "Artist One; Artist Two"
+    artist: str
     album: str
-    albumartist: str  # "Artist One; Artist Two"
-    tracknumber: int | None = None
+    album_artist: str
+    track_number: int | None = None
+    total_tracks: int | None = None
     year: str | None = None
     cover_url: str | None = None
-    video_type: VideoType  # Source track type
+    video_type: VideoType

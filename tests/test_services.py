@@ -146,7 +146,7 @@ class TestMetadataExtractorService:
         assert len(tracks) == 1
         assert tracks[0].title == "Unknown Song"
         assert tracks[0].album == ""  # No album found
-        assert tracks[0].tracknumber is None
+        assert tracks[0].track_number is None
 
     def test_extract_continues_on_track_error(
         self,
@@ -207,7 +207,7 @@ class TestMetadataExtractorService:
         tracks = service.extract("https://music.youtube.com/playlist?list=PLtest")
 
         # Should have gotten track number from album track
-        assert tracks[0].tracknumber == 5
+        assert tracks[0].track_number == 5
 
     def test_extract_atv_id_from_search(
         self,
@@ -427,7 +427,7 @@ class TestMetadataExtractorService:
         tracks = service.extract("https://music.youtube.com/playlist?list=PLtest")
 
         # Should have matched by duration and gotten track number
-        assert tracks[0].tracknumber == 3
+        assert tracks[0].track_number == 3
         assert tracks[0].omv_video_id == "album_v1"
 
     def test_extract_no_duration_match_when_multiple_tracks_same_duration(
@@ -480,8 +480,8 @@ class TestMetadataExtractorService:
         service = MetadataExtractorService(mock)
         tracks = service.extract("https://music.youtube.com/playlist?list=PLtest")
 
-        # Should NOT have matched - tracknumber should be None
-        assert tracks[0].tracknumber is None
+        # Should NOT have matched - track_number should be None
+        assert tracks[0].track_number is None
         # Falls back to track.video_id since no album_track matched
         assert tracks[0].omv_video_id == "v1"
 
@@ -529,7 +529,7 @@ class TestMetadataExtractorService:
         tracks = service.extract("https://music.youtube.com/playlist?list=PLtest")
 
         # Should have matched despite case difference
-        assert tracks[0].tracknumber == 7
+        assert tracks[0].track_number == 7
         assert tracks[0].omv_video_id == "album_v1"
 
     def test_extract_title_matching_strips_whitespace(
@@ -576,7 +576,7 @@ class TestMetadataExtractorService:
         tracks = service.extract("https://music.youtube.com/playlist?list=PLtest")
 
         # Should have matched after stripping whitespace
-        assert tracks[0].tracknumber == 2
+        assert tracks[0].track_number == 2
 
     def test_extract_search_returns_omv_result(
         self,
@@ -796,7 +796,7 @@ class TestMetadataExtractorService:
 
         # Should have used fallback (album name from track, not full album)
         assert tracks[0].album == "My Album"
-        assert tracks[0].tracknumber is None  # No album lookup
+        assert tracks[0].track_number is None  # No album lookup
 
     def test_extract_search_failure_continues(
         self,
