@@ -156,7 +156,7 @@ class MetadataExtractorService:
     def _find_track_in_album(
         self, album: Album, track: PlaylistTrack
     ) -> AlbumTrack | None:
-        """Find a track in album by title or duration.
+        """Find a track in album by video_id, title, or duration.
 
         Args:
             album: Album to search in.
@@ -165,15 +165,21 @@ class MetadataExtractorService:
         Returns:
             Matching album track or None.
         """
+        target_video_id = track.video_id
         target_title = track.title.lower().strip()
         target_duration = track.duration_seconds
 
-        # First try: match by title
+        # First try: match by video_id (most reliable)
+        for album_track in album.tracks:
+            if album_track.video_id == target_video_id:
+                return album_track
+
+        # Second try: match by title
         for album_track in album.tracks:
             if album_track.title.lower().strip() == target_title:
                 return album_track
 
-        # Second try: match by duration if unique
+        # Third try: match by duration if unique
         if target_duration:
             matches = [t for t in album.tracks if t.duration_seconds == target_duration]
             if len(matches) == 1:
@@ -221,9 +227,9 @@ class MetadataExtractorService:
             omv_video_id=final_omv_id,
             atv_video_id=atv_id,
             title=track_title,
-            artist=format_artists(track_artists),
+            artists=[a.name for a in track_artists],
             album=album.title,
-            album_artist=format_artists(album.artists),
+            album_artists=[a.name for a in album.artists],
             track_number=track_number,
             total_tracks=len(album.tracks) if album.tracks else None,
             year=album.year,
@@ -260,9 +266,9 @@ class MetadataExtractorService:
             omv_video_id=omv_id,
             atv_video_id=atv_id,
             title=track.title,
-            artist=format_artists(track.artists),
+            artists=[a.name for a in track.artists],
             album=track.album.name if track.album else "",
-            album_artist=format_artists(track.artists),
+            album_artists=[a.name for a in track.artists],
             track_number=None,
             total_tracks=None,
             year=None,

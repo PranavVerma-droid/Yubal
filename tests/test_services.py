@@ -833,3 +833,51 @@ class TestMetadataExtractorService:
         assert len(tracks) == 1
         assert tracks[0].title == "Test Song"
         assert tracks[0].album == ""  # No album found
+
+    def test_extract_matches_track_by_video_id(
+        self,
+    ) -> None:
+        """Should match track by video_id even when title differs."""
+        playlist = Playlist.model_validate(
+            {
+                "tracks": [
+                    {
+                        "videoId": "omv123",
+                        "videoType": "MUSIC_VIDEO_TYPE_OMV",
+                        "title": "Different Playlist Title",  # Different from album
+                        "artists": [{"name": "Artist"}],
+                        "album": {"id": "alb1", "name": "Album"},
+                        "thumbnails": [
+                            {"url": "https://t.jpg", "width": 120, "height": 90}
+                        ],
+                        "duration_seconds": 999,  # Different duration too
+                    }
+                ]
+            }
+        )
+
+        album = Album.model_validate(
+            {
+                "title": "Album",
+                "artists": [{"name": "Artist"}],
+                "thumbnails": [{"url": "https://t.jpg", "width": 544, "height": 544}],
+                "tracks": [
+                    {
+                        "videoId": "omv123",  # Same video_id as playlist track
+                        "title": "Original Album Title",  # Different title
+                        "artists": [{"name": "Artist"}],
+                        "trackNumber": 5,
+                        "duration_seconds": 180,  # Different duration
+                    }
+                ],
+            }
+        )
+
+        mock = MockYTMusicClient(playlist=playlist, album=album, search_results=[])
+        service = MetadataExtractorService(mock)
+        tracks = service.extract("https://music.youtube.com/playlist?list=PLtest")
+
+        # Should have matched by video_id and gotten track number
+        assert tracks[0].track_number == 5
+        assert tracks[0].total_tracks == 1
+        assert tracks[0].omv_video_id == "omv123"

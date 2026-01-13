@@ -41,9 +41,9 @@ class TestTrackMetadata:
         track = TrackMetadata(
             omv_video_id="abc123",
             title="Test Song",
-            artist="Test Artist",
+            artists=["Test Artist"],
             album="Test Album",
-            album_artist="Test Artist",
+            album_artists=["Test Artist"],
             video_type=VideoType.ATV,
         )
         assert track.omv_video_id == "abc123"
@@ -56,9 +56,9 @@ class TestTrackMetadata:
             omv_video_id="omv123",
             atv_video_id="atv123",
             title="Test Song",
-            artist="Artist One; Artist Two",
+            artists=["Artist One", "Artist Two"],
             album="Test Album",
-            album_artist="Various Artists",
+            album_artists=["Various Artists"],
             track_number=5,
             year="2024",
             cover_url="https://example.com/cover.jpg",
@@ -67,20 +67,38 @@ class TestTrackMetadata:
         assert track.atv_video_id == "atv123"
         assert track.track_number == 5
         assert track.year == "2024"
+        # Test computed properties
+        assert track.artist == "Artist One; Artist Two"
+        assert track.album_artist == "Various Artists"
+        assert track.primary_album_artist == "Various Artists"
 
     def test_model_dump(self) -> None:
         """Should serialize to dict correctly."""
         track = TrackMetadata(
             omv_video_id="abc123",
             title="Test",
-            artist="Artist",
+            artists=["Artist"],
             album="Album",
-            album_artist="Artist",
+            album_artists=["Artist"],
             video_type=VideoType.ATV,
         )
         data = track.model_dump()
         assert data["omv_video_id"] == "abc123"
         assert data["video_type"] == "ATV"
+        assert data["artists"] == ["Artist"]
+        assert data["album_artists"] == ["Artist"]
+
+    def test_primary_album_artist_empty_list(self) -> None:
+        """Should return 'Unknown Artist' when album_artists is empty."""
+        track = TrackMetadata(
+            omv_video_id="abc123",
+            title="Test",
+            artists=["Artist"],
+            album="Album",
+            album_artists=[],
+            video_type=VideoType.ATV,
+        )
+        assert track.primary_album_artist == "Unknown Artist"
 
 
 class TestYTMusicModels:
