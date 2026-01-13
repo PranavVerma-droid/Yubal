@@ -289,7 +289,7 @@ class TestDownloadService:
 
 
 class TestDownloadResult:
-    """Tests for DownloadResult dataclass."""
+    """Tests for DownloadResult model."""
 
     def test_download_result_frozen(
         self,
@@ -302,7 +302,7 @@ class TestDownloadResult:
             output_path=Path("/some/path.opus"),
         )
 
-        with pytest.raises(FrozenInstanceError):
+        with pytest.raises(ValidationError):
             result.status = DownloadStatus.FAILED  # type: ignore
 
 

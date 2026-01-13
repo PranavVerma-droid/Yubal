@@ -6,6 +6,7 @@ These are the public models that represent the output of the library.
 from __future__ import annotations
 
 from enum import StrEnum
+from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict
 
@@ -15,6 +16,14 @@ class VideoType(StrEnum):
 
     ATV = "ATV"  # Audio Track Video (album version)
     OMV = "OMV"  # Official Music Video
+
+
+class DownloadStatus(StrEnum):
+    """Status of a download operation."""
+
+    SUCCESS = "success"
+    SKIPPED = "skipped"
+    FAILED = "failed"
 
 
 class TrackMetadata(BaseModel):
@@ -48,6 +57,26 @@ class TrackMetadata(BaseModel):
         return self.album_artists[0] if self.album_artists else "Unknown Artist"
 
 
+class DownloadResult(BaseModel):
+    """Result of a single track download.
+
+    Attributes:
+        track: The track metadata that was downloaded.
+        status: The download status.
+        output_path: Path to the downloaded file (if successful).
+        error: Error message (if failed).
+        video_id_used: The video ID that was used for download.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    track: TrackMetadata
+    status: DownloadStatus
+    output_path: Path | None = None
+    error: str | None = None
+    video_id_used: str | None = None
+
+
 class ExtractProgress(BaseModel):
     """Progress update during metadata extraction.
 
@@ -56,11 +85,29 @@ class ExtractProgress(BaseModel):
     Attributes:
         current: Number of tracks processed so far (1-indexed).
         total: Total number of tracks in the playlist.
-        track: Extracted track metadata, or None if extraction failed for this track.
+        track: Extracted track metadata.
     """
 
     model_config = ConfigDict(frozen=True)
 
     current: int
     total: int
-    track: TrackMetadata | None = None
+    track: TrackMetadata
+
+
+class DownloadProgress(BaseModel):
+    """Progress update during track download.
+
+    Yielded by DownloadService.download_tracks() to report progress.
+
+    Attributes:
+        current: Number of tracks processed so far (1-indexed).
+        total: Total number of tracks to download.
+        result: Download result for the current track.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    current: int
+    total: int
+    result: DownloadResult

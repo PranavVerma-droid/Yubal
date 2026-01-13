@@ -94,7 +94,7 @@ class MetadataExtractorService:
             PlaylistNotFoundError: If playlist doesn't exist.
             APIError: If API requests fail.
         """
-        return [p.track for p in self.extract(url) if p.track is not None]
+        return [p.track for p in self.extract(url)]
 
     def _extract_track(self, track: PlaylistTrack) -> TrackMetadata:
         """Extract metadata for a single track.

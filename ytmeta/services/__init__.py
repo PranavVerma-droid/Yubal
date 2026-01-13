@@ -1,12 +1,14 @@
 """Business logic services for ytmeta."""
 
-from ytmeta.models.domain import ExtractProgress
-from ytmeta.services.downloader import (
-    DownloaderProtocol,
+from ytmeta.models.domain import (
     DownloadProgress,
     DownloadResult,
-    DownloadService,
     DownloadStatus,
+    ExtractProgress,
+)
+from ytmeta.services.downloader import (
+    DownloaderProtocol,
+    DownloadService,
     YTDLPDownloader,
 )
 from ytmeta.services.extractor import MetadataExtractorService

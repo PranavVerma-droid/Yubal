@@ -4,65 +4,22 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Iterator
-from dataclasses import dataclass
-from enum import StrEnum
 from pathlib import Path
 from typing import Protocol
 
 import yt_dlp
-from pydantic import BaseModel, ConfigDict
 
 from ytmeta.config import DownloadConfig
 from ytmeta.exceptions import DownloadError
-from ytmeta.models.domain import TrackMetadata
+from ytmeta.models.domain import (
+    DownloadProgress,
+    DownloadResult,
+    DownloadStatus,
+    TrackMetadata,
+)
 from ytmeta.utils.filename import build_track_path
 
 logger = logging.getLogger(__name__)
-
-
-class DownloadStatus(StrEnum):
-    """Status of a download operation."""
-
-    SUCCESS = "success"
-    SKIPPED = "skipped"
-    FAILED = "failed"
-
-
-@dataclass(frozen=True)
-class DownloadResult:
-    """Result of a single track download.
-
-    Attributes:
-        track: The track metadata that was downloaded.
-        status: The download status.
-        output_path: Path to the downloaded file (if successful).
-        error: Error message (if failed).
-        video_id_used: The video ID that was used for download.
-    """
-
-    track: TrackMetadata
-    status: DownloadStatus
-    output_path: Path | None = None
-    error: str | None = None
-    video_id_used: str | None = None
-
-
-class DownloadProgress(BaseModel):
-    """Progress update during track download.
-
-    Yielded by DownloadService.download_tracks() to report progress.
-
-    Attributes:
-        current: Number of tracks processed so far (1-indexed).
-        total: Total number of tracks to download.
-        result: Download result for the current track.
-    """
-
-    model_config = ConfigDict(frozen=True, arbitrary_types_allowed=True)
-
-    current: int
-    total: int
-    result: DownloadResult | None = None
 
 
 class DownloaderProtocol(Protocol):
