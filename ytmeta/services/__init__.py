@@ -5,6 +5,7 @@ from ytmeta.models.domain import (
     DownloadResult,
     DownloadStatus,
     ExtractProgress,
+    PlaylistInfo,
 )
 from ytmeta.services.downloader import (
     DownloaderProtocol,
@@ -21,5 +22,6 @@ __all__ = [
     "DownloaderProtocol",
     "ExtractProgress",
     "MetadataExtractorService",
+    "PlaylistInfo",
     "YTDLPDownloader",
 ]

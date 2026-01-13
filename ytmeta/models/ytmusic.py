@@ -61,6 +61,7 @@ class PlaylistTrack(YTMusicModel):
 class Playlist(YTMusicModel):
     """Playlist response from get_playlist()."""
 
+    title: str | None = None
     tracks: list[PlaylistTrack]
 
 

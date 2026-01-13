@@ -31,7 +31,9 @@ from ytmeta.services import (
     DownloadService,
     DownloadStatus,
     MetadataExtractorService,
+    PlaylistInfo,
 )
+from ytmeta.utils import is_album_playlist, write_m3u
 
 logger = logging.getLogger("ytmeta")
 
@@ -191,6 +193,7 @@ def download_cmd(
         extractor = MetadataExtractorService(client)
 
         tracks: list[TrackMetadata] = []
+        playlist_info: PlaylistInfo | None = None
         with Progress(
             SpinnerColumn(),
             TextColumn("[progress.description]{task.description}"),
@@ -209,6 +212,9 @@ def download_cmd(
                 )
                 if extract_progress.track:
                     tracks.append(extract_progress.track)
+                # Capture playlist info from the first progress event
+                if playlist_info is None:
+                    playlist_info = extract_progress.playlist_info
 
         console.print(f"[green]Found {len(tracks)} tracks[/green]\n")
 
@@ -285,6 +291,20 @@ def download_cmd(
                     f"  [red]- {result.track.artist} - {result.track.title}: "
                     f"{result.error}[/red]"
                 )
+
+        # Step 4: Generate M3U playlist (skip for album playlists)
+        if playlist_info and not is_album_playlist(playlist_info.playlist_id):
+            # Collect successful downloads (including skipped = already exists)
+            m3u_tracks: list[tuple[TrackMetadata, Path]] = []
+            for result in results:
+                if result.status in (DownloadStatus.SUCCESS, DownloadStatus.SKIPPED):
+                    if result.output_path:
+                        m3u_tracks.append((result.track, result.output_path))
+
+            if m3u_tracks:
+                playlist_name = playlist_info.title or "Untitled Playlist"
+                m3u_path = write_m3u(output, playlist_name, m3u_tracks)
+                console.print(f"\n[cyan]M3U playlist saved:[/cyan] {m3u_path}")
 
     except YTMetaError as e:
         logger.error(str(e))

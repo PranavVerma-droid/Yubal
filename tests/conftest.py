@@ -124,6 +124,7 @@ def sample_playlist(sample_playlist_track: PlaylistTrack) -> Playlist:
     """Create a sample playlist."""
     return Playlist.model_validate(
         {
+            "title": "Test Playlist",
             "tracks": [
                 {
                     "videoId": sample_playlist_track.video_id,

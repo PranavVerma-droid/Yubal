@@ -77,6 +77,22 @@ class DownloadResult(BaseModel):
     video_id_used: str | None = None
 
 
+class PlaylistInfo(BaseModel):
+    """Information about a playlist.
+
+    Contains metadata about the playlist itself, separate from track data.
+
+    Attributes:
+        playlist_id: The YouTube Music playlist ID.
+        title: The playlist title/name.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    playlist_id: str
+    title: str | None = None
+
+
 class ExtractProgress(BaseModel):
     """Progress update during metadata extraction.
 
@@ -86,6 +102,7 @@ class ExtractProgress(BaseModel):
         current: Number of tracks processed so far (1-indexed).
         total: Total number of tracks in the playlist.
         track: Extracted track metadata.
+        playlist_info: Information about the playlist being extracted.
     """
 
     model_config = ConfigDict(frozen=True)
@@ -93,6 +110,7 @@ class ExtractProgress(BaseModel):
     current: int
     total: int
     track: TrackMetadata
+    playlist_info: PlaylistInfo
 
 
 class DownloadProgress(BaseModel):

@@ -6,7 +6,7 @@ from collections.abc import Iterator
 from rapidfuzz import process
 
 from ytmeta.client import YTMusicProtocol
-from ytmeta.models.domain import ExtractProgress, TrackMetadata, VideoType
+from ytmeta.models.domain import ExtractProgress, PlaylistInfo, TrackMetadata, VideoType
 from ytmeta.models.ytmusic import Album, AlbumTrack, PlaylistTrack
 from ytmeta.utils import format_artists, get_square_thumbnail, parse_playlist_id
 
@@ -62,6 +62,12 @@ class MetadataExtractorService:
         total = len(playlist.tracks)
         logger.info("Found %d tracks in playlist", total)
 
+        # Create playlist info for progress updates
+        playlist_info = PlaylistInfo(
+            playlist_id=playlist_id,
+            title=playlist.title,
+        )
+
         for i, track in enumerate(playlist.tracks):
             try:
                 metadata = self._extract_track(track)
@@ -74,7 +80,12 @@ class MetadataExtractorService:
                 # Continue with partial results instead of failing entirely
                 metadata = self._create_fallback_metadata(track)
 
-            yield ExtractProgress(current=i + 1, total=total, track=metadata)
+            yield ExtractProgress(
+                current=i + 1,
+                total=total,
+                track=metadata,
+                playlist_info=playlist_info,
+            )
 
         logger.info("Extracted metadata for %d tracks", total)
 
