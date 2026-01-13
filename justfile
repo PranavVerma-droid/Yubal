@@ -29,9 +29,9 @@ lint-fix:
 typecheck:
     uv run ty check ytmeta
 
-# Run tests
+# Run tests with coverage
 test *args:
-    uv run pytest {{ args }}
+    uv run pytest --cov=ytmeta --cov-report=term-missing {{ args }}
 
 # Run all checks
 check: format-check lint typecheck test
