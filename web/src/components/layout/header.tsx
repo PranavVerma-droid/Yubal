@@ -122,7 +122,6 @@ export function Header() {
 
   return (
     <Navbar
-      isBordered
       position="sticky"
       isMenuOpen={isMenuOpen}
       onMenuOpenChange={setIsMenuOpen}

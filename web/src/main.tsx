@@ -10,7 +10,7 @@ createRoot(document.getElementById("root")!).render(
     <HeroUIProvider>
       <ToastProvider />
       <ThemeProvider>
-        <main className="text-foreground bg-background">
+        <main className="text-foreground">
           <App />
         </main>
       </ThemeProvider>
