@@ -125,7 +125,7 @@ export function Header() {
     >
       <MotionNavbarBrand className="gap-3" {...blurFadeAnimation}>
         <Disc3 className="text-primary h-8 w-8" />
-        <span className="text-foreground font-mono text-lg font-bold">
+        <span className="text-foreground font-mono text-large font-bold">
           yubal
         </span>
         <Chip
@@ -138,7 +138,7 @@ export function Header() {
           color="primary"
           classNames={{
             base: "cursor-pointer",
-            content: "font-mono text-xs",
+            content: "font-mono text-xs tracking-wider",
           }}
         >
           {__VERSION__}
@@ -157,7 +157,6 @@ export function Header() {
             target="_blank"
             rel="noopener noreferrer"
             radius="full"
-            size="sm"
             variant="ghost"
             startContent={
               <Star
@@ -186,7 +185,6 @@ export function Header() {
                 <Button
                   isIconOnly
                   variant="light"
-                  size="sm"
                   aria-label="Cookie options"
                   isLoading={isDeleting}
                 >
@@ -220,7 +218,6 @@ export function Header() {
             >
               <Button
                 isIconOnly
-                size="sm"
                 variant="light"
                 aria-label="Upload cookies"
                 isLoading={isUploading}
