@@ -1,14 +1,17 @@
 """In-memory job store with thread-safe operations."""
 
+import logging
 import threading
-from collections import OrderedDict, defaultdict
+from collections import OrderedDict
 from datetime import datetime
 
 from yubal import AudioCodec
 
 from yubal_api.core.enums import JobStatus
-from yubal_api.core.models import AlbumInfo, Job, LogEntry
-from yubal_api.core.types import Clock, IdGenerator, LogStatus
+from yubal_api.core.models import AlbumInfo, Job
+from yubal_api.core.types import Clock, IdGenerator
+
+logger = logging.getLogger(__name__)
 
 
 class JobStore:
@@ -22,8 +25,6 @@ class JobStore:
     """
 
     MAX_JOBS = 20
-    MAX_LOGS_PER_JOB = 50
-    MAX_TOTAL_LOGS = 200
     TIMEOUT_SECONDS = 30 * 60  # 30 minutes
 
     def __init__(
@@ -34,14 +35,12 @@ class JobStore:
         self._clock = clock
         self._id_generator = id_generator
         self._jobs: OrderedDict[str, Job] = OrderedDict()
-        self._logs: defaultdict[str, list[LogEntry]] = defaultdict(list)
         self._lock = threading.Lock()
         self._active_job_id: str | None = None
 
     def _remove_job_internal(self, job_id: str) -> None:
-        """Remove a job and its associated data. Must be called with lock held."""
+        """Remove a job. Must be called with lock held."""
         del self._jobs[job_id]
-        self._logs.pop(job_id, None)
 
     def create_job(
         self,
@@ -165,48 +164,20 @@ class JobStore:
 
             return job
 
-    def add_log(
-        self,
-        job_id: str,
-        status: LogStatus,
-        message: str,
-    ) -> None:
-        """Add a log entry for a job. Caller is responsible for checking job state."""
-        with self._lock:
-            if job_id not in self._jobs:
-                return
-
-            entry = LogEntry(
-                timestamp=self._clock(),
-                status=status,
-                message=message,
-            )
-            self._logs[job_id].append(entry)
-
-            # Trim logs per job if exceeded
-            if len(self._logs[job_id]) > self.MAX_LOGS_PER_JOB:
-                self._logs[job_id] = self._logs[job_id][-self.MAX_LOGS_PER_JOB :]
-
     def transition_job(
         self,
         job_id: str,
         status: JobStatus,
-        message: str,
         progress: float | None = None,
         album_info: AlbumInfo | None = None,
         started_at: datetime | None = None,
     ) -> Job | None:
-        """Atomically update job status and add log entry.
-
-        This is the preferred method for job state transitions as it combines
-        update_job() and add_log() into a single atomic operation.
-        """
+        """Update job status atomically."""
         with self._lock:
             job = self._jobs.get(job_id)
             if not job:
                 return None
 
-            # Update job fields
             job.status = status
             if progress is not None:
                 job.progress = progress
@@ -215,35 +186,12 @@ class JobStore:
             if started_at is not None:
                 job.started_at = started_at
 
-            # Clear active job if finished
             if job.status.is_finished:
                 job.completed_at = self._clock()
                 if self._active_job_id == job_id:
                     self._active_job_id = None
 
-            # Add log entry
-            entry = LogEntry(
-                timestamp=self._clock(),
-                status=status.value,
-                message=message,
-            )
-            self._logs[job_id].append(entry)
-
-            if len(self._logs[job_id]) > self.MAX_LOGS_PER_JOB:
-                self._logs[job_id] = self._logs[job_id][-self.MAX_LOGS_PER_JOB :]
-
             return job
-
-    def get_all_logs(self) -> list[LogEntry]:
-        """Get all logs from all jobs, sorted chronologically."""
-        with self._lock:
-            all_logs: list[LogEntry] = []
-            for job_id in self._jobs:
-                if job_id in self._logs:
-                    all_logs.extend(self._logs[job_id])
-            # Sort by timestamp and limit
-            all_logs.sort(key=lambda x: x.timestamp)
-            return all_logs[-self.MAX_TOTAL_LOGS :]
 
     def delete_job(self, job_id: str) -> bool:
         """Delete a job.
@@ -259,6 +207,7 @@ class JobStore:
                 return False  # Cannot delete running job
 
             self._remove_job_internal(job_id)
+            logger.info("Job removed: %s", job_id[:8])
             return True
 
     def clear_completed(self) -> int:

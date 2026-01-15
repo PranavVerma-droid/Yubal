@@ -1,13 +1,13 @@
 import { ChevronDown, Terminal } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useRef, useState } from "react";
-import type { Job, JobLog } from "../hooks/use-jobs";
+import { useEffect, useRef } from "react";
+import type { Job } from "../hooks/use-jobs";
 import { useLocalStorage } from "../hooks/use-local-storage";
+import { useLogs } from "../hooks/use-logs";
 import { isActive } from "../lib/job-status";
 import { Panel, PanelContent, PanelHeader } from "./common/panel";
 
 interface ConsolePanelProps {
-  logs: JobLog[];
   jobs: Job[];
 }
 
@@ -29,65 +29,35 @@ function StatusIndicator({ status }: { status: string }) {
   );
 }
 
-function formatTime(timestamp: string): string {
-  return new Date(timestamp).toLocaleTimeString("en-US", {
-    hour12: false,
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  });
-}
-
-function getTimestamp(): string {
-  const now = new Date();
-  const h = String(now.getHours()).padStart(2, "0");
-  const m = String(now.getMinutes()).padStart(2, "0");
-  const s = String(now.getSeconds()).padStart(2, "0");
-  return `${h}:${m}:${s}`;
-}
-
-export function ConsolePanel({ logs, jobs }: ConsolePanelProps) {
+export function ConsolePanel({ jobs }: ConsolePanelProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const currentJob = jobs.find((j) => isActive(j.status));
-  const hasActiveJobs = !!currentJob;
-  const [currentTime, setCurrentTime] = useState(getTimestamp());
+  const { lines, isConnected } = useLogs();
   const [isExpanded, setIsExpanded] = useLocalStorage(
     "yubal-console-expanded",
     false,
   );
 
-  const statusColors: Record<string, string> = {
-    pending: "text-foreground-500",
-    fetching_info: "text-foreground",
-    downloading: "text-primary",
-    importing: "text-secondary",
-    completed: "text-success",
-    failed: "text-danger",
-    cancelled: "text-warning",
-  };
-
+  // Auto-scroll to bottom when new lines arrive
   useEffect(() => {
     if (containerRef.current) {
       containerRef.current.scrollTop = containerRef.current.scrollHeight;
     }
-  }, [logs]);
-
-  // Update blinking cursor timestamp
-  useEffect(() => {
-    if (hasActiveJobs) {
-      const interval = setInterval(() => {
-        setCurrentTime(getTimestamp());
-      }, 1000);
-      return () => clearInterval(interval);
-    }
-  }, [hasActiveJobs]);
+  }, [lines]);
 
   const panelHeader = (
     <PanelHeader
       className="hover:bg-content2 cursor-pointer select-none"
       onClick={() => setIsExpanded(!isExpanded)}
       leadingIcon={<Terminal size={18} />}
-      badge={currentJob && <StatusIndicator status={currentJob.status} />}
+      badge={
+        <>
+          {currentJob && <StatusIndicator status={currentJob.status} />}
+          {!isConnected && (
+            <span className="text-warning text-xs">disconnected</span>
+          )}
+        </>
+      }
       trailingIcon={
         <motion.div
           animate={{ rotate: isExpanded ? 180 : 0 }}
@@ -105,37 +75,24 @@ export function ConsolePanel({ logs, jobs }: ConsolePanelProps) {
   const panelContent = (
     <PanelContent
       ref={containerRef}
-      className="space-y-1 p-4 font-mono text-xs"
+      className="space-y-0.5 p-4 font-mono text-xs"
     >
-      {logs.length === 0 ? (
+      {lines.length === 0 ? (
         <div className="flex h-full items-center justify-center">
           <span className="text-foreground-400">Awaiting YouTube URL...</span>
         </div>
       ) : (
         <AnimatePresence initial={false}>
-          {logs.map((log, idx) => (
+          {lines.map((line, idx) => (
             <motion.div
-              key={`${log.timestamp}-${idx}`}
-              initial={{ opacity: 0, y: 10 }}
+              key={idx}
+              initial={{ opacity: 0, y: 5 }}
               animate={{ opacity: 1, y: 0 }}
-              className="flex gap-2"
-            >
-              <span className="text-foreground-400 shrink-0">
-                [{formatTime(log.timestamp)}]
-              </span>
-              <span className={statusColors[log.status] ?? "text-foreground"}>
-                {log.message}
-              </span>
-            </motion.div>
+              className="whitespace-pre-wrap"
+              dangerouslySetInnerHTML={{ __html: line }}
+            />
           ))}
         </AnimatePresence>
-      )}
-      {/* Blinking cursor when active */}
-      {hasActiveJobs && (
-        <div className="flex gap-2">
-          <span className="text-foreground-400">[{currentTime}]</span>
-          <span className="text-foreground-500 animate-pulse">&#9608;</span>
-        </div>
       )}
     </PanelContent>
   );

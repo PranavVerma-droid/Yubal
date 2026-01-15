@@ -6,7 +6,6 @@ from pydantic import BaseModel, ConfigDict, Field
 from yubal import AudioCodec
 
 from yubal_api.core.enums import JobStatus
-from yubal_api.core.types import LogStatus
 
 
 class AlbumInfo(BaseModel):
@@ -22,14 +21,6 @@ class AlbumInfo(BaseModel):
     audio_codec: str | None = None  # e.g. "opus", "mp3"
     audio_bitrate: int | None = None  # kbps, e.g. 128
     kind: str = "playlist"  # "album" or "playlist"
-
-
-class LogEntry(BaseModel):
-    """A log entry for a job."""
-
-    timestamp: datetime
-    status: LogStatus
-    message: str
 
 
 class Job(BaseModel):

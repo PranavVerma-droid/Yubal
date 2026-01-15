@@ -249,6 +249,7 @@ class SyncService:
             )
 
         except CancellationError:
+            logger.info("Download cancelled")
             return SyncResult(
                 success=False,
                 album_info=album_info,

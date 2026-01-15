@@ -5,7 +5,7 @@ from typing import Literal
 from pydantic import BaseModel, Field
 from yubal import AudioCodec
 
-from yubal_api.core.models import Job, LogEntry
+from yubal_api.core.models import Job
 
 
 class CreateJobRequest(BaseModel):
@@ -16,11 +16,10 @@ class CreateJobRequest(BaseModel):
     max_items: int | None = Field(default=None, ge=1, le=10000)
 
 
-class JobListResponse(BaseModel):
+class JobsResponse(BaseModel):
     """Response for listing jobs."""
 
     jobs: list[Job]
-    logs: list[LogEntry] = []
 
 
 class JobCreatedResponse(BaseModel):

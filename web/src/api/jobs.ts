@@ -2,7 +2,6 @@ import { api } from "./client";
 import type { components } from "./schema";
 
 // Re-export types from schema
-export type JobLog = components["schemas"]["LogEntry"];
 export type AlbumInfo = components["schemas"]["AlbumInfo"];
 
 export type JobStatus =
@@ -54,17 +53,11 @@ export async function createJob(
   return { success: true, jobId: data.id };
 }
 
-export async function listJobs(): Promise<{
-  jobs: Job[];
-  logs: JobLog[];
-}> {
+export async function listJobs(): Promise<{ jobs: Job[] }> {
   const { data, error } = await api.GET("/jobs");
 
-  if (error) return { jobs: [], logs: [] };
-  return {
-    jobs: data.jobs as Job[],
-    logs: data.logs as JobLog[],
-  };
+  if (error) return { jobs: [] };
+  return { jobs: data.jobs as Job[] };
 }
 
 export async function deleteJob(jobId: string): Promise<void> {

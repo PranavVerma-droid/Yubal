@@ -14,7 +14,7 @@ from yubal_api.schemas.jobs import (
     CreateJobRequest,
     JobConflictErrorResponse,
     JobCreatedResponse,
-    JobListResponse,
+    JobsResponse,
 )
 from yubal_api.services.job_store import JobStore
 
@@ -66,15 +66,10 @@ async def create_job(
 
 
 @router.get("/jobs")
-async def list_jobs(job_store: JobStoreDep) -> JobListResponse:
-    """List all jobs (oldest first, FIFO order).
-
-    Returns up to 50 jobs with their current status and all logs.
-    """
+async def list_jobs(job_store: JobStoreDep) -> JobsResponse:
+    """List all jobs (oldest first, FIFO order)."""
     jobs = job_store.get_all_jobs()
-    logs = job_store.get_all_logs()
-
-    return JobListResponse(jobs=jobs, logs=logs)
+    return JobsResponse(jobs=jobs)
 
 
 @router.post("/jobs/{job_id}/cancel")

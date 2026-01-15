@@ -16,7 +16,7 @@ const DEFAULT_MAX_ITEMS = 50;
 export default function App() {
   const [url, setUrl] = useState("");
   const [maxItems, setMaxItems] = useState(DEFAULT_MAX_ITEMS);
-  const { jobs, logs, startJob, cancelJob, deleteJob } = useJobs();
+  const { jobs, startJob, cancelJob, deleteJob } = useJobs();
 
   const canSync = isValidUrl(url);
   const urlType = canSync ? getUrlType(url) : null;
@@ -99,7 +99,7 @@ export default function App() {
               onCancel={cancelJob}
               onDelete={handleDelete}
             />
-            <ConsolePanel logs={logs} jobs={jobs} />
+            <ConsolePanel jobs={jobs} />
           </section>
         </BlurFade>
       </main>

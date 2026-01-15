@@ -1,6 +1,7 @@
 """Job execution orchestration service."""
 
 import asyncio
+import logging
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -10,6 +11,8 @@ from yubal_api.core.models import AlbumInfo, Job
 from yubal_api.services.protocols import JobExecutionStore
 from yubal_api.services.sync.cancel import CancelToken
 from yubal_api.services.sync_service import SyncService
+
+logger = logging.getLogger(__name__)
 
 PROGRESS_COMPLETE = 100.0
 
@@ -56,6 +59,7 @@ class JobExecutor:
         """
         if job_id in self._cancel_tokens:
             self._cancel_tokens[job_id].cancel()
+            logger.info("Job cancelled: %s", job_id[:8])
             return True
         return False
 
@@ -74,7 +78,6 @@ class JobExecutor:
             self._job_store.transition_job(
                 job_id,
                 JobStatus.FETCHING_INFO,
-                f"Starting sync from: {url}",
                 started_at=datetime.now(UTC),
             )
 
@@ -83,7 +86,7 @@ class JobExecutor:
 
             def on_progress(
                 step: ProgressStep,
-                message: str,
+                _message: str,
                 progress: float | None,
                 details: dict[str, Any] | None,
             ) -> None:
@@ -101,7 +104,6 @@ class JobExecutor:
                     self._job_store.transition_job,
                     job_id,
                     status,
-                    message,
                     progress,
                     album_info,
                 )
@@ -120,24 +122,19 @@ class JobExecutor:
 
             # Handle result
             if cancel_token.is_cancelled:
-                self._job_store.transition_job(
-                    job_id, JobStatus.CANCELLED, "Job cancelled by user"
-                )
+                self._job_store.transition_job(job_id, JobStatus.CANCELLED)
             elif result.success:
                 self._job_store.transition_job(
                     job_id,
                     JobStatus.COMPLETED,
-                    f"Sync complete: {result.destination}",
                     progress=PROGRESS_COMPLETE,
                     album_info=result.album_info,
                 )
             else:
-                self._job_store.transition_job(
-                    job_id, JobStatus.FAILED, result.error or "Sync failed"
-                )
+                self._job_store.transition_job(job_id, JobStatus.FAILED)
 
-        except Exception as e:
-            self._job_store.transition_job(job_id, JobStatus.FAILED, str(e))
+        except Exception:
+            self._job_store.transition_job(job_id, JobStatus.FAILED)
 
         finally:
             self._cancel_tokens.pop(job_id, None)

@@ -20,12 +20,11 @@ class JobExecutionStore(Protocol):
         self,
         job_id: str,
         status: JobStatus,
-        message: str,
         progress: float | None = None,
         album_info: AlbumInfo | None = None,
         started_at: datetime | None = None,
     ) -> Job | None:
-        """Atomically update job status and add log entry."""
+        """Update job status atomically."""
         ...
 
     def pop_next_pending(self) -> Job | None:

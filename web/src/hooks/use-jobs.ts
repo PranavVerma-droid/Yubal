@@ -5,16 +5,14 @@ import {
   deleteJob as deleteJobApi,
   listJobs,
   type Job,
-  type JobLog,
 } from "../api/jobs";
 import { isActive } from "../lib/job-status";
 
-export type { Job, JobLog } from "../api/jobs";
+export type { Job } from "../api/jobs";
 
 export interface UseJobsResult {
   // Data from API
   jobs: Job[];
-  logs: JobLog[];
 
   // Actions
   startJob: (url: string, maxItems?: number) => Promise<void>;
@@ -27,7 +25,6 @@ const POLL_INTERVAL = 2000; // 2 seconds
 
 export function useJobs(): UseJobsResult {
   const [jobs, setJobs] = useState<Job[]>([]);
-  const [logs, setLogs] = useState<JobLog[]>([]);
 
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isPollingRef = useRef(false);
@@ -41,9 +38,8 @@ export function useJobs(): UseJobsResult {
   }, []);
 
   const poll = useCallback(async () => {
-    const { jobs: jobList, logs: logList } = await listJobs();
+    const { jobs: jobList } = await listJobs();
     setJobs([...jobList].reverse()); // Display newest first
-    setLogs(logList);
 
     // Check if there are any active jobs
     const hasActiveJobs = jobList.some((j) => isActive(j.status));
@@ -123,7 +119,6 @@ export function useJobs(): UseJobsResult {
 
   return {
     jobs,
-    logs,
     startJob,
     cancelJob,
     deleteJob,

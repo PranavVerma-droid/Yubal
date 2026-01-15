@@ -14,10 +14,15 @@ from fastapi.staticfiles import StaticFiles
 from rich.logging import RichHandler
 
 from yubal_api.api.exceptions import register_exception_handlers
-from yubal_api.api.routes import cookies, health, jobs
+from yubal_api.api.routes import cookies, health, jobs, logs
 from yubal_api.api.services_container import Services, clear_services, set_services
 from yubal_api.services.job_executor import JobExecutor
 from yubal_api.services.job_store import JobStore
+from yubal_api.services.log_buffer import (
+    BufferHandler,
+    clear_log_buffer,
+    get_log_buffer,
+)
 from yubal_api.settings import get_settings
 
 
@@ -36,6 +41,12 @@ def setup_logging() -> None:
         uvicorn_logger = logging.getLogger(name)
         uvicorn_logger.handlers = [handler]
         uvicorn_logger.propagate = False
+
+    # Add buffer handler to capture logs for SSE streaming
+    buffer_handler = BufferHandler(get_log_buffer())
+    buffer_handler.setLevel(logging.INFO)
+    logging.getLogger("yubal").addHandler(buffer_handler)
+    logging.getLogger("yubal_api").addHandler(buffer_handler)
 
 
 setup_logging()
@@ -81,6 +92,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     logger.info("Shutting down...")
     services.close()
     clear_services()
+    clear_log_buffer()
 
     temp = get_settings().temp
     if temp.exists():
@@ -104,6 +116,7 @@ def create_api() -> FastAPI:
     # API routes
     api.include_router(health.router)
     api.include_router(jobs.router, tags=["jobs"])
+    api.include_router(logs.router)
     api.include_router(cookies.router)
 
     return api

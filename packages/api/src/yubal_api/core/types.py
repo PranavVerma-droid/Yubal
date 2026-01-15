@@ -2,7 +2,6 @@
 
 from collections.abc import Callable
 from datetime import datetime
-from typing import Literal
 
 # Audio file extensions (includes vorbis as .ogg, weba for WebM audio)
 AUDIO_EXTENSIONS = frozenset(
@@ -17,16 +16,6 @@ AUDIO_EXTENSIONS = frozenset(
         ".weba",
     }
 )
-
-# Log status values (matches ProgressStep enum values)
-type LogStatus = Literal[
-    "fetching_info",
-    "downloading",
-    "importing",
-    "completed",
-    "failed",
-    "cancelled",
-]
 
 # Callable type aliases for dependency injection
 type Clock = Callable[[], datetime]

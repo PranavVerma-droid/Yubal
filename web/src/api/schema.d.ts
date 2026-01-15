@@ -31,8 +31,6 @@ export interface paths {
     /**
      * List Jobs
      * @description List all jobs (oldest first, FIFO order).
-     *
-     *     Returns up to 50 jobs with their current status and all logs.
      */
     get: operations["list_jobs_jobs_get"];
     put?: never;
@@ -94,6 +92,29 @@ export interface paths {
      *     Running jobs cannot be deleted (returns 409).
      */
     delete: operations["delete_job_jobs__job_id__delete"];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/logs/sse": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Stream Logs
+     * @description Stream log lines via Server-Sent Events.
+     *
+     *     Sends all existing buffered lines on connect, then streams new lines
+     *     as they arrive. Lines include Rich ANSI formatting codes.
+     */
+    get: operations["stream_logs_logs_sse_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
     options?: never;
     head?: never;
     patch?: never;
@@ -321,19 +342,6 @@ export interface components {
       message: "Job created";
     };
     /**
-     * JobListResponse
-     * @description Response for listing jobs.
-     */
-    JobListResponse: {
-      /** Jobs */
-      jobs: components["schemas"]["Job"][];
-      /**
-       * Logs
-       * @default []
-       */
-      logs: components["schemas"]["LogEntry"][];
-    };
-    /**
      * JobStatus
      * @description Status of a background job.
      * @enum {string}
@@ -347,27 +355,13 @@ export interface components {
       | "failed"
       | "cancelled";
     /**
-     * LogEntry
-     * @description A log entry for a job.
+     * JobsResponse
+     * @description Response for listing jobs.
      */
-    LogEntry: {
-      /**
-       * Timestamp
-       * Format: date-time
-       */
-      timestamp: string;
-      status: components["schemas"]["LogStatus"];
-      /** Message */
-      message: string;
+    JobsResponse: {
+      /** Jobs */
+      jobs: components["schemas"]["Job"][];
     };
-    /** @enum {string} */
-    LogStatus:
-      | "fetching_info"
-      | "downloading"
-      | "importing"
-      | "completed"
-      | "failed"
-      | "cancelled";
     /** ValidationError */
     ValidationError: {
       /** Location */
@@ -421,7 +415,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": components["schemas"]["JobListResponse"];
+          "application/json": components["schemas"]["JobsResponse"];
         };
       };
     };
@@ -544,6 +538,26 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  stream_logs_logs_sse_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
         };
       };
     };
