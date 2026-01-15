@@ -1,4 +1,4 @@
-"""Global log buffer for capturing and streaming Rich-formatted output."""
+"""Global log buffer for capturing and streaming ANSI-formatted output."""
 
 import asyncio
 import logging
@@ -10,49 +10,7 @@ from io import StringIO
 
 from rich.console import Console
 from rich.logging import RichHandler
-from rich.theme import Theme
 from rich.traceback import Traceback
-
-_DARK_THEME = Theme(
-    {
-        # Log levels - using Flexoki accent colors (dark variants)
-        "logging.level.debug": "#4385BE",  # Blue
-        "logging.level.info": "#3AA99F",  # Cyan
-        "logging.level.warning": "#DA702C",  # Orange
-        "logging.level.error": "#D14D41 bold",  # Red
-        "logging.level.critical": "#D14D41 bold reverse",
-        # Log components
-        "log.time": "dim #878580",  # Base-500
-        "log.message": "#E6E4D9",  # Base-100
-        "log.path": "dim #6F6E69",  # Base-600
-        # Links
-        "repr.url": "#4385BE underline",  # Blue
-        # Syntax highlighting
-        "repr.number": "#8B7EC8",  # Purple
-        "repr.str": "#879A39",  # Green
-        "repr.bool": "#CE5D97",  # Magenta
-        "repr.none": "dim #CE5D97",
-        "repr.tag_name": "#DA702C",  # Orange
-        # Tracebacks
-        "traceback.border": "#D14D41",  # Red
-        "traceback.border.syntax_error": "#DA702C",  # Orange
-        "traceback.title": "#D14D41 bold",
-        "traceback.text": "#E6E4D9",  # Base-100
-        "traceback.exc_type": "#CE5D97",  # Magenta
-        "traceback.exc_value": "#E6E4D9",
-        "traceback.offset": "#D0A215",  # Yellow
-        # General syntax
-        "inspect.attr": "#4385BE",  # Blue
-        "inspect.callable": "#879A39",  # Green
-        "inspect.def": "#8B7EC8",  # Purple
-        "inspect.error": "#D14D41",  # Red
-        "inspect.help": "#3AA99F",  # Cyan
-        # Markdown (if used in logs)
-        "markdown.heading": "#DA702C bold",  # Orange
-        "markdown.code": "#8B7EC8",  # Purple
-        "markdown.link": "#4385BE underline",  # Blue
-    }
-)
 
 
 class LogBuffer:
@@ -107,16 +65,15 @@ class LogBuffer:
 
 
 class BufferHandler(RichHandler):
-    """Captures RichHandler output as HTML instead of printing to console."""
+    """Captures RichHandler output as ANSI instead of printing to console."""
 
     def __init__(self, buffer: LogBuffer) -> None:
         console = Console(
             file=StringIO(),
-            record=True,
             force_terminal=True,
             width=10000,  # Prevent line wrapping (SSE doesn't handle multiline)
             legacy_windows=False,
-            theme=_DARK_THEME,
+            color_system="truecolor",
         )
         super().__init__(
             console=console,
@@ -127,7 +84,7 @@ class BufferHandler(RichHandler):
         self._buffer = buffer
 
     def emit(self, record: logging.LogRecord) -> None:
-        """Render log with RichHandler styling and export as HTML."""
+        """Render log with RichHandler styling and export as ANSI."""
         try:
             self.console.file = StringIO()  # Reset buffer
 
@@ -152,8 +109,11 @@ class BufferHandler(RichHandler):
             )
 
             self.console.print(output, highlight=True)
-            html = self.console.export_html(inline_styles=True, code_format="{code}")
-            self._buffer.append(html.rstrip())
+            # Get ANSI output (frontend will convert to HTML)
+            file = self.console.file
+            assert isinstance(file, StringIO)
+            ansi_output = file.getvalue().rstrip()
+            self._buffer.append(ansi_output)
         except Exception:
             self.handleError(record)
 

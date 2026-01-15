@@ -57,3 +57,81 @@ html::after {
     transparent 30%
   );
 }
+
+/* Console panel ANSI styling using HeroUI semantic colors */
+/* ansi_up outputs class names like ansi-red-fg, ansi-bright-green-fg, etc. */
+.console-logs {
+  color: hsl(var(--heroui-foreground));
+
+  /* Standard ANSI colors */
+  & .ansi-black-fg {
+    color: hsl(var(--heroui-foreground-500));
+  }
+  & .ansi-red-fg {
+    color: hsl(var(--heroui-danger));
+  }
+  & .ansi-green-fg {
+    color: hsl(var(--heroui-success));
+  }
+  & .ansi-yellow-fg {
+    color: hsl(var(--heroui-warning));
+  }
+  & .ansi-blue-fg {
+    color: var(--color-blue-400);
+  }
+  & .ansi-magenta-fg {
+    color: hsl(var(--heroui-secondary));
+  }
+  & .ansi-cyan-fg {
+    color: hsl(var(--heroui-primary));
+  }
+  & .ansi-white-fg {
+    color: hsl(var(--heroui-foreground));
+  }
+
+  /* Bright ANSI colors */
+  & .ansi-bright-black-fg {
+    color: hsl(var(--heroui-foreground-400));
+  }
+  & .ansi-bright-red-fg {
+    color: hsl(var(--heroui-danger-400));
+  }
+  & .ansi-bright-green-fg {
+    color: hsl(var(--heroui-success-400));
+  }
+  & .ansi-bright-yellow-fg {
+    color: hsl(var(--heroui-warning-400));
+  }
+  & .ansi-bright-blue-fg {
+    color: var(--color-blue-400);
+  }
+  & .ansi-bright-magenta-fg {
+    color: hsl(var(--heroui-secondary-400));
+  }
+  & .ansi-bright-cyan-fg {
+    color: hsl(var(--heroui-primary-400));
+  }
+  & .ansi-bright-white-fg {
+    color: hsl(var(--heroui-foreground-100));
+  }
+
+  /* Text styles */
+  & .ansi-bold {
+    font-weight: 600;
+  }
+  & .ansi-dim {
+    opacity: 0.6;
+  }
+  & .ansi-italic {
+    font-style: italic;
+  }
+  & .ansi-underline {
+    text-decoration: underline;
+  }
+
+  /* Links */
+  & a {
+    color: hsl(var(--heroui-primary));
+    text-decoration: underline;
+  }
+}

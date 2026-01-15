@@ -1,6 +1,7 @@
+import { AnsiUp } from "ansi_up";
 import { ChevronDown, Terminal } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import type { Job } from "../hooks/use-jobs";
 import { useLocalStorage } from "../hooks/use-local-storage";
 import { useLogs } from "../hooks/use-logs";
@@ -37,6 +38,13 @@ export function ConsolePanel({ jobs }: ConsolePanelProps) {
     "yubal-console-expanded",
     false,
   );
+
+  // Convert ANSI to HTML with CSS classes (not inline styles)
+  const ansiConverter = useMemo(() => {
+    const converter = new AnsiUp();
+    converter.use_classes = true;
+    return converter;
+  }, []);
 
   // Auto-scroll to bottom when new lines arrive
   useEffect(() => {
@@ -75,7 +83,7 @@ export function ConsolePanel({ jobs }: ConsolePanelProps) {
   const panelContent = (
     <PanelContent
       ref={containerRef}
-      className="space-y-0.5 p-4 font-mono text-xs"
+      className="console-logs space-y-0.5 p-4 font-mono text-xs"
     >
       {lines.length === 0 ? (
         <div className="flex h-full items-center justify-center">
@@ -89,7 +97,9 @@ export function ConsolePanel({ jobs }: ConsolePanelProps) {
               initial={{ opacity: 0, y: 5 }}
               animate={{ opacity: 1, y: 0 }}
               className="whitespace-pre-wrap"
-              dangerouslySetInnerHTML={{ __html: line }}
+              dangerouslySetInnerHTML={{
+                __html: ansiConverter.ansi_to_html(line),
+              }}
             />
           ))}
         </AnimatePresence>
