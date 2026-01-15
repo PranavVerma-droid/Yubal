@@ -42,7 +42,70 @@ def setup_logging() -> None:
     )
 
 
-def print_table(
+def print_section_header(console: Console, title: str, subtitle: str = "") -> None:
+    """Print a section header with optional subtitle.
+
+    Args:
+        console: Rich console for output.
+        title: Section title (will be uppercased).
+        subtitle: Optional subtitle shown after the title.
+    """
+    header = f"  {title.upper()}"
+    if subtitle:
+        header += f"  [dim]│[/dim]  {subtitle}"
+    console.print()
+    console.rule(style="dim")
+    console.print(header)
+    console.rule(style="dim")
+
+
+def print_track_card(console: Console, track: TrackMetadata, index: int) -> None:
+    """Print a single track as a vertical card.
+
+    Args:
+        console: Rich console for output.
+        track: Track metadata to display.
+        index: Track index (1-based) for display.
+    """
+    # Format track number as "N/Total" or just "N" or empty
+    if track.track_number and track.total_tracks:
+        track_str = f"{track.track_number}/{track.total_tracks}"
+    elif track.track_number:
+        track_str = str(track.track_number)
+    else:
+        track_str = ""
+
+    table = Table(
+        show_header=False,
+        padding=(0, 1),
+        title=f"[bold yellow]Track #{index}[/bold yellow]",
+        title_justify="left",
+    )
+    table.add_column("Field", style="bold cyan", width=12)
+    table.add_column("Value", overflow="fold")
+
+    table.add_row("Title", track.title)
+    table.add_row("Artist", track.artist)
+    table.add_row("Album", track.album)
+    table.add_row("Album Artist", track.album_artist)
+    if track_str:
+        table.add_row("Track #", track_str)
+    if track.year:
+        table.add_row("Year", track.year)
+    table.add_row("Type", track.video_type)
+    if track.omv_video_id:
+        table.add_row("OMV ID", track.omv_video_id)
+    if track.atv_video_id:
+        table.add_row("ATV ID", track.atv_video_id)
+    if track.cover_url:
+        table.add_row("Cover", track.cover_url)
+
+    console.print()
+    console.print(table)
+
+
+def print_tracks(
+    console: Console,
     tracks: list[TrackMetadata],
     skipped: int = 0,
     unavailable: int = 0,
@@ -50,9 +113,10 @@ def print_table(
     kind: str | None = None,
     title: str | None = None,
 ) -> None:
-    """Print tracks as a Rich table.
+    """Print tracks as vertical cards with section header.
 
     Args:
+        console: Rich console for output.
         tracks: List of track metadata to display.
         skipped: Number of tracks skipped (unsupported video type).
         unavailable: Number of tracks unavailable (no videoId).
@@ -60,48 +124,16 @@ def print_table(
         kind: Content kind ("album" or "playlist").
         title: Title of the album/playlist.
     """
-    console = Console()
-    table = Table(show_header=True, header_style="bold", show_lines=True)
-
-    table.add_column("OMV ID")
-    table.add_column("ATV ID")
-    table.add_column("Title")
-    table.add_column("Artist")
-    table.add_column("Album")
-    table.add_column("Album Artist")
-    table.add_column("Track", justify="right")
-    table.add_column("Year")
-    table.add_column("Cover URL")
-    table.add_column("Type")
-
-    for t in tracks:
-        # Format track number as "N/Total" or just "N" or empty
-        if t.track_number and t.total_tracks:
-            track_str = f"{t.track_number}/{t.total_tracks}"
-        elif t.track_number:
-            track_str = str(t.track_number)
-        else:
-            track_str = ""
-
-        table.add_row(
-            t.omv_video_id or "",
-            t.atv_video_id or "",
-            t.title,
-            t.artist,
-            t.album,
-            t.album_artist,
-            track_str,
-            t.year or "",
-            t.cover_url or "",
-            t.video_type,
-        )
-
-    # Print header with kind and title
+    # Build subtitle with kind and title
+    subtitle = ""
     if kind and title:
-        kind_label = kind.capitalize()
-        console.print(f"\n[bold cyan]{kind_label}:[/bold cyan] {title}")
+        subtitle = f"{kind.capitalize()}: {title}"
 
-    console.print(table)
+    print_section_header(console, "Metadata", subtitle)
+
+    # Print each track as a vertical card
+    for i, track in enumerate(tracks, 1):
+        print_track_card(console, track, i)
 
     # Build summary message
     track_count = len(tracks)
@@ -180,7 +212,7 @@ def meta_cmd(url: str, as_json: bool) -> None:
             data = [t.model_dump() for t in tracks]
             json.dump(data, sys.stdout, indent=2, ensure_ascii=False, default=str)
         else:
-            print_table(tracks, skipped=skipped, unavailable=unavailable)
+            print_tracks(console, tracks, skipped=skipped, unavailable=unavailable)
 
     except YTMetaError as e:
         logger.error(str(e))
@@ -290,11 +322,17 @@ def download_cmd(
                 elif p.phase == "downloading" and p.download_progress:
                     # Hide extract task, show download task on first download
                     if not progress.tasks[download_task].visible:
+                        # Mark extraction complete and refresh before hiding
+                        extract_total = progress.tasks[extract_task].total
+                        if extract_total:
+                            progress.update(extract_task, completed=extract_total)
+                        progress.refresh()
                         progress.update(extract_task, visible=False)
                         progress.update(download_task, visible=True)
-                        # Show track table before downloads
-                        console.print()
-                        print_table(
+
+                        # Show tracks section
+                        print_tracks(
+                            console,
                             tracks,
                             skipped=skipped,
                             unavailable=unavailable,
@@ -302,8 +340,9 @@ def download_cmd(
                             kind=playlist_kind,
                             title=playlist_title,
                         )
-                        console.print()
-                        console.print(f"[bold]Downloading to {output}...[/bold]\n")
+
+                        # Show download section header
+                        print_section_header(console, "Downloading", str(output))
 
                     dp = p.download_progress
                     progress.update(download_task, completed=dp.current, total=dp.total)
@@ -320,11 +359,11 @@ def download_cmd(
             console.print("[yellow]No tracks found in playlist[/yellow]")
             return
 
-        # Show summary
-        console.print()
+        # Show summary section
+        print_section_header(console, "Summary")
         console.print(
-            f"[green]Downloaded: {result.success_count}[/green] | "
-            f"[yellow]Skipped: {result.skipped_count}[/yellow] | "
+            f"  [green]Downloaded: {result.success_count}[/green]  "
+            f"[yellow]Skipped: {result.skipped_count}[/yellow]  "
             f"[red]Failed: {result.failed_count}[/red]"
         )
 
@@ -333,17 +372,21 @@ def download_cmd(
             r for r in result.download_results if r.status == DownloadStatus.FAILED
         ]
         if failed:
-            console.print("\n[red]Failed downloads:[/red]")
+            console.print()
+            console.print("  [red]Failed:[/red]")
             for r in failed:
                 console.print(
-                    f"  [red]- {r.track.artist} - {r.track.title}: {r.error}[/red]"
+                    f"    [red]• {r.track.artist} - {r.track.title}: {r.error}[/red]"
                 )
 
         # Show generated files
-        if result.m3u_path:
-            console.print(f"\n[cyan]M3U playlist saved:[/cyan] {result.m3u_path}")
-        if result.cover_path:
-            console.print(f"[cyan]Playlist cover saved:[/cyan] {result.cover_path}")
+        if result.m3u_path or result.cover_path:
+            console.print()
+            console.print("  [cyan]Output files:[/cyan]")
+            if result.m3u_path:
+                console.print(f"    • M3U: {result.m3u_path}")
+            if result.cover_path:
+                console.print(f"    • Cover: {result.cover_path}")
 
     except YTMetaError as e:
         logger.error(str(e))
