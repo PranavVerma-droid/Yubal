@@ -16,14 +16,15 @@ import {
   NavbarMenuToggle,
   Tooltip,
 } from "@heroui/react";
-import { Cookie, Disc3, Star, Trash2, Upload } from "lucide-react";
-import { motion } from "motion/react";
+import { ArrowUp, Cookie, Disc3, Star, Trash2, Upload } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import {
   deleteCookies,
   getCookiesStatus,
   uploadCookies,
 } from "../../api/cookies";
+import { useVersionCheck } from "../../hooks/use-version-check";
 import { AnimatedThemeToggler } from "../magicui/animated-theme-toggler";
 
 const MotionNavbarBrand = motion.create(NavbarBrand);
@@ -41,6 +42,7 @@ export function Header() {
   const [isUploading, setIsUploading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { data: versionInfo } = useVersionCheck();
 
   useEffect(() => {
     getCookiesStatus().then(setCookiesConfigured);
@@ -170,6 +172,38 @@ export function Header() {
         >
           {__VERSION__}
         </Chip>
+        <AnimatePresence>
+          {versionInfo?.updateAvailable && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              transition={{ type: "spring", stiffness: 300, damping: 20 }}
+            >
+              <Tooltip
+                content="New version available - click to view release"
+                closeDelay={0}
+              >
+                <Chip
+                  as="a"
+                  href={versionInfo.releaseUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  size="sm"
+                  variant="solid"
+                  color="success"
+                  classNames={{
+                    base: "cursor-pointer",
+                    content: "font-mono text-xs tracking-wider",
+                  }}
+                  startContent={<ArrowUp className="h-3 w-3" />}
+                >
+                  {versionInfo.latestVersion}
+                </Chip>
+              </Tooltip>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </MotionNavbarBrand>
 
       {/* Desktop navigation items */}
@@ -346,6 +380,22 @@ export function Header() {
             Version {__VERSION__}
           </Link>
         </NavbarMenuItem>
+        {versionInfo?.updateAvailable && (
+          <NavbarMenuItem>
+            <Link
+              as="a"
+              href={versionInfo.releaseUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              color="success"
+              className="w-full gap-2"
+              size="lg"
+            >
+              <ArrowUp className="h-4 w-4" />
+              Update to {versionInfo.latestVersion}
+            </Link>
+          </NavbarMenuItem>
+        )}
       </NavbarMenu>
     </Navbar>
   );
