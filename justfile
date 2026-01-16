@@ -13,6 +13,8 @@ alias l := lint
 alias f := format
 alias t := test
 alias c := check
+alias p := prod
+alias b := build
 
 # Install
 [group('setup')]
@@ -48,6 +50,23 @@ dev-api:
 [working-directory('web')]
 dev-web:
     bun run dev
+
+# Build
+[group('build')]
+[doc("Build web frontend")]
+[working-directory('web')]
+build:
+    bun run build
+
+# Production
+[group('prod')]
+[doc("Build and serve production server")]
+prod: build serve
+
+[group('prod')]
+[private]
+serve:
+    YUBAL_HOST=0.0.0.0 uv run python -m yubal_api
 
 # Lint
 [group('lint')]
@@ -155,7 +174,7 @@ gen-api:
 # CI
 [group('ci')]
 [doc("Run all checks (CI)")]
-check: format-check lint typecheck test
+check: format-check lint typecheck test build
 
 [group('ci')]
 [confirm("Delete all caches?")]

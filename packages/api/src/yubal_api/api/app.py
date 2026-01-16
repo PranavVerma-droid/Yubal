@@ -144,8 +144,10 @@ def create_app() -> FastAPI:
     # Mount API sub-app at /api
     app.mount("/api", create_api())
 
-    # Static files - adjusted path for src layout
-    web_build = Path(__file__).parent.parent.parent.parent.parent / "web" / "dist"
+    # Static files - traverse from api/app.py to repo root
+    web_build = (
+        Path(__file__).parent.parent.parent.parent.parent.parent / "web" / "dist"
+    )
     if web_build.exists():
         app.mount("/", StaticFiles(directory=web_build, html=True), name="static")
 
