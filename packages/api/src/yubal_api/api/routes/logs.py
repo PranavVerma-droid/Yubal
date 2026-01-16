@@ -1,6 +1,7 @@
 """Log streaming endpoints."""
 
 import asyncio
+import logging
 from collections.abc import AsyncIterator
 
 from fastapi import APIRouter
@@ -8,6 +9,8 @@ from fastapi.responses import StreamingResponse
 
 from yubal_api.schemas.log import LogEntry
 from yubal_api.services.log_buffer import get_log_buffer
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/logs", tags=["logs"])
 
@@ -32,7 +35,7 @@ async def get_log_history() -> list[LogEntry]:
         try:
             entries.append(LogEntry.model_validate_json(line))
         except Exception:
-            pass  # Skip invalid entries
+            logger.debug("Skipping invalid log entry: %s", line[:100])
     return entries
 
 

@@ -20,14 +20,20 @@ PROGRESS_COMPLETE = 100.0
 class JobExecutor:
     """Orchestrates job execution lifecycle.
 
-    Manages:
-    - Background task tracking (prevents GC)
-    - Cancel token registry
-    - Job queue continuation
-    - Progress callback wiring
+    This executor manages background job execution with proper cleanup and
+    cancellation support. Jobs run in a thread pool to avoid blocking the
+    async event loop during I/O-heavy operations (yt-dlp downloads).
 
-    Uses JobExecutionStore protocol for persistence (narrow interface).
-    CancelToken is the single source of truth for cancellation signaling.
+    Key Responsibilities:
+        - Background task lifecycle (creation, tracking, cleanup)
+        - Cancellation via CancelToken registry
+        - Job queue continuation (starts next pending job when one completes)
+        - Progress callback wiring to update job store
+
+    Architecture Notes:
+        - Uses JobExecutionStore protocol for persistence (ISP compliance)
+        - CancelToken is the single source of truth for cancellation
+        - Tasks are tracked in a set to prevent garbage collection
     """
 
     def __init__(
@@ -37,31 +43,60 @@ class JobExecutor:
         audio_format: str = "opus",
         cookies_path: Path | None = None,
     ) -> None:
+        """Initialize the job executor.
+
+        Args:
+            job_store: Store for job persistence (protocol-based for testability).
+            base_path: Base directory for downloaded files.
+            audio_format: Target audio format (opus, mp3, m4a).
+            cookies_path: Optional path to cookies.txt for authenticated requests.
+        """
         self._job_store = job_store
         self._base_path = base_path
         self._audio_format = audio_format
         self._cookies_path = cookies_path
 
-        # Internal state
+        # Track background tasks to prevent GC during execution
         self._background_tasks: set[asyncio.Task[Any]] = set()
+        # Map job_id -> CancelToken for cancellation support
         self._cancel_tokens: dict[str, CancelToken] = {}
 
     def start_job(self, job: Job) -> None:
-        """Start a job as a background task with proper cleanup."""
-        task = asyncio.create_task(self._run_job(job.id, job.url, job.max_items))
+        """Start a job as a background task.
+
+        The task is tracked to prevent garbage collection and will
+        automatically trigger the next pending job when complete.
+
+        Args:
+            job: The job to start executing.
+        """
+        task = asyncio.create_task(
+            self._run_job(job.id, job.url, job.max_items),
+            name=f"job-{job.id[:8]}",  # Helpful for debugging
+        )
         self._background_tasks.add(task)
         task.add_done_callback(self._background_tasks.discard)
 
     def cancel_job(self, job_id: str) -> bool:
         """Signal cancellation for a running job.
 
-        Returns True if a cancel token existed (job was running).
+        This sets the cancel token which will be checked during download.
+        The actual job status update happens in _run_job when it detects
+        the cancellation.
+
+        Args:
+            job_id: ID of the job to cancel.
+
+        Returns:
+            True if a cancel token existed (job was running), False otherwise.
         """
-        if job_id in self._cancel_tokens:
-            self._cancel_tokens[job_id].cancel()
-            logger.info("Job cancelled: %s", job_id[:8])
-            return True
-        return False
+        token = self._cancel_tokens.get(job_id)
+        if token is None:
+            return False
+
+        token.cancel()
+        logger.info("Job cancellation requested: %s", job_id[:8])
+        return True
 
     async def _run_job(
         self, job_id: str, url: str, max_items: int | None = None
@@ -133,7 +168,8 @@ class JobExecutor:
             else:
                 self._job_store.transition_job(job_id, JobStatus.FAILED)
 
-        except Exception:
+        except Exception as e:
+            logger.exception("Job %s failed with error: %s", job_id[:8], e)
             self._job_store.transition_job(job_id, JobStatus.FAILED)
 
         finally:

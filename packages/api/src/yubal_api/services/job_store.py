@@ -15,13 +15,24 @@ logger = logging.getLogger(__name__)
 
 
 class JobStore:
-    """In-memory job store with capacity limit.
+    """In-memory job store with capacity limit and FIFO queue semantics.
 
-    Thread-safe using threading.Lock. All operations are synchronous since
-    they only involve in-memory data structures with no I/O.
+    Thread-Safety:
+        All public methods are thread-safe using a single lock. Operations are
+        synchronous since they only involve in-memory data structures.
 
-    This is a dumb persistence layer. State transitions are managed by JobExecutor.
-    Cancellation signaling uses CancelToken; this store only persists the final status.
+    Responsibilities:
+        - Job persistence (CRUD operations)
+        - Queue management (FIFO ordering, capacity limits)
+        - Timeout detection for stalled jobs
+
+    Non-Responsibilities:
+        - State machine validation (caller's responsibility)
+        - Cancellation signaling (handled by CancelToken in JobExecutor)
+
+    Capacity:
+        When at MAX_JOBS, completed jobs are pruned to make room for new ones.
+        If all jobs are active/queued, job creation returns None.
     """
 
     MAX_JOBS = 20
@@ -32,6 +43,12 @@ class JobStore:
         clock: Clock,
         id_generator: IdGenerator,
     ) -> None:
+        """Initialize job store with injectable dependencies.
+
+        Args:
+            clock: Function returning current datetime (enables testing).
+            id_generator: Function generating unique job IDs.
+        """
         self._clock = clock
         self._id_generator = id_generator
         self._jobs: OrderedDict[str, Job] = OrderedDict()
@@ -130,6 +147,36 @@ class JobStore:
 
             return True
 
+    def _apply_job_updates(
+        self,
+        job: Job,
+        status: JobStatus | None = None,
+        progress: float | None = None,
+        album_info: AlbumInfo | None = None,
+        started_at: datetime | None = None,
+        completed_at: datetime | None = None,
+    ) -> None:
+        """Apply updates to a job. Must be called with lock held.
+
+        Centralizes the update logic for both update_job and transition_job.
+        """
+        if status is not None:
+            job.status = status
+        if progress is not None:
+            job.progress = progress
+        if album_info is not None:
+            job.album_info = album_info
+        if started_at is not None:
+            job.started_at = started_at
+        if completed_at is not None:
+            job.completed_at = completed_at
+
+        # Clear active job if finished
+        if job.status.is_finished:
+            job.completed_at = job.completed_at or self._clock()
+            if self._active_job_id == job.id:
+                self._active_job_id = None
+
     def update_job(
         self,
         job_id: str,
@@ -145,23 +192,9 @@ class JobStore:
             if not job:
                 return None
 
-            if status is not None:
-                job.status = status
-            if progress is not None:
-                job.progress = progress
-            if album_info is not None:
-                job.album_info = album_info
-            if started_at is not None:
-                job.started_at = started_at
-            if completed_at is not None:
-                job.completed_at = completed_at
-
-            # Clear active job if finished
-            if job.status.is_finished:
-                job.completed_at = job.completed_at or self._clock()
-                if self._active_job_id == job_id:
-                    self._active_job_id = None
-
+            self._apply_job_updates(
+                job, status, progress, album_info, started_at, completed_at
+            )
             return job
 
     def transition_job(
@@ -178,19 +211,7 @@ class JobStore:
             if not job:
                 return None
 
-            job.status = status
-            if progress is not None:
-                job.progress = progress
-            if album_info is not None:
-                job.album_info = album_info
-            if started_at is not None:
-                job.started_at = started_at
-
-            if job.status.is_finished:
-                job.completed_at = self._clock()
-                if self._active_job_id == job_id:
-                    self._active_job_id = None
-
+            self._apply_job_updates(job, status, progress, album_info, started_at)
             return job
 
     def delete_job(self, job_id: str) -> bool:
@@ -226,14 +247,28 @@ class JobStore:
     def _check_timeout(self, job: Job) -> bool:
         """Check if job has timed out. Must be called with lock held.
 
-        Returns True if job was timed out.
+        A job times out if it has been running for longer than TIMEOUT_SECONDS.
+        Timed-out jobs are marked as FAILED.
+
+        Returns:
+            True if job was timed out and marked as failed.
         """
-        if job.started_at and not job.status.is_finished:
-            elapsed = self._clock() - job.started_at
-            if elapsed.total_seconds() > self.TIMEOUT_SECONDS:
-                job.status = JobStatus.FAILED
-                job.completed_at = self._clock()
-                if self._active_job_id == job.id:
-                    self._active_job_id = None
-                return True
-        return False
+        if not job.started_at or job.status.is_finished:
+            return False
+
+        elapsed = self._clock() - job.started_at
+        if elapsed.total_seconds() <= self.TIMEOUT_SECONDS:
+            return False
+
+        # Mark job as failed due to timeout
+        job.status = JobStatus.FAILED
+        job.completed_at = self._clock()
+        if self._active_job_id == job.id:
+            self._active_job_id = None
+
+        logger.warning(
+            "Job %s timed out after %d seconds",
+            job.id[:8],
+            int(elapsed.total_seconds()),
+        )
+        return True

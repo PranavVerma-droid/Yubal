@@ -115,7 +115,7 @@ def create_api() -> FastAPI:
 
     # API routes
     api.include_router(health.router)
-    api.include_router(jobs.router, tags=["jobs"])
+    api.include_router(jobs.router)
     api.include_router(logs.router)
     api.include_router(cookies.router)
 

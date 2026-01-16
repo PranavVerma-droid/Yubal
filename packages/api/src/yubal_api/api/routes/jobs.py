@@ -1,43 +1,47 @@
-"""Jobs API endpoints."""
+"""Jobs API endpoints.
 
-from fastapi import APIRouter, HTTPException, status
+Handles job lifecycle: creation, listing, cancellation, and deletion.
+Jobs are processed sequentially in FIFO order.
+"""
+
+from fastapi import APIRouter, status
 
 from yubal_api.api.dependencies import (
     AudioFormatDep,
     JobExecutorDep,
     JobStoreDep,
 )
+from yubal_api.api.exceptions import (
+    ErrorResponse,
+    JobConflictError,
+    JobNotFoundError,
+    QueueFullError,
+)
 from yubal_api.core.models import Job
 from yubal_api.schemas.jobs import (
     CancelJobResponse,
     ClearJobsResponse,
     CreateJobRequest,
-    JobConflictErrorResponse,
     JobCreatedResponse,
     JobsResponse,
 )
 from yubal_api.services.job_store import JobStore
 
-router = APIRouter()
+router = APIRouter(prefix="/jobs", tags=["jobs"])
 
 
-def _get_job_or_404(job_store: JobStore, job_id: str) -> Job:
-    """Get job by ID or raise 404."""
+def _get_job_or_raise(job_store: JobStore, job_id: str) -> Job:
+    """Get job by ID or raise JobNotFoundError."""
     job = job_store.get_job(job_id)
     if not job:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Job {job_id} not found",
-        )
+        raise JobNotFoundError(job_id)
     return job
 
 
 @router.post(
-    "/jobs",
+    "",
     status_code=status.HTTP_201_CREATED,
-    responses={
-        409: {"model": JobConflictErrorResponse, "description": "Queue is full"}
-    },
+    responses={409: {"model": ErrorResponse, "description": "Queue is full"}},
 )
 async def create_job(
     request: CreateJobRequest,
@@ -47,15 +51,12 @@ async def create_job(
 ) -> JobCreatedResponse:
     """Create a new sync job.
 
-    Jobs are queued and executed sequentially. Returns 409 only if queue is full.
+    Jobs are queued and executed sequentially. Returns 409 if queue is full.
     """
     result = job_store.create_job(request.url, audio_format, request.max_items)
 
     if result is None:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail={"error": "Queue is full", "active_job_id": None},
-        )
+        raise QueueFullError()
 
     job, should_start = result
 
@@ -65,66 +66,67 @@ async def create_job(
     return JobCreatedResponse(id=job.id)
 
 
-@router.get("/jobs")
+@router.get("")
 async def list_jobs(job_store: JobStoreDep) -> JobsResponse:
     """List all jobs (oldest first, FIFO order)."""
     jobs = job_store.get_all_jobs()
     return JobsResponse(jobs=jobs)
 
 
-@router.post("/jobs/{job_id}/cancel")
+@router.post(
+    "/{job_id}/cancel",
+    responses={
+        404: {"model": ErrorResponse, "description": "Job not found"},
+        409: {"model": ErrorResponse, "description": "Job already finished"},
+    },
+)
 async def cancel_job(
     job_id: str,
     job_store: JobStoreDep,
     job_executor: JobExecutorDep,
 ) -> CancelJobResponse:
-    """Cancel a running or queued job.
-
-    Returns 404 if job not found, 409 if job already finished.
-    """
-    job = _get_job_or_404(job_store, job_id)
+    """Cancel a running or queued job."""
+    job = _get_job_or_raise(job_store, job_id)
 
     if job.status.is_finished:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Job already finished",
-        )
+        raise JobConflictError("Job already finished", job_id=job_id)
 
     # Signal cancellation via cancel token if job is running
     job_executor.cancel_job(job_id)
 
     success = job_store.cancel_job(job_id)
     if not success:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Could not cancel job",
-        )
+        raise JobConflictError("Could not cancel job", job_id=job_id)
 
     return CancelJobResponse()
 
 
-@router.delete("/jobs")
+@router.delete("")
 async def clear_jobs(job_store: JobStoreDep) -> ClearJobsResponse:
-    """Clear all completed/failed jobs.
+    """Clear all completed/failed/cancelled jobs.
 
-    Running jobs are not affected.
+    Running and queued jobs are not affected.
     """
     count = job_store.clear_completed()
     return ClearJobsResponse(cleared=count)
 
 
-@router.delete("/jobs/{job_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{job_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses={
+        404: {"model": ErrorResponse, "description": "Job not found"},
+        409: {"model": ErrorResponse, "description": "Cannot delete running job"},
+    },
+)
 async def delete_job(job_id: str, job_store: JobStoreDep) -> None:
     """Delete a completed, failed, or cancelled job.
 
-    Running jobs cannot be deleted (returns 409).
+    Running or queued jobs cannot be deleted.
     """
-    job = _get_job_or_404(job_store, job_id)
+    job = _get_job_or_raise(job_store, job_id)
 
     if not job.status.is_finished:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Cannot delete a running job",
-        )
+        raise JobConflictError("Cannot delete a running or queued job", job_id=job_id)
 
     job_store.delete_job(job_id)

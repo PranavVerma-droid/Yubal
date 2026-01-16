@@ -3,6 +3,7 @@
 import asyncio
 import html
 import logging
+import sys
 import threading
 from collections import deque
 from collections.abc import AsyncIterator
@@ -14,30 +15,55 @@ from yubal_api.schemas.log import LogEntry, LogEntryType, LogStats
 
 
 class LogBuffer:
-    """Thread-safe global buffer for log lines with SSE subscription support.
+    """Thread-safe buffer for log lines with SSE subscription support.
 
     Captures structured log output and makes it available for streaming
-    to clients via Server-Sent Events.
+    to clients via Server-Sent Events (SSE).
 
-    Uses drop_oldest backpressure strategy: when a subscriber queue is full,
-    the oldest message is dropped to make room for the new one.
+    Thread-Safety:
+        Uses separate locks for buffer and subscribers to minimize contention.
+        - _lock: Protects the log lines deque
+        - _subscribers_lock: Protects the subscriber list
+
+    Backpressure Strategy:
+        When a subscriber queue is full (SUBSCRIBER_QUEUE_SIZE), the oldest
+        message is dropped to make room for the new one. This ensures slow
+        consumers don't block producers or cause memory buildup.
+
+    Capacity:
+        Buffer retains the last MAX_LINES entries. Older entries are
+        automatically discarded.
     """
 
     MAX_LINES = 500
     SUBSCRIBER_QUEUE_SIZE = 100
 
     def __init__(self) -> None:
+        """Initialize an empty log buffer."""
         self._lines: deque[str] = deque(maxlen=self.MAX_LINES)
         self._lock = threading.Lock()
         self._subscribers: list[asyncio.Queue[str]] = []
         self._subscribers_lock = threading.Lock()
 
     def append(self, line: str) -> None:
-        """Append a line to the buffer and notify subscribers."""
+        """Append a line to the buffer and notify all subscribers.
+
+        Thread-safe. Can be called from any thread (typically from logging handlers).
+
+        Args:
+            line: JSON-serialized log entry to append.
+        """
         with self._lock:
             self._lines.append(line)
 
-        # Notify SSE subscribers with drop_oldest backpressure
+        self._notify_subscribers(line)
+
+    def _notify_subscribers(self, line: str) -> None:
+        """Notify all SSE subscribers of a new log line.
+
+        Uses drop_oldest backpressure: if a queue is full, drops the oldest
+        message to make room for the new one.
+        """
         with self._subscribers_lock:
             for queue in self._subscribers:
                 try:
@@ -48,7 +74,7 @@ class LogBuffer:
                         queue.get_nowait()
                         queue.put_nowait(line)
                     except asyncio.QueueEmpty:
-                        pass  # Race condition, queue was drained
+                        pass  # Race condition: queue was drained between checks
 
     def get_lines(self) -> list[str]:
         """Get all buffered lines."""
@@ -128,7 +154,10 @@ class BufferHandler(logging.Handler):
             # Validate with Pydantic and serialize
             log_entry = LogEntry(**entry_data)
             self._buffer.append(log_entry.model_dump_json())
-        except Exception:
+        except Exception as e:
+            # Log validation errors to stderr to avoid recursive logging
+            msg = record.getMessage()[:50]
+            print(f"LogBuffer validation error: {e} (message: {msg})", file=sys.stderr)
             self.handleError(record)
 
     def _compute_entry_type(self, entry_data: dict[str, Any]) -> LogEntryType:

@@ -11,111 +11,124 @@ import { isActive } from "../lib/job-status";
 export type { Job } from "../api/jobs";
 
 export interface UseJobsResult {
-  // Data from API
   jobs: Job[];
-
-  // Actions
   startJob: (url: string, maxItems?: number) => Promise<void>;
   cancelJob: (jobId: string) => Promise<void>;
   deleteJob: (jobId: string) => Promise<void>;
   refreshJobs: () => Promise<void>;
 }
 
-const POLL_INTERVAL = 2000; // 2 seconds
+const POLL_INTERVAL = 2000;
 
 export function useJobs(): UseJobsResult {
   const [jobs, setJobs] = useState<Job[]>([]);
-
-  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const isPollingRef = useRef(false);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const stopPolling = useCallback(() => {
-    if (pollingRef.current) {
-      clearInterval(pollingRef.current);
-      pollingRef.current = null;
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
     }
-    isPollingRef.current = false;
   }, []);
 
-  const poll = useCallback(async () => {
+  const fetchJobs = useCallback(async (): Promise<Job[]> => {
     const { jobs: jobList } = await listJobs();
-    setJobs([...jobList].reverse()); // Display newest first
-
-    // Check if there are any active jobs
-    const hasActiveJobs = jobList.some((j) => isActive(j.status));
-
-    // Stop polling if no active jobs
-    if (!hasActiveJobs) {
-      stopPolling();
-    }
-  }, [stopPolling]);
+    const reversed = [...jobList].reverse(); // Newest first
+    setJobs(reversed);
+    return jobList;
+  }, []);
 
   const startPolling = useCallback(() => {
-    if (isPollingRef.current) return;
-    isPollingRef.current = true;
+    // Already polling
+    if (intervalRef.current) return;
 
-    // Poll immediately, then at interval
-    poll();
-    pollingRef.current = setInterval(poll, POLL_INTERVAL);
-  }, [poll]);
+    intervalRef.current = setInterval(async () => {
+      try {
+        const jobList = await fetchJobs();
+        // Stop polling when no active jobs
+        if (!jobList.some((j) => isActive(j.status))) {
+          stopPolling();
+        }
+      } catch (error) {
+        console.error("Failed to fetch jobs:", error);
+      }
+    }, POLL_INTERVAL);
+  }, [fetchJobs, stopPolling]);
 
   const startJob = useCallback(
     async (url: string, maxItems?: number) => {
       const result = await createJob(url, maxItems);
 
       if (!result.success) {
-        // Refresh to show current state
-        await poll();
+        await fetchJobs();
         return;
       }
 
-      // Refresh and start polling
-      await poll();
+      await fetchJobs();
       startPolling();
     },
-    [poll, startPolling],
+    [fetchJobs, startPolling],
   );
 
   const cancelJob = useCallback(
     async (jobId: string) => {
-      await cancelJobApi(jobId);
-      await poll();
+      try {
+        await cancelJobApi(jobId);
+      } catch (error) {
+        console.error("Failed to cancel job:", error);
+      }
+      await fetchJobs();
     },
-    [poll],
+    [fetchJobs],
   );
 
   const deleteJob = useCallback(
     async (jobId: string) => {
-      await deleteJobApi(jobId);
-      await poll();
+      try {
+        await deleteJobApi(jobId);
+      } catch (error) {
+        console.error("Failed to delete job:", error);
+      }
+      await fetchJobs();
     },
-    [poll],
+    [fetchJobs],
   );
 
   const refreshJobs = useCallback(async () => {
-    await poll();
-
-    // Check if there are any active jobs and start polling
-    const { jobs: jobList } = await listJobs();
-    const hasActiveJobs = jobList.some((j) => isActive(j.status));
-
-    if (hasActiveJobs) {
+    const jobList = await fetchJobs();
+    if (jobList.some((j) => isActive(j.status))) {
       startPolling();
     }
-  }, [poll, startPolling]);
+  }, [fetchJobs, startPolling]);
 
-  // Refresh jobs on mount
+  // Initial fetch on mount
   useEffect(() => {
-    refreshJobs();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    let mounted = true;
 
-  // Cleanup polling on unmount
-  useEffect(() => {
+    async function init() {
+      try {
+        const { jobs: jobList } = await listJobs();
+        if (!mounted) return;
+
+        const reversed = [...jobList].reverse();
+        setJobs(reversed);
+
+        // Start polling if there are active jobs
+        if (jobList.some((j) => isActive(j.status))) {
+          startPolling();
+        }
+      } catch (error) {
+        console.error("Failed to fetch jobs:", error);
+      }
+    }
+
+    init();
+
     return () => {
+      mounted = false;
       stopPolling();
     };
-  }, [stopPolling]);
+  }, [startPolling, stopPolling]);
 
   return {
     jobs,

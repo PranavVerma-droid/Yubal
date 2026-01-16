@@ -1,10 +1,15 @@
-"""Cookies management endpoints."""
+"""Cookies management endpoints.
+
+Handles YouTube Music authentication cookies in Netscape format.
+Cookies enable access to private playlists and age-restricted content.
+"""
 
 import asyncio
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter
 
 from yubal_api.api.dependencies import CookiesFileDep, YtdlpDirDep
+from yubal_api.api.exceptions import CookieValidationError
 from yubal_api.schemas.cookies import (
     CookiesStatusResponse,
     CookiesUploadRequest,
@@ -12,6 +17,24 @@ from yubal_api.schemas.cookies import (
 )
 
 router = APIRouter(prefix="/cookies", tags=["cookies"])
+
+
+def _validate_netscape_cookies(content: str) -> None:
+    """Validate that content is in Netscape cookie format.
+
+    Raises CookieValidationError if validation fails.
+    """
+    content = content.strip()
+    if not content:
+        raise CookieValidationError("Cookie file is empty")
+
+    first_line = content.split("\n")[0]
+    # Netscape format: starts with comment (# Netscape...) or domain entry
+    if not first_line.startswith(("#", ".")):
+        raise CookieValidationError(
+            "Invalid cookie format. Expected Netscape format "
+            "(file should start with '# Netscape HTTP Cookie File' or a domain entry)"
+        )
 
 
 @router.get("/status")
@@ -27,16 +50,12 @@ async def upload_cookies(
     cookies_file: CookiesFileDep,
     ytdlp_dir: YtdlpDirDep,
 ) -> CookiesUploadResponse:
-    """Upload cookies.txt content (Netscape format)."""
-    if not body.content.strip():
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Empty cookie file")
-    # Basic validation: Netscape cookie format starts with comment or domain
-    first_line = body.content.split("\n")[0]
-    if not first_line.startswith(("#", ".")):
-        raise HTTPException(
-            status.HTTP_400_BAD_REQUEST,
-            "Invalid cookie file format (expected Netscape format)",
-        )
+    """Upload cookies.txt content (Netscape format).
+
+    The cookie file enables downloading from private playlists
+    and accessing age-restricted content on YouTube Music.
+    """
+    _validate_netscape_cookies(body.content)
 
     await asyncio.to_thread(ytdlp_dir.mkdir, parents=True, exist_ok=True)
     await asyncio.to_thread(cookies_file.write_text, body.content)
@@ -45,7 +64,7 @@ async def upload_cookies(
 
 @router.delete("")
 async def delete_cookies(cookies_file: CookiesFileDep) -> CookiesUploadResponse:
-    """Delete cookies file."""
+    """Delete the cookies file."""
     if await asyncio.to_thread(cookies_file.exists):
         await asyncio.to_thread(cookies_file.unlink)
     return CookiesUploadResponse(status="ok")

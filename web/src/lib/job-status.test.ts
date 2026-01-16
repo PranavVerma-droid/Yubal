@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import type { JobStatus } from "../api/jobs";
-import { FINISHED_STATUSES, isActive, isFinished } from "./job-status";
+import { isActive, isFinished } from "./job-status";
 
 const ALL_STATUSES: JobStatus[] = [
   "pending",
@@ -11,21 +11,6 @@ const ALL_STATUSES: JobStatus[] = [
   "failed",
   "cancelled",
 ];
-
-describe("FINISHED_STATUSES", () => {
-  test("contains terminal states", () => {
-    expect(FINISHED_STATUSES).toContain("completed");
-    expect(FINISHED_STATUSES).toContain("failed");
-    expect(FINISHED_STATUSES).toContain("cancelled");
-  });
-
-  test("does not contain active states", () => {
-    expect(FINISHED_STATUSES).not.toContain("pending");
-    expect(FINISHED_STATUSES).not.toContain("fetching_info");
-    expect(FINISHED_STATUSES).not.toContain("downloading");
-    expect(FINISHED_STATUSES).not.toContain("importing");
-  });
-});
 
 describe("isFinished", () => {
   test("returns true for completed status", () => {

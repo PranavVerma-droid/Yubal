@@ -23,8 +23,12 @@ from yubal.utils import (
 
 logger = logging.getLogger(__name__)
 
-# Supported video types for download
-SUPPORTED_VIDEO_TYPES = {VideoType.ATV, VideoType.OMV}
+# Supported video types for download (Audio Track Video and Official Music Video)
+SUPPORTED_VIDEO_TYPES = frozenset({VideoType.ATV, VideoType.OMV})
+
+# Fuzzy matching thresholds (using rapidfuzz, scale 0-100)
+FUZZY_MATCH_HIGH_CONFIDENCE = 80  # Auto-accept threshold
+FUZZY_MATCH_LOW_CONFIDENCE = 50  # Minimum acceptable threshold
 
 
 class MetadataExtractorService:
@@ -315,9 +319,11 @@ class MetadataExtractorService:
     def _find_track_by_fuzzy_title(self, album: Album, title: str) -> AlbumTrack | None:
         """Find a track using fuzzy/similarity title matching.
 
-        Uses rapidfuzz to find the best matching track title.
-        Returns the match if similarity is above 50%, with a warning for
-        scores between 50-80%.
+        Uses rapidfuzz to find the best matching track title. The matching
+        strategy uses two thresholds:
+        - High confidence (>80%): Accept silently
+        - Medium confidence (50-80%): Accept with warning
+        - Low confidence (<50%): Reject
 
         Args:
             album: Album to search in.
@@ -338,11 +344,10 @@ class MetadataExtractorService:
 
         matched_title, score, _ = result
 
-        if score > 80:
-            # High confidence - auto-accept
+        if score > FUZZY_MATCH_HIGH_CONFIDENCE:
             return candidates[matched_title]
-        elif score > 50:
-            # Medium confidence - warn but use it
+
+        if score > FUZZY_MATCH_LOW_CONFIDENCE:
             logger.warning(
                 "Fuzzy match: '%s' -> '%s' (%.0f%%)",
                 title,
@@ -350,15 +355,15 @@ class MetadataExtractorService:
                 score,
             )
             return candidates[matched_title]
-        else:
-            # Low confidence - too risky
-            logger.warning(
-                "No confident match for '%s' (best: '%s' @ %.0f%%)",
-                title,
-                matched_title,
-                score,
-            )
-            return None
+
+        # Low confidence - reject
+        logger.warning(
+            "No confident match for '%s' (best: '%s' @ %.0f%%)",
+            title,
+            matched_title,
+            score,
+        )
+        return None
 
     def _resolve_video_ids(
         self,

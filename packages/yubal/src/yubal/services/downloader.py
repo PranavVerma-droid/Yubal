@@ -42,10 +42,15 @@ class DownloaderProtocol(Protocol):
 
 
 class YTDLPDownloader:
-    """yt-dlp based downloader.
+    """yt-dlp based downloader for YouTube Music tracks.
 
     Wraps yt-dlp with consistent configuration and error handling.
-    Implements DownloaderProtocol for type safety.
+    Implements DownloaderProtocol for dependency injection and testing.
+
+    The downloader handles:
+    - Audio extraction with FFmpeg post-processing
+    - Output path management (creates directories as needed)
+    - Capture of actual output path (which may differ from template)
     """
 
     YOUTUBE_MUSIC_URL = "https://music.youtube.com/watch?v={video_id}"
@@ -54,7 +59,7 @@ class YTDLPDownloader:
         """Initialize the downloader.
 
         Args:
-            config: Download configuration.
+            config: Download configuration (codec, quality, output paths).
         """
         self._config = config
 
@@ -119,6 +124,19 @@ class YTDLPDownloader:
         except (KeyboardInterrupt, SystemExit):
             raise
         except Exception as e:
+            error_msg = str(e)
+            # Provide more helpful error messages for common issues
+            if "Video unavailable" in error_msg:
+                logger.error("Video %s is unavailable (may be region-locked)", video_id)
+                raise DownloadError(
+                    f"Video {video_id} is unavailable (may be region-locked or removed)"
+                ) from e
+            if "Sign in" in error_msg or "cookies" in error_msg.lower():
+                logger.error("Authentication required for video %s", video_id)
+                raise DownloadError(
+                    f"Authentication required for {video_id}. "
+                    "Try providing a cookies.txt file."
+                ) from e
             logger.error("Failed to download %s: %s", video_id, e)
             raise DownloadError(f"Failed to download {video_id}: {e}") from e
 
@@ -171,21 +189,24 @@ class DownloadService:
     def _get_video_id(self, track: TrackMetadata) -> str:
         """Get the video ID to download.
 
-        Always prefers ATV (Audio Track Video) for better audio quality,
-        falling back to OMV (Official Music Video) if ATV is unavailable.
+        Video ID Selection Priority:
+        1. ATV (Audio Track Video) - Album version, best audio quality
+        2. OMV (Official Music Video) - Fallback, may have different audio mix
 
         Args:
-            track: Track metadata.
+            track: Track metadata containing video IDs.
 
         Returns:
             Video ID to download.
 
         Raises:
-            DownloadError: If no video ID is available.
+            DownloadError: If no video ID is available for the track.
         """
         video_id = track.atv_video_id or track.omv_video_id
         if not video_id:
-            raise DownloadError(f"No video ID available for track: {track.title}")
+            raise DownloadError(
+                f"No video ID available for track: '{track.title}' by {track.artist}"
+            )
         return video_id
 
     def _build_output_path(self, track: TrackMetadata) -> Path:

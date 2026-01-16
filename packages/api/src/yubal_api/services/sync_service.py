@@ -24,12 +24,41 @@ from yubal_api.services.sync.cancel import CancelToken
 
 logger = logging.getLogger(__name__)
 
-# Phase mapping from yubal to API (fail-fast)
+# Progress percentage boundaries for each phase
+# Extraction: 0-10%, Download: 10-90%, Compose: 90-100%
+_PROGRESS_PHASES = {
+    "extracting": (0.0, 10.0),  # 0% to 10%
+    "downloading": (10.0, 90.0),  # 10% to 90%
+    "composing": (90.0, 100.0),  # 90% to 100%
+}
+
+# Phase mapping from yubal to API (fail-fast on unknown phases)
 _PHASE_MAP = {
     "extracting": ProgressStep.FETCHING_INFO,
     "downloading": ProgressStep.DOWNLOADING,
     "composing": ProgressStep.IMPORTING,
 }
+
+
+def _calculate_phase_progress(phase: str, current: int, total: int) -> float:
+    """Calculate overall progress percentage for a phase.
+
+    Maps the current/total progress within a phase to the overall 0-100% scale.
+
+    Args:
+        phase: Current phase name (extracting, downloading, composing).
+        current: Current item number in the phase.
+        total: Total items in the phase.
+
+    Returns:
+        Progress percentage in the 0-100 range.
+    """
+    if total == 0:
+        return _PROGRESS_PHASES.get(phase, (0.0, 0.0))[0]
+
+    start, end = _PROGRESS_PHASES.get(phase, (0.0, 0.0))
+    phase_range = end - start
+    return start + (current / total) * phase_range
 
 
 @dataclass
@@ -165,18 +194,17 @@ class SyncService:
             for progress in service.download_playlist(url, cancel_token):
                 step = _map_phase(progress.phase)
 
+                # Calculate progress percentage using the helper
+                pct = _calculate_phase_progress(
+                    progress.phase, progress.current, progress.total
+                )
+
                 if progress.phase == "extracting":
                     # Collect tracks for album_info building
                     if progress.extract_progress:
                         tracks.append(progress.extract_progress.track)
                         playlist_info = progress.extract_progress.playlist_info
 
-                    # Scale to 0-10%
-                    pct = (
-                        (progress.current / progress.total) * 10.0
-                        if progress.total
-                        else 0.0
-                    )
                     msg = self._format_extract_message(progress)
                     emit(step, msg, pct)
 
@@ -188,17 +216,11 @@ class SyncService:
                         emit(
                             step,
                             f"Found {len(tracks)} tracks: {album_info.title}",
-                            10.0,
+                            pct,
                             {"album_info": album_info.model_dump()},
                         )
 
                 elif progress.phase == "downloading":
-                    # Scale to 10-90%
-                    pct = (
-                        10.0 + (progress.current / progress.total) * 80.0
-                        if progress.total
-                        else 10.0
-                    )
                     msg = self._format_download_message(progress)
                     emit(step, msg, pct)
 
@@ -213,12 +235,6 @@ class SyncService:
                             album_info.audio_bitrate = result.bitrate
 
                 elif progress.phase == "composing":
-                    # Scale to 90-100%
-                    pct = (
-                        90.0 + (progress.current / progress.total) * 10.0
-                        if progress.total
-                        else 90.0
-                    )
                     msg = progress.message or "Generating playlist files..."
                     emit(step, msg, pct)
 

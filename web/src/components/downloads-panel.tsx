@@ -1,6 +1,7 @@
 import { Download } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import type { Job } from "../api/jobs";
+import { isActive } from "../lib/job-status";
 import { JobCard } from "./common/job-card";
 import { Panel, PanelContent, PanelHeader } from "./common/panel";
 
@@ -15,9 +16,6 @@ export function DownloadsPanel({
   onCancel,
   onDelete,
 }: DownloadsPanelProps) {
-  const isActive = (status: string) =>
-    ["pending", "fetching_info", "downloading", "importing"].includes(status);
-
   return (
     <Panel>
       <PanelHeader
