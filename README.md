@@ -51,6 +51,9 @@ Albums are organized by artist and year. When downloading a playlist, each track
 ../Radiohead/1997 - OK Computer/02 - Paranoid Android.opus
 ```
 
+> [!TIP]
+> **Using playlists?** [Navidrome](https://www.navidrome.org/) is recommended as it supports relative paths in M3U files. Other servers like Gonic [don't yet](https://github.com/sentriz/gonic/issues/529).
+
 ## ✨ Features
 
 - **Web UI** — Real-time progress, job queue, responsive design
