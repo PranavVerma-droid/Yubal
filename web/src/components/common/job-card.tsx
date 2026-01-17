@@ -77,7 +77,6 @@ function Thumbnail({ url, status }: { url: string | null; status: JobStatus }) {
           isBlurred
           classNames={{
             wrapper: "object-cover",
-            blurredImg: "opacity-20",
           }}
         />
         <div className="bg-content2/80 absolute right-0.5 bottom-0.5 z-10 rounded-full p-0.5">
@@ -147,9 +146,8 @@ export function JobCard({ job, onCancel, onDelete }: JobCardProps) {
 
   return (
     <div
-      className={`bg-content2 shadow-small rounded-large px-3 py-2.5 transition-colors ${
-        job.status === "cancelled" ? "opacity-50" : ""
-      }`}
+      className={`overflow-hidden bg-content2 shadow-small rounded-large px-3 py-2.5 transition-colors ${job.status === "cancelled" ? "opacity-50" : ""
+        }`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
