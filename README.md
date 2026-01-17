@@ -132,11 +132,15 @@ If yubal is useful to you, consider supporting its development:
 
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/guillevc)
 
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=guillevc/yubal&type=Date)](https://star-history.com/#guillevc/yubal&Date)
+
 ## 🤝 Acknowledgments
 
-- Community and supporters for engaging with this project :)
-- [yt-dlp](https://github.com/yt-dlp/yt-dlp)
-- [ytmusicapi](https://github.com/sigma67/ytmusicapi)
+Built with [yt-dlp](https://github.com/yt-dlp/yt-dlp), [ytmusicapi](https://github.com/sigma67/ytmusicapi), and the [Flexoki](https://stephango.com/flexoki) color scheme.
+
+Thanks to everyone who's starred, shared, or contributed.
 
 ## License
 
