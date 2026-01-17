@@ -1,16 +1,8 @@
-> [!IMPORTANT]
-> **Spotify plugin temporarily disabled.** Spotify has blocked new developer app creation, breaking the beets Spotify plugin. Hopefully temporary until resolved upstream.
->
-> Using Deezer and MusicBrainz as metadata sources instead.
->
-> **Existing users:** Update to [v0.1.2+](https://github.com/guillevc/yubal/releases) — your config will be replaced automatically (backup saved as `config_legacy.yaml`).
->
-> More info: [beetbox/beets#6270](https://github.com/beetbox/beets/issues/6270)
 <div align="center">
 
 # yubal
 
-**YouTube Music album downloader with Spotify metadata auto-tagging.**
+**YouTube Music album & playlist downloader with automatic metadata tagging.**
 <br/>
 _No accounts required._
 
@@ -29,33 +21,36 @@ _No accounts required._
 
 ## 📖 Overview
 
-**yubal** is a self-hosted app for building a local music library. Paste a YouTube Music album URL, and yubal handles downloading, tagging, and album art — automatically.
+**yubal** is a self-hosted app for building a local music library. Paste a YouTube Music album or playlist URL, and yubal handles downloading, tagging, and album art — automatically.
 
 ### The Pipeline
 
 ```
-                                 ┌──────────┐
-                ┌─────────┐      │ Spotify  │
-                │ YouTube │      │ metadata │
-                └──────▲──┘      └──▲───────┘
-                       │            │
+                    ┌─────────────────┐
+                    │  YouTube Music  │
+                    │   (ytmusicapi)  │
+                    └────────┬────────┘
+                             │ metadata
+                             ▼
                     ┌──────────────────┐
-                    │       yubal      │──────► /Artist/Year - Album
-YouTube Music ─────►│                  │        ├─01 - Track.opus
-  Album URLs        │ (yt-dlp + beets) │        ├─02 - Track.opus
+YouTube Music ─────►│       yubal      │──────► /Artist/Year - Album
+ Album/Playlist     │                  │        ├─01 - Track.opus
+     URLs           │ (yt-dlp + FFmpeg)│        ├─02 - Track.opus
                     └──────────────────┘        ├─...
                                                 └─cover.jpg
 ```
 
 - **[yt-dlp](https://github.com/yt-dlp/yt-dlp):** Downloads highest available quality audio streams from YouTube.
-- **[beets](https://beets.io):** Handles auto-tagging using Spotify metadata and ensures correct album art embedding.
+- **[ytmusicapi](https://github.com/sigma67/ytmusicapi):** Extracts rich metadata directly from YouTube Music (album info, track details, artwork).
 
 ## ✨ Features
 
-- **Web Interface:** Clean, responsive UI for submitting albums and monitoring real-time progress
+- **Web Interface:** Clean, responsive UI for submitting albums/playlists and monitoring real-time progress
+- **Album & Playlist Support:** Download entire albums or playlists with a single URL
 - **Job Queue:** Integrated FIFO queue that processes downloads sequentially to ensure reliability and avoid rate limiting
-- **Smart Auto-tagging:** Automatic metadata fetching via beets, enriched by Spotify's metadata for accurate tracklists and art
-- **Format Configuration:** Optimized for `opus` (native YouTube quality), with optional transcoding for other formats
+- **Smart Auto-tagging:** Automatic metadata extraction from YouTube Music with fuzzy track matching for accurate tracklists and embedded artwork
+- **Format Configuration:** Optimized for `opus` (native YouTube quality), with optional transcoding to `mp3` or `m4a`
+- **M3U Playlists:** Automatically generates M3U playlist files for downloaded playlists
 - **Docker-ready:** Multi-arch support (amd64/arm64) for easy deployment
 
 ## 🚀 Quick Start
@@ -88,7 +83,7 @@ docker compose up -d
 
 ### 3. Start Downloading
 
-Open your browser to `http://localhost:8000` and paste a YouTube Music album URL.
+Open your browser to `http://localhost:8000` and paste a YouTube Music album or playlist URL.
 
 ## 🍪 Cookies (Optional)
 
@@ -134,12 +129,12 @@ yubal is configured via Environment Variables.
 - [x] Cookies upload via Web UI
 - [x] Docker multi-arch support (amd64/arm64)
 - [x] Configurable audio format and quality
+- [x] Playlist support (download full playlists with M3U generation)
 - [ ] Browser extension
 - [ ] Batch import (multiple URLs at once)
 - [ ] Post-import webhook (trigger library scan on Gonic/Navidrome/Jellyfin)
 - [ ] PWA support for mobile
-- [ ] (maybe) Browse YouTube Music albums in the web app.
-- [ ] (maybe) Playlist support (download full playlists)
+- [ ] (maybe) Browse YouTube Music albums in the web app
 
 Have a feature request? [Open an issue](https://github.com/guillevc/yubal/issues)!
 
@@ -152,7 +147,7 @@ If yubal is useful to you, consider supporting its development:
 ## 🤝 Acknowledgments
 
 - **Color Scheme:** [Flexoki](https://stephango.com/flexoki) by Steph Ango.
-- **Core Tools:** This project would not be possible without [yt-dlp](https://github.com/yt-dlp/yt-dlp) and [beets](https://github.com/beetbox/beets).
+- **Core Tools:** This project would not be possible without [yt-dlp](https://github.com/yt-dlp/yt-dlp) and [ytmusicapi](https://github.com/sigma67/ytmusicapi).
 
 ## 📄 License
 
