@@ -1,4 +1,4 @@
-import { Github } from "../icons";
+import { GithubIcon } from "../icons";
 
 const KofiIcon = ({ className }: { className?: string }) => (
   <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
@@ -18,7 +18,7 @@ export function Footer() {
             rel="noopener noreferrer"
             className="group text-primary hover:text-foreground"
           >
-            <Github className="-mt-px inline h-4 w-4" />{" "}
+            <GithubIcon className="-mt-px inline h-4 w-4" />{" "}
             <span className="group-hover:underline">guillevc</span>
           </a>
           {" · Support via "}
