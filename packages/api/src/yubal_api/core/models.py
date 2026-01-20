@@ -3,7 +3,7 @@
 from datetime import UTC, datetime
 
 from pydantic import BaseModel, ConfigDict, Field
-from yubal import AudioCodec
+from yubal import AudioCodec, PhaseStats
 
 from yubal_api.core.enums import JobStatus
 
@@ -35,6 +35,7 @@ class Job(BaseModel):
     status: JobStatus = JobStatus.PENDING
     progress: float = 0.0
     album_info: AlbumInfo | None = None
+    download_stats: PhaseStats | None = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     started_at: datetime | None = None
     completed_at: datetime | None = None

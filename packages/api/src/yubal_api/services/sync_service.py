@@ -11,6 +11,7 @@ from yubal import (
     CancellationError,
     DownloadConfig,
     DownloadStatus,
+    PhaseStats,
     PlaylistDownloadConfig,
     PlaylistProgress,
     TrackMetadata,
@@ -67,6 +68,7 @@ class SyncResult:
 
     success: bool
     album_info: AlbumInfo | None = None
+    download_stats: PhaseStats | None = None
     destination: str | None = None
     error: str | None = None
 
@@ -269,6 +271,7 @@ class SyncService:
             return SyncResult(
                 success=True,
                 album_info=album_info,
+                download_stats=result.download_stats,
                 destination=destination,
             )
 
@@ -300,10 +303,13 @@ class SyncService:
         if progress.download_progress:
             dp = progress.download_progress
             result = dp.result
-            status_msg = (
-                "downloaded"
-                if result.status == DownloadStatus.SUCCESS
-                else result.status.value
-            )
+            if result.status == DownloadStatus.SUCCESS:
+                status_msg = "downloaded"
+            elif result.status == DownloadStatus.SKIPPED and result.skip_reason:
+                # Show human-readable skip reason
+                reason_display = result.skip_reason.value.replace("_", " ")
+                status_msg = f"skipped ({reason_display})"
+            else:
+                status_msg = result.status.value
             return f"[{dp.current}/{dp.total}] {result.track.title}: {status_msg}"
         return f"Downloading {progress.current}/{progress.total}..."

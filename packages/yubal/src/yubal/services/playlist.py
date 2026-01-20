@@ -10,10 +10,12 @@ from yubal.exceptions import CancellationError
 from yubal.models.domain import (
     CancelToken,
     DownloadResult,
+    DownloadStatus,
     PlaylistDownloadResult,
     PlaylistInfo,
     PlaylistProgress,
     TrackMetadata,
+    aggregate_skip_reasons,
 )
 from yubal.services.composer import PlaylistComposerService
 from yubal.services.downloader import DownloadService
@@ -379,23 +381,25 @@ class PlaylistDownloadService:
                 download_progress=progress,
             )
 
-        # Log download statistics
+        # Log download statistics with stats_type discriminator
         success_count = sum(
-            1 for r in self._download_results if r.status.value == "success"
-        )
-        skipped_count = sum(
-            1 for r in self._download_results if r.status.value == "skipped"
+            1 for r in self._download_results if r.status == DownloadStatus.SUCCESS
         )
         failed_count = sum(
-            1 for r in self._download_results if r.status.value == "failed"
+            1 for r in self._download_results if r.status == DownloadStatus.FAILED
         )
+        skipped_by_reason = aggregate_skip_reasons(self._download_results)
+
         logger.info(
             "Downloads complete",
             extra={
                 "stats": {
+                    "stats_type": "download",
                     "success": success_count,
-                    "skipped": skipped_count,
                     "failed": failed_count,
+                    "skipped_by_reason": {
+                        k.value: v for k, v in skipped_by_reason.items()
+                    },
                 }
             },
         )

@@ -5,7 +5,7 @@ import threading
 from collections import OrderedDict
 from datetime import datetime
 
-from yubal import AudioCodec
+from yubal import AudioCodec, PhaseStats
 
 from yubal_api.core.enums import JobStatus
 from yubal_api.core.models import AlbumInfo, Job
@@ -153,6 +153,7 @@ class JobStore:
         status: JobStatus | None = None,
         progress: float | None = None,
         album_info: AlbumInfo | None = None,
+        download_stats: PhaseStats | None = None,
         started_at: datetime | None = None,
         completed_at: datetime | None = None,
     ) -> None:
@@ -163,6 +164,8 @@ class JobStore:
             job.progress = progress
         if album_info is not None:
             job.album_info = album_info
+        if download_stats is not None:
+            job.download_stats = download_stats
         if started_at is not None:
             job.started_at = started_at
         if completed_at is not None:
@@ -180,6 +183,7 @@ class JobStore:
         status: JobStatus,
         progress: float | None = None,
         album_info: AlbumInfo | None = None,
+        download_stats: PhaseStats | None = None,
         started_at: datetime | None = None,
     ) -> Job | None:
         """Update job status atomically."""
@@ -188,7 +192,9 @@ class JobStore:
             if not job:
                 return None
 
-            self._apply_job_updates(job, status, progress, album_info, started_at)
+            self._apply_job_updates(
+                job, status, progress, album_info, download_stats, started_at
+            )
             return job
 
     def delete_job(self, job_id: str) -> bool:

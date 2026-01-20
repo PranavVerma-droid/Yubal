@@ -1,5 +1,13 @@
 import { Button, Chip, Image, Progress } from "@heroui/react";
-import { CheckCircle, Clock, Loader2, Trash2, X, XCircle } from "lucide-react";
+import {
+  AlertTriangle,
+  CheckCircle,
+  Clock,
+  Loader2,
+  Trash2,
+  X,
+  XCircle,
+} from "lucide-react";
 import { motion } from "motion/react";
 import { useState } from "react";
 import type { Job, JobStatus } from "../../api/jobs";
@@ -38,7 +46,18 @@ const PROGRESS_COLORS: Record<
   cancelled: "warning",
 };
 
-function StatusIcon({ status }: { status: JobStatus }) {
+function StatusIcon({
+  status,
+  hasPartialFailures,
+}: {
+  status: JobStatus;
+  hasPartialFailures?: boolean;
+}) {
+  // Show warning icon if completed but has some failed tracks
+  if (status === "completed" && hasPartialFailures) {
+    return <AlertTriangle className={`${STATUS_ICON_CLASS} text-warning`} />;
+  }
+
   const config = STATUS_CONFIG[status];
   const Icon = config.icon;
   return (
@@ -66,7 +85,15 @@ function MetadataChip({
   );
 }
 
-function Thumbnail({ url, status }: { url: string | null; status: JobStatus }) {
+function Thumbnail({
+  url,
+  status,
+  hasPartialFailures,
+}: {
+  url: string | null;
+  status: JobStatus;
+  hasPartialFailures?: boolean;
+}) {
   if (url) {
     return (
       <div className="relative h-16 w-16 shrink-0">
@@ -80,7 +107,7 @@ function Thumbnail({ url, status }: { url: string | null; status: JobStatus }) {
           }}
         />
         <div className="bg-content2/80 absolute right-0.5 bottom-0.5 z-10 rounded-full p-0.5">
-          <StatusIcon status={status} />
+          <StatusIcon status={status} hasPartialFailures={hasPartialFailures} />
         </div>
       </div>
     );
@@ -88,7 +115,7 @@ function Thumbnail({ url, status }: { url: string | null; status: JobStatus }) {
 
   return (
     <div className="bg-content3 flex h-16 w-16 shrink-0 items-center justify-center rounded">
-      <StatusIcon status={status} />
+      <StatusIcon status={status} hasPartialFailures={hasPartialFailures} />
     </div>
   );
 }
@@ -142,7 +169,11 @@ export function JobCard({ job, onCancel, onDelete }: JobCardProps) {
   const isRunning = isActive(job.status);
   const isJobFinished = isFinished(job.status);
 
-  const { album_info } = job;
+  const { album_info, download_stats } = job;
+
+  // Show warning if job completed but some tracks failed
+  const hasPartialFailures =
+    job.status === "completed" && (download_stats?.failed ?? 0) > 0;
 
   return (
     <div
@@ -156,6 +187,7 @@ export function JobCard({ job, onCancel, onDelete }: JobCardProps) {
         <Thumbnail
           url={album_info?.thumbnail_url ?? null}
           status={job.status}
+          hasPartialFailures={hasPartialFailures}
         />
 
         <div className="min-w-0 flex-1 font-mono">

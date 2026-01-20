@@ -9,15 +9,40 @@ LogEntryType = Literal[
     "header", "phase", "stats", "progress", "status", "file", "default"
 ]
 
+# Skip reason string literals for TypeScript type generation
+SkipReasonType = Literal["file_exists", "unsupported_video_type", "no_video_id"]
+
+# Stats type discriminator for frontend rendering
+StatsType = Literal["extraction", "download"]
+
 
 class LogStats(BaseModel):
-    """Statistics for batch operations."""
+    """Statistics for batch operations.
 
-    success: int | None = None
-    skipped: int | None = None
-    failed: int | None = None
-    extracted: int | None = None
-    unavailable: int | None = None
+    Uses a discriminator field (stats_type) for frontend type narrowing,
+    and dictionary-based skip reason counts for scalability.
+
+    Attributes:
+        stats_type: Discriminator indicating extraction or download stats.
+        success: Number of successful operations.
+        failed: Number of failed operations.
+        skipped_by_reason: Count of skipped items by reason.
+    """
+
+    stats_type: StatsType = Field(
+        ..., description="Type of stats: 'extraction' or 'download'"
+    )
+    success: int = 0
+    failed: int = 0
+    skipped_by_reason: dict[SkipReasonType, int] = Field(
+        default_factory=dict,
+        description="Count of skipped items by reason",
+    )
+
+    @property
+    def skipped(self) -> int:
+        """Total number of skipped items across all reasons."""
+        return sum(self.skipped_by_reason.values())
 
 
 class LogEntry(BaseModel):
@@ -99,7 +124,12 @@ class LogEntry(BaseModel):
                     "timestamp": "11:09:55",
                     "level": "INFO",
                     "message": "Downloads complete",
-                    "stats": {"success": 8, "skipped": 2, "failed": 0},
+                    "stats": {
+                        "stats_type": "download",
+                        "success": 8,
+                        "failed": 0,
+                        "skipped_by_reason": {"file_exists": 2},
+                    },
                 },
             ]
         }

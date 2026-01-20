@@ -16,6 +16,7 @@ from yubal.models.domain import (
     DownloadProgress,
     DownloadResult,
     DownloadStatus,
+    SkipReason,
     TrackMetadata,
 )
 from yubal.services.tagger import tag_track
@@ -336,6 +337,7 @@ class DownloadService:
                 status=DownloadStatus.SKIPPED,
                 output_path=expected,
                 video_id_used=video_id,
+                skip_reason=SkipReason.FILE_EXISTS,
             )
 
         try:

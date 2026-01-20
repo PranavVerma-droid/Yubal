@@ -10,6 +10,7 @@ from yubal.models.domain import (
     ContentKind,
     ExtractProgress,
     PlaylistInfo,
+    SkipReason,
     TrackMetadata,
     VideoType,
 )
@@ -129,7 +130,11 @@ class MetadataExtractorService:
         )
 
         extracted_count = 0
-        skipped_count = 0
+        skipped_by_reason: dict[SkipReason, int] = {}
+
+        # Add unavailable tracks from playlist (no video ID at source)
+        if unavailable_count > 0:
+            skipped_by_reason[SkipReason.NO_VIDEO_ID] = unavailable_count
 
         for track in tracks:
             try:
@@ -145,7 +150,14 @@ class MetadataExtractorService:
 
             # Skip tracks that return None (unsupported video types)
             if metadata is None:
-                skipped_count += 1
+                skipped_by_reason[SkipReason.UNSUPPORTED_VIDEO_TYPE] = (
+                    skipped_by_reason.get(SkipReason.UNSUPPORTED_VIDEO_TYPE, 0) + 1
+                )
+                logger.info(
+                    "Skipped track '%s': unsupported video type",
+                    track.title,
+                    extra={"status": "skipped"},
+                )
                 continue
 
             extracted_count += 1
@@ -153,19 +165,24 @@ class MetadataExtractorService:
                 current=extracted_count,
                 total=total,
                 playlist_total=playlist_total,
-                skipped=skipped_count,
-                unavailable=unavailable_count,
+                skipped_by_reason=skipped_by_reason.copy(),
                 track=metadata,
                 playlist_info=playlist_info,
             )
 
+        # Log with stats_type discriminator and skipped_by_reason dict
+        # Note: failed=0 because extraction failures become fallback metadata
+        # rather than stopping the process. Skipped tracks are the meaningful metric.
         logger.info(
             "Extraction complete",
             extra={
                 "stats": {
-                    "extracted": extracted_count,
-                    "skipped": skipped_count,
-                    "unavailable": unavailable_count,
+                    "stats_type": "extraction",
+                    "success": extracted_count,
+                    "failed": 0,
+                    "skipped_by_reason": {
+                        k.value: v for k, v in skipped_by_reason.items()
+                    },
                 }
             },
         )

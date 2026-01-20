@@ -164,6 +164,7 @@ class JobExecutor:
                     JobStatus.COMPLETED,
                     progress=PROGRESS_COMPLETE,
                     album_info=result.album_info,
+                    download_stats=result.download_stats,
                 )
             else:
                 error_msg = result.error or "Unknown error"

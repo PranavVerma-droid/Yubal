@@ -50,9 +50,11 @@ from yubal.models.domain import (
     DownloadResult,
     DownloadStatus,
     ExtractProgress,
+    PhaseStats,
     PlaylistDownloadResult,
     PlaylistInfo,
     PlaylistProgress,
+    SkipReason,
     TrackMetadata,
     VideoType,
 )
@@ -172,13 +174,10 @@ def create_playlist_downloader(
 
 
 __all__ = [
-    # Configuration
     "APIConfig",
-    # Exceptions
     "APIError",
     "AudioCodec",
     "AuthenticationRequiredError",
-    # Domain models
     "CancelToken",
     "CancellationError",
     "ContentKind",
@@ -188,8 +187,8 @@ __all__ = [
     "DownloadResult",
     "DownloadStatus",
     "ExtractProgress",
-    # Services
     "MetadataExtractorService",
+    "PhaseStats",
     "PlaylistDownloadConfig",
     "PlaylistDownloadResult",
     "PlaylistDownloadService",
@@ -197,13 +196,12 @@ __all__ = [
     "PlaylistNotFoundError",
     "PlaylistParseError",
     "PlaylistProgress",
+    "SkipReason",
     "TrackMetadata",
     "UnsupportedPlaylistError",
     "VideoType",
     "YTMetaError",
-    # Utilities
     "clear_cover_cache",
-    # Factory functions (recommended entry points)
     "create_downloader",
     "create_extractor",
     "create_playlist_downloader",

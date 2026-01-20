@@ -70,6 +70,88 @@ class DownloadStatus(StrEnum):
     FAILED = "failed"
 
 
+class SkipReason(StrEnum):
+    """Reason why a track was skipped.
+
+    Used in both extraction and download phases:
+    - Extraction: UNSUPPORTED_VIDEO_TYPE, NO_VIDEO_ID
+    - Download: FILE_EXISTS
+    """
+
+    FILE_EXISTS = "file_exists"
+    UNSUPPORTED_VIDEO_TYPE = "unsupported_video_type"
+    NO_VIDEO_ID = "no_video_id"
+
+
+class PhaseStats(BaseModel):
+    """Statistics for a processing phase (extraction or download).
+
+    Uses dictionary-based skip reason counts for scalability.
+    Adding new skip reasons only requires updating the SkipReason enum.
+
+    Attributes:
+        success: Number of successfully processed items.
+        failed: Number of failed items.
+        skipped_by_reason: Count of skipped items by reason.
+
+    Example:
+        >>> stats = PhaseStats(
+        ...     success=8,
+        ...     failed=1,
+        ...     skipped_by_reason={SkipReason.FILE_EXISTS: 2}
+        ... )
+        >>> stats.skipped  # 2
+        >>> stats.total    # 11
+        >>> stats.success_rate  # 72.7...
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    success: int = 0
+    failed: int = 0
+    skipped_by_reason: dict[SkipReason, int] = {}
+
+    @property
+    def skipped(self) -> int:
+        """Total number of skipped items across all reasons."""
+        return sum(self.skipped_by_reason.values())
+
+    @property
+    def total(self) -> int:
+        """Total items processed (success + failed + skipped)."""
+        return self.success + self.failed + self.skipped
+
+    @property
+    def success_rate(self) -> float:
+        """Success rate as percentage (0.0-100.0). Returns 0.0 if no items."""
+        return (self.success / self.total * 100) if self.total > 0 else 0.0
+
+
+def aggregate_skip_reasons(
+    results: list[DownloadResult],
+) -> dict[SkipReason, int]:
+    """Aggregate skip reasons from download results into a count dictionary.
+
+    This utility extracts skip reason counts from a list of download results,
+    useful for logging and stats computation.
+
+    Args:
+        results: List of download results to aggregate.
+
+    Returns:
+        Dictionary mapping each encountered SkipReason to its count.
+
+    Example:
+        >>> reasons = aggregate_skip_reasons(download_results)
+        >>> reasons[SkipReason.FILE_EXISTS]  # 5
+    """
+    counts: dict[SkipReason, int] = {}
+    for result in results:
+        if result.status == DownloadStatus.SKIPPED and result.skip_reason:
+            counts[result.skip_reason] = counts.get(result.skip_reason, 0) + 1
+    return counts
+
+
 class ContentKind(StrEnum):
     """Type of music content (album vs playlist)."""
 
@@ -117,6 +199,7 @@ class DownloadResult(BaseModel):
         output_path: Path to the downloaded file (if successful).
         error: Error message (if failed).
         video_id_used: The video ID that was used for download.
+        skip_reason: Why the track was skipped (if status is SKIPPED).
     """
 
     model_config = ConfigDict(frozen=True)
@@ -126,6 +209,7 @@ class DownloadResult(BaseModel):
     output_path: Path | None = None
     error: str | None = None
     video_id_used: str | None = None
+    skip_reason: SkipReason | None = None
 
     @property
     def bitrate(self) -> int | None:
@@ -172,8 +256,7 @@ class ExtractProgress(BaseModel):
         current: Number of tracks successfully extracted so far (1-indexed).
         total: Total number of tracks to process (after limit applied).
         playlist_total: Total number of tracks in the original playlist (before limit).
-        skipped: Number of tracks skipped so far (unsupported video types).
-        unavailable: Number of tracks without videoId (not available/not music).
+        skipped_by_reason: Breakdown of skipped tracks by reason.
         track: Extracted track metadata.
         playlist_info: Information about the playlist being extracted.
     """
@@ -183,10 +266,19 @@ class ExtractProgress(BaseModel):
     current: int
     total: int
     playlist_total: int
-    skipped: int
-    unavailable: int
+    skipped_by_reason: dict[SkipReason, int] = {}
     track: TrackMetadata
     playlist_info: PlaylistInfo
+
+    @property
+    def skipped(self) -> int:
+        """Total skipped tracks (for backward compatibility)."""
+        return sum(self.skipped_by_reason.values())
+
+    @property
+    def unavailable(self) -> int:
+        """Tracks without video ID (for backward compatibility)."""
+        return self.skipped_by_reason.get(SkipReason.NO_VIDEO_ID, 0)
 
 
 class DownloadProgress(BaseModel):
@@ -270,4 +362,13 @@ class PlaylistDownloadResult(BaseModel):
         """Number of failed downloads."""
         return sum(
             1 for r in self.download_results if r.status == DownloadStatus.FAILED
+        )
+
+    @property
+    def download_stats(self) -> PhaseStats:
+        """Compute download phase statistics with skip reason breakdown."""
+        return PhaseStats(
+            success=self.success_count,
+            failed=self.failed_count,
+            skipped_by_reason=aggregate_skip_reasons(self.download_results),
         )

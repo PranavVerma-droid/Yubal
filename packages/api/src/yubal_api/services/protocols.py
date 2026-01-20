@@ -3,6 +3,8 @@
 from datetime import datetime
 from typing import Protocol
 
+from yubal import PhaseStats
+
 from yubal_api.core.enums import JobStatus
 from yubal_api.core.models import AlbumInfo, Job
 
@@ -22,6 +24,7 @@ class JobExecutionStore(Protocol):
         status: JobStatus,
         progress: float | None = None,
         album_info: AlbumInfo | None = None,
+        download_stats: PhaseStats | None = None,
         started_at: datetime | None = None,
     ) -> Job | None:
         """Update job status atomically."""

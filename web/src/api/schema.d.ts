@@ -4,814 +4,919 @@
  */
 
 export interface paths {
-  "/health": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Health Check */
+        get: operations["health_check_health_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /** Health Check */
-    get: operations["health_check_health_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/jobs": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Jobs
+         * @description List all jobs (oldest first, FIFO order).
+         */
+        get: operations["list_jobs_jobs_get"];
+        put?: never;
+        /**
+         * Create Job
+         * @description Create a new sync job.
+         *
+         *     Jobs are queued and executed sequentially. Returns 409 if queue is full.
+         */
+        post: operations["create_job_jobs_post"];
+        /**
+         * Clear Jobs
+         * @description Clear all completed/failed/cancelled jobs.
+         *
+         *     Running and queued jobs are not affected.
+         */
+        delete: operations["clear_jobs_jobs_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /**
-     * List Jobs
-     * @description List all jobs (oldest first, FIFO order).
-     */
-    get: operations["list_jobs_jobs_get"];
-    put?: never;
-    /**
-     * Create Job
-     * @description Create a new sync job.
-     *
-     *     Jobs are queued and executed sequentially. Returns 409 only if queue is full.
-     */
-    post: operations["create_job_jobs_post"];
-    /**
-     * Clear Jobs
-     * @description Clear all completed/failed jobs.
-     *
-     *     Running jobs are not affected.
-     */
-    delete: operations["clear_jobs_jobs_delete"];
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/jobs/{job_id}/cancel": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/jobs/{job_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel Job
+         * @description Cancel a running or queued job.
+         */
+        post: operations["cancel_job_jobs__job_id__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    /**
-     * Cancel Job
-     * @description Cancel a running or queued job.
-     *
-     *     Returns 404 if job not found, 409 if job already finished.
-     */
-    post: operations["cancel_job_jobs__job_id__cancel_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/jobs/{job_id}": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/jobs/{job_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete Job
+         * @description Delete a completed, failed, or cancelled job.
+         *
+         *     Running or queued jobs cannot be deleted.
+         */
+        delete: operations["delete_job_jobs__job_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    post?: never;
-    /**
-     * Delete Job
-     * @description Delete a completed, failed, or cancelled job.
-     *
-     *     Running jobs cannot be deleted (returns 409).
-     */
-    delete: operations["delete_job_jobs__job_id__delete"];
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/logs/history": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/logs/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get buffered log entries
+         * @description Returns all currently buffered log entries as an array.
+         */
+        get: operations["get_log_history_logs_history_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /**
-     * Get buffered log entries
-     * @description Returns all currently buffered log entries as an array.
-     */
-    get: operations["get_log_history_logs_history_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/logs/sse": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/logs/sse": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Stream structured logs via SSE
+         * @description Each SSE data line contains a JSON-serialized LogEntry object.
+         */
+        get: operations["stream_logs_logs_sse_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /**
-     * Stream structured logs via SSE
-     * @description Each SSE data line contains a JSON-serialized LogEntry object.
-     */
-    get: operations["stream_logs_logs_sse_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/cookies/status": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/cookies/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Cookies Status
+         * @description Check if cookies file is configured.
+         */
+        get: operations["cookies_status_cookies_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /**
-     * Cookies Status
-     * @description Check if cookies file is configured.
-     */
-    get: operations["cookies_status_cookies_status_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/cookies": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/cookies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Upload Cookies
+         * @description Upload cookies.txt content (Netscape format).
+         *
+         *     The cookie file enables downloading from private playlists
+         *     and accessing age-restricted content on YouTube Music.
+         */
+        post: operations["upload_cookies_cookies_post"];
+        /**
+         * Delete Cookies
+         * @description Delete the cookies file.
+         */
+        delete: operations["delete_cookies_cookies_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    /**
-     * Upload Cookies
-     * @description Upload cookies.txt content (Netscape format).
-     */
-    post: operations["upload_cookies_cookies_post"];
-    /**
-     * Delete Cookies
-     * @description Delete cookies file.
-     */
-    delete: operations["delete_cookies_cookies_delete"];
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
-  schemas: {
-    /**
-     * AlbumInfo
-     * @description Information about an album/playlist.
-     */
-    AlbumInfo: {
-      /** Title */
-      title: string;
-      /** Artist */
-      artist: string;
-      /** Year */
-      year?: number | null;
-      /** Track Count */
-      track_count: number;
-      /**
-       * Playlist Id
-       * @default
-       */
-      playlist_id: string;
-      /**
-       * Url
-       * @default
-       */
-      url: string;
-      /** Thumbnail Url */
-      thumbnail_url?: string | null;
-      /** Audio Codec */
-      audio_codec?: string | null;
-      /** Audio Bitrate */
-      audio_bitrate?: number | null;
-      /**
-       * Kind
-       * @default playlist
-       */
-      kind: string;
+    schemas: {
+        /**
+         * AlbumInfo
+         * @description Information about an album/playlist.
+         */
+        AlbumInfo: {
+            /** Title */
+            title: string;
+            /** Artist */
+            artist: string;
+            /** Year */
+            year?: number | null;
+            /** Track Count */
+            track_count: number;
+            /**
+             * Playlist Id
+             * @default
+             */
+            playlist_id: string;
+            /**
+             * Url
+             * @default
+             */
+            url: string;
+            /** Thumbnail Url */
+            thumbnail_url?: string | null;
+            /** Audio Codec */
+            audio_codec?: string | null;
+            /** Audio Bitrate */
+            audio_bitrate?: number | null;
+            /**
+             * Kind
+             * @default playlist
+             */
+            kind: string;
+        };
+        /**
+         * AudioCodec
+         * @description Supported audio output codecs.
+         * @enum {string}
+         */
+        AudioCodec: "opus" | "mp3" | "m4a";
+        /**
+         * CancelJobResponse
+         * @description Response when a job is cancelled.
+         */
+        CancelJobResponse: {
+            /**
+             * Message
+             * @default Job cancelled
+             * @constant
+             */
+            message: "Job cancelled";
+        };
+        /**
+         * ClearJobsResponse
+         * @description Response when jobs are cleared.
+         */
+        ClearJobsResponse: {
+            /** Cleared */
+            cleared: number;
+        };
+        /**
+         * CookiesStatusResponse
+         * @description Cookies status response model.
+         */
+        CookiesStatusResponse: {
+            /** Configured */
+            configured: boolean;
+        };
+        /**
+         * CookiesUploadRequest
+         * @description Cookies upload request model.
+         */
+        CookiesUploadRequest: {
+            /** Content */
+            content: string;
+        };
+        /**
+         * CookiesUploadResponse
+         * @description Cookies upload response model.
+         */
+        CookiesUploadResponse: {
+            /**
+             * Status
+             * @constant
+             */
+            status: "ok";
+        };
+        /**
+         * CreateJobRequest
+         * @description Request to create a new sync job.
+         */
+        CreateJobRequest: {
+            /**
+             * Url
+             * @description YouTube Music playlist or album URL
+             * @example https://music.youtube.com/playlist?list=OLAK5uy_...
+             */
+            url: string;
+            /** @description Audio format for downloads. Uses server default if not set. */
+            audio_format?: components["schemas"]["AudioCodec"] | null;
+            /**
+             * Max Items
+             * @description Maximum number of tracks to download
+             */
+            max_items?: number | null;
+        };
+        /**
+         * ErrorResponse
+         * @description Standard error response format.
+         */
+        ErrorResponse: {
+            /** Error */
+            error: string;
+            /** Message */
+            message: string;
+        };
+        /** HTTPValidationError */
+        HTTPValidationError: {
+            /** Detail */
+            detail?: components["schemas"]["ValidationError"][];
+        };
+        /**
+         * HealthResponse
+         * @description Health check response model.
+         */
+        HealthResponse: {
+            /**
+             * Status
+             * @constant
+             */
+            status: "healthy";
+        };
+        /**
+         * Job
+         * @description A background sync job.
+         */
+        Job: {
+            /** Id */
+            id: string;
+            /** Url */
+            url: string;
+            /** @default opus */
+            audio_format: components["schemas"]["AudioCodec"];
+            /** Max Items */
+            max_items?: number | null;
+            /** @default pending */
+            status: components["schemas"]["JobStatus"];
+            /**
+             * Progress
+             * @default 0
+             */
+            progress: number;
+            album_info?: components["schemas"]["AlbumInfo"] | null;
+            download_stats?: components["schemas"]["PhaseStats"] | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at?: string;
+            /** Started At */
+            started_at?: string | null;
+            /** Completed At */
+            completed_at?: string | null;
+        };
+        /**
+         * JobCreatedResponse
+         * @description Response when a job is created.
+         */
+        JobCreatedResponse: {
+            /** Id */
+            id: string;
+            /**
+             * Message
+             * @default Job created
+             * @constant
+             */
+            message: "Job created";
+        };
+        /**
+         * JobStatus
+         * @description Status of a background job.
+         * @enum {string}
+         */
+        JobStatus: "pending" | "fetching_info" | "downloading" | "importing" | "completed" | "failed" | "cancelled";
+        /**
+         * JobsResponse
+         * @description Response for listing jobs.
+         */
+        JobsResponse: {
+            /** Jobs */
+            jobs: components["schemas"]["Job"][];
+        };
+        /**
+         * LogEntry
+         * @description Structured log entry sent to frontend via SSE.
+         *
+         *     Each log line from the backend is serialized as JSON using this schema.
+         *     The frontend parses these entries and applies theme-aware styling.
+         *
+         *     The `entry_type` field enables discriminated union pattern matching
+         *     in TypeScript for exhaustive type narrowing.
+         * @example {
+         *       "entry_type": "phase",
+         *       "level": "INFO",
+         *       "message": "Extracting metadata from playlist",
+         *       "phase": "extracting",
+         *       "phase_num": 1,
+         *       "timestamp": "11:09:53"
+         *     }
+         * @example {
+         *       "current": 1,
+         *       "entry_type": "progress",
+         *       "event_type": "track_download",
+         *       "level": "INFO",
+         *       "message": "Queen - Bohemian Rhapsody",
+         *       "timestamp": "11:09:54",
+         *       "total": 10,
+         *       "track_artist": "Queen",
+         *       "track_title": "Bohemian Rhapsody"
+         *     }
+         * @example {
+         *       "entry_type": "stats",
+         *       "level": "INFO",
+         *       "message": "Downloads complete",
+         *       "stats": {
+         *         "failed": 0,
+         *         "skipped_by_reason": {
+         *           "file_exists": 2
+         *         },
+         *         "stats_type": "download",
+         *         "success": 8
+         *       },
+         *       "timestamp": "11:09:55"
+         *     }
+         */
+        LogEntry: {
+            /**
+             * Entry Type
+             * @description Entry type for discriminated union matching
+             * @default default
+             * @enum {string}
+             */
+            entry_type: "header" | "phase" | "stats" | "progress" | "status" | "file" | "default";
+            /**
+             * Timestamp
+             * @description Log timestamp in HH:MM:SS format
+             */
+            timestamp: string;
+            /**
+             * Level
+             * @description Log level: DEBUG, INFO, WARNING, ERROR
+             */
+            level: string;
+            /**
+             * Message
+             * @description Human-readable log message
+             */
+            message: string;
+            /**
+             * Phase
+             * @description Current operation phase: extracting, downloading, composing
+             */
+            phase?: string | null;
+            /**
+             * Phase Num
+             * @description Phase number (1, 2, 3)
+             */
+            phase_num?: number | null;
+            /**
+             * Event Type
+             * @description Specific event type for granular tracking
+             */
+            event_type?: string | null;
+            /**
+             * Current
+             * @description Current item index in progress (0-indexed)
+             */
+            current?: number | null;
+            /**
+             * Total
+             * @description Total number of items to process
+             */
+            total?: number | null;
+            /**
+             * Status
+             * @description Operation result status
+             */
+            status?: ("success" | "skipped" | "failed") | null;
+            /** @description Aggregate statistics for batch operations */
+            stats?: components["schemas"]["LogStats"] | null;
+            /**
+             * File Path
+             * @description Path to generated or downloaded file
+             */
+            file_path?: string | null;
+            /**
+             * File Type
+             * @description Type of file: m3u, cover, audio
+             */
+            file_type?: string | null;
+            /**
+             * Track Title
+             * @description Track title being processed
+             */
+            track_title?: string | null;
+            /**
+             * Track Artist
+             * @description Track artist name
+             */
+            track_artist?: string | null;
+            /**
+             * Header
+             * @description Section header text for visual separation
+             */
+            header?: string | null;
+        };
+        /**
+         * LogStats
+         * @description Statistics for batch operations.
+         *
+         *     Uses a discriminator field (stats_type) for frontend type narrowing,
+         *     and dictionary-based skip reason counts for scalability.
+         *
+         *     Attributes:
+         *         stats_type: Discriminator indicating extraction or download stats.
+         *         success: Number of successful operations.
+         *         failed: Number of failed operations.
+         *         skipped_by_reason: Count of skipped items by reason.
+         */
+        LogStats: {
+            /**
+             * Stats Type
+             * @description Type of stats: 'extraction' or 'download'
+             * @enum {string}
+             */
+            stats_type: "extraction" | "download";
+            /**
+             * Success
+             * @default 0
+             */
+            success: number;
+            /**
+             * Failed
+             * @default 0
+             */
+            failed: number;
+            /**
+             * Skipped By Reason
+             * @description Count of skipped items by reason
+             */
+            skipped_by_reason?: {
+                [key: string]: number;
+            };
+        };
+        /**
+         * PhaseStats
+         * @description Statistics for a processing phase (extraction or download).
+         *
+         *     Uses dictionary-based skip reason counts for scalability.
+         *     Adding new skip reasons only requires updating the SkipReason enum.
+         *
+         *     Attributes:
+         *         success: Number of successfully processed items.
+         *         failed: Number of failed items.
+         *         skipped_by_reason: Count of skipped items by reason.
+         *
+         *     Example:
+         *         >>> stats = PhaseStats(
+         *         ...     success=8,
+         *         ...     failed=1,
+         *         ...     skipped_by_reason={SkipReason.FILE_EXISTS: 2}
+         *         ... )
+         *         >>> stats.skipped  # 2
+         *         >>> stats.total    # 11
+         *         >>> stats.success_rate  # 72.7...
+         */
+        PhaseStats: {
+            /**
+             * Success
+             * @default 0
+             */
+            success: number;
+            /**
+             * Failed
+             * @default 0
+             */
+            failed: number;
+            /**
+             * Skipped By Reason
+             * @default {}
+             */
+            skipped_by_reason: {
+                [key: string]: number;
+            };
+        };
+        /**
+         * SkipReason
+         * @description Reason why a track was skipped.
+         *
+         *     Used in both extraction and download phases:
+         *     - Extraction: UNSUPPORTED_VIDEO_TYPE, NO_VIDEO_ID
+         *     - Download: FILE_EXISTS
+         * @enum {string}
+         */
+        SkipReason: "file_exists" | "unsupported_video_type" | "no_video_id";
+        /** ValidationError */
+        ValidationError: {
+            /** Location */
+            loc: (string | number)[];
+            /** Message */
+            msg: string;
+            /** Error Type */
+            type: string;
+        };
     };
-    /**
-     * AudioCodec
-     * @description Supported audio output codecs.
-     * @enum {string}
-     */
-    AudioCodec: "opus" | "mp3" | "m4a";
-    /**
-     * CancelJobResponse
-     * @description Response when a job is cancelled.
-     */
-    CancelJobResponse: {
-      /**
-       * Message
-       * @default Job cancelled
-       * @constant
-       */
-      message: "Job cancelled";
-    };
-    /**
-     * ClearJobsResponse
-     * @description Response when jobs are cleared.
-     */
-    ClearJobsResponse: {
-      /** Cleared */
-      cleared: number;
-    };
-    /**
-     * CookiesStatusResponse
-     * @description Cookies status response model.
-     */
-    CookiesStatusResponse: {
-      /** Configured */
-      configured: boolean;
-    };
-    /**
-     * CookiesUploadRequest
-     * @description Cookies upload request model.
-     */
-    CookiesUploadRequest: {
-      /** Content */
-      content: string;
-    };
-    /**
-     * CookiesUploadResponse
-     * @description Cookies upload response model.
-     */
-    CookiesUploadResponse: {
-      /**
-       * Status
-       * @constant
-       */
-      status: "ok";
-    };
-    /**
-     * CreateJobRequest
-     * @description Request to create a new sync job.
-     */
-    CreateJobRequest: {
-      /** Url */
-      url: string;
-      audio_format?: components["schemas"]["AudioCodec"] | null;
-      /** Max Items */
-      max_items?: number | null;
-    };
-    /** HTTPValidationError */
-    HTTPValidationError: {
-      /** Detail */
-      detail?: components["schemas"]["ValidationError"][];
-    };
-    /**
-     * HealthResponse
-     * @description Health check response model.
-     */
-    HealthResponse: {
-      /**
-       * Status
-       * @constant
-       */
-      status: "healthy";
-    };
-    /**
-     * Job
-     * @description A background sync job.
-     */
-    Job: {
-      /** Id */
-      id: string;
-      /** Url */
-      url: string;
-      /** @default opus */
-      audio_format: components["schemas"]["AudioCodec"];
-      /** Max Items */
-      max_items?: number | null;
-      /** @default pending */
-      status: components["schemas"]["JobStatus"];
-      /**
-       * Progress
-       * @default 0
-       */
-      progress: number;
-      album_info?: components["schemas"]["AlbumInfo"] | null;
-      /**
-       * Created At
-       * Format: date-time
-       */
-      created_at?: string;
-      /** Started At */
-      started_at?: string | null;
-      /** Completed At */
-      completed_at?: string | null;
-    };
-    /**
-     * JobConflictErrorResponse
-     * @description Error response when job creation is rejected.
-     */
-    JobConflictErrorResponse: {
-      /**
-       * Error
-       * @enum {string}
-       */
-      error: "A job is already running" | "Queue is full";
-      /** Active Job Id */
-      active_job_id?: string | null;
-    };
-    /**
-     * JobCreatedResponse
-     * @description Response when a job is created.
-     */
-    JobCreatedResponse: {
-      /** Id */
-      id: string;
-      /**
-       * Message
-       * @default Job created
-       * @constant
-       */
-      message: "Job created";
-    };
-    /**
-     * JobStatus
-     * @description Status of a background job.
-     * @enum {string}
-     */
-    JobStatus:
-      | "pending"
-      | "fetching_info"
-      | "downloading"
-      | "importing"
-      | "completed"
-      | "failed"
-      | "cancelled";
-    /**
-     * JobsResponse
-     * @description Response for listing jobs.
-     */
-    JobsResponse: {
-      /** Jobs */
-      jobs: components["schemas"]["Job"][];
-    };
-    /**
-     * LogEntry
-     * @description Structured log entry sent to frontend via SSE.
-     *
-     *     Each log line from the backend is serialized as JSON using this schema.
-     *     The frontend parses these entries and applies theme-aware styling.
-     *
-     *     The `entry_type` field enables discriminated union pattern matching
-     *     in TypeScript for exhaustive type narrowing.
-     * @example {
-     *       "entry_type": "phase",
-     *       "level": "INFO",
-     *       "message": "Extracting metadata from playlist",
-     *       "phase": "extracting",
-     *       "phase_num": 1,
-     *       "timestamp": "11:09:53"
-     *     }
-     * @example {
-     *       "current": 1,
-     *       "entry_type": "progress",
-     *       "event_type": "track_download",
-     *       "level": "INFO",
-     *       "message": "Queen - Bohemian Rhapsody",
-     *       "timestamp": "11:09:54",
-     *       "total": 10,
-     *       "track_artist": "Queen",
-     *       "track_title": "Bohemian Rhapsody"
-     *     }
-     * @example {
-     *       "entry_type": "stats",
-     *       "level": "INFO",
-     *       "message": "Downloads complete",
-     *       "stats": {
-     *         "failed": 0,
-     *         "skipped": 2,
-     *         "success": 8
-     *       },
-     *       "timestamp": "11:09:55"
-     *     }
-     */
-    LogEntry: {
-      /**
-       * Entry Type
-       * @description Entry type for discriminated union matching
-       * @default default
-       * @enum {string}
-       */
-      entry_type:
-        | "header"
-        | "phase"
-        | "stats"
-        | "progress"
-        | "status"
-        | "file"
-        | "default";
-      /**
-       * Timestamp
-       * @description Log timestamp in HH:MM:SS format
-       */
-      timestamp: string;
-      /**
-       * Level
-       * @description Log level: DEBUG, INFO, WARNING, ERROR
-       */
-      level: string;
-      /**
-       * Message
-       * @description Human-readable log message
-       */
-      message: string;
-      /**
-       * Phase
-       * @description Current operation phase: extracting, downloading, composing
-       */
-      phase?: string | null;
-      /**
-       * Phase Num
-       * @description Phase number (1, 2, 3)
-       */
-      phase_num?: number | null;
-      /**
-       * Event Type
-       * @description Specific event type for granular tracking
-       */
-      event_type?: string | null;
-      /**
-       * Current
-       * @description Current item index in progress (0-indexed)
-       */
-      current?: number | null;
-      /**
-       * Total
-       * @description Total number of items to process
-       */
-      total?: number | null;
-      /**
-       * Status
-       * @description Operation result status
-       */
-      status?: ("success" | "skipped" | "failed") | null;
-      /** @description Aggregate statistics for batch operations */
-      stats?: components["schemas"]["LogStats"] | null;
-      /**
-       * File Path
-       * @description Path to generated or downloaded file
-       */
-      file_path?: string | null;
-      /**
-       * File Type
-       * @description Type of file: m3u, cover, audio
-       */
-      file_type?: string | null;
-      /**
-       * Track Title
-       * @description Track title being processed
-       */
-      track_title?: string | null;
-      /**
-       * Track Artist
-       * @description Track artist name
-       */
-      track_artist?: string | null;
-      /**
-       * Header
-       * @description Section header text for visual separation
-       */
-      header?: string | null;
-    };
-    /**
-     * LogStats
-     * @description Statistics for batch operations.
-     */
-    LogStats: {
-      /** Success */
-      success?: number | null;
-      /** Skipped */
-      skipped?: number | null;
-      /** Failed */
-      failed?: number | null;
-      /** Extracted */
-      extracted?: number | null;
-      /** Unavailable */
-      unavailable?: number | null;
-    };
-    /** ValidationError */
-    ValidationError: {
-      /** Location */
-      loc: (string | number)[];
-      /** Message */
-      msg: string;
-      /** Error Type */
-      type: string;
-    };
-  };
-  responses: never;
-  parameters: never;
-  requestBodies: never;
-  headers: never;
-  pathItems: never;
+    responses: never;
+    parameters: never;
+    requestBodies: never;
+    headers: never;
+    pathItems: never;
 }
 export type $defs = Record<string, never>;
 export interface operations {
-  health_check_health_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    health_check_health_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HealthResponse"];
+                };
+            };
+        };
     };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
+    list_jobs_jobs_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
         };
-        content: {
-          "application/json": components["schemas"]["HealthResponse"];
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobsResponse"];
+                };
+            };
         };
-      };
     };
-  };
-  list_jobs_jobs_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    create_job_jobs_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateJobRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobCreatedResponse"];
+                };
+            };
+            /** @description Queue is full */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
     };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
+    clear_jobs_jobs_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
         };
-        content: {
-          "application/json": components["schemas"]["JobsResponse"];
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClearJobsResponse"];
+                };
+            };
         };
-      };
     };
-  };
-  create_job_jobs_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    cancel_job_jobs__job_id__cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CancelJobResponse"];
+                };
+            };
+            /** @description Job not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Job already finished */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
     };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["CreateJobRequest"];
-      };
+    delete_job_jobs__job_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Job not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Cannot delete running job */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
     };
-    responses: {
-      /** @description Successful Response */
-      201: {
-        headers: {
-          [name: string]: unknown;
+    get_log_history_logs_history_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
         };
-        content: {
-          "application/json": components["schemas"]["JobCreatedResponse"];
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LogEntry"][];
+                };
+            };
         };
-      };
-      /** @description Queue is full */
-      409: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["JobConflictErrorResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
     };
-  };
-  clear_jobs_jobs_delete: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    stream_logs_logs_sse_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
     };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
+    cookies_status_cookies_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
         };
-        content: {
-          "application/json": components["schemas"]["ClearJobsResponse"];
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CookiesStatusResponse"];
+                };
+            };
         };
-      };
     };
-  };
-  cancel_job_jobs__job_id__cancel_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        job_id: string;
-      };
-      cookie?: never;
+    upload_cookies_cookies_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CookiesUploadRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CookiesUploadResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
     };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
+    delete_cookies_cookies_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
         };
-        content: {
-          "application/json": components["schemas"]["CancelJobResponse"];
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CookiesUploadResponse"];
+                };
+            };
         };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
     };
-  };
-  delete_job_jobs__job_id__delete: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        job_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  get_log_history_logs_history_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["LogEntry"][];
-        };
-      };
-    };
-  };
-  stream_logs_logs_sse_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  cookies_status_cookies_status_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["CookiesStatusResponse"];
-        };
-      };
-    };
-  };
-  upload_cookies_cookies_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["CookiesUploadRequest"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["CookiesUploadResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  delete_cookies_cookies_delete: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["CookiesUploadResponse"];
-        };
-      };
-    };
-  };
 }
