@@ -1,8 +1,11 @@
-import { ArrowDown, Check, Circle, X } from "lucide-react";
+import { AlertTriangle, ArrowDown, Check, Circle, X } from "lucide-react";
 import type { components } from "../../api/schema";
 
 type LogEntry = components["schemas"]["LogEntry"];
 type LogStatus = NonNullable<LogEntry["status"]>;
+type SkippedByReason = NonNullable<
+  components["schemas"]["LogStats"]["skipped_by_reason"]
+>;
 
 /** Common icon size class for consistency */
 const ICON_CLASS = "h-4 w-4 shrink-0";
@@ -43,20 +46,45 @@ export function PhaseLog({
   );
 }
 
+/** Human-readable labels for skip reasons */
+const SKIP_REASON_LABELS: Record<string, string> = {
+  file_exists: "file exists",
+  unsupported_video_type: "unsupported",
+  no_video_id: "unavailable",
+};
+
+/** Format skip reasons into a human-readable summary string */
+function formatSkippedMessage(skippedByReason: SkippedByReason): string {
+  const total = Object.values(skippedByReason).reduce((a, b) => a + b, 0);
+  if (total === 0) return "0 skipped";
+
+  const breakdown = Object.entries(skippedByReason)
+    .filter(([, count]) => count > 0)
+    .map(
+      ([reason, count]) =>
+        `${count} ${SKIP_REASON_LABELS[reason] || reason.replace(/_/g, " ")}`,
+    )
+    .join(", ");
+
+  return breakdown ? `${total} skipped (${breakdown})` : `${total} skipped`;
+}
+
 /** Extraction stats display */
 export function ExtractionStatsLog({
-  extracted,
-  skipped,
-  unavailable,
+  success,
+  skippedByReason,
 }: {
-  extracted: number;
-  skipped: number;
-  unavailable: number;
+  success: number;
+  skippedByReason: SkippedByReason;
 }) {
+  // Extraction-specific: show unsupported and unavailable separately
+  const skipped = skippedByReason.unsupported_video_type ?? 0;
+  const unavailable = skippedByReason.no_video_id ?? 0;
+
   return (
     <div className="flex items-center gap-1">
       <Check className={`${ICON_CLASS} text-success`} />
-      <span className="text-success">{extracted} extracted</span>
+      <span className="text-success">{success} extracted</span>
       <span>,</span>
       <span className="text-warning">{skipped} skipped</span>
       <span>,</span>
@@ -68,19 +96,26 @@ export function ExtractionStatsLog({
 /** Download stats display */
 export function DownloadStatsLog({
   success,
-  skipped,
   failed,
+  skippedByReason,
 }: {
   success: number;
-  skipped: number;
   failed: number;
+  skippedByReason: SkippedByReason;
 }) {
+  // Show warning icon if any tracks failed
+  const hasIssues = failed > 0;
+  const Icon = hasIssues ? AlertTriangle : Check;
+  const iconColor = hasIssues ? "text-warning" : "text-success";
+
   return (
     <div className="flex items-center gap-1">
-      <Check className={`${ICON_CLASS} text-success`} />
+      <Icon className={`${ICON_CLASS} ${iconColor}`} />
       <span className="text-success">{success} success</span>
       <span>,</span>
-      <span className="text-warning">{skipped} skipped</span>
+      <span className="text-warning">
+        {formatSkippedMessage(skippedByReason)}
+      </span>
       <span>,</span>
       <span className="text-danger">{failed} failed</span>
     </div>
@@ -171,21 +206,24 @@ export function LogLine({ entry }: { entry: LogEntry }) {
       const { stats } = entry;
       if (!stats) return <DefaultLog message={entry.message} />;
 
-      if (typeof stats.extracted === "number") {
+      const skippedByReason = stats.skipped_by_reason ?? {};
+
+      // Use stats_type discriminator for clean type narrowing
+      if (stats.stats_type === "extraction") {
         return (
           <ExtractionStatsLog
-            extracted={stats.extracted}
-            skipped={stats.skipped ?? 0}
-            unavailable={stats.unavailable ?? 0}
+            success={stats.success ?? 0}
+            skippedByReason={skippedByReason}
           />
         );
       }
 
+      // Default to download stats (stats_type === "download")
       return (
         <DownloadStatsLog
           success={stats.success ?? 0}
-          skipped={stats.skipped ?? 0}
           failed={stats.failed ?? 0}
+          skippedByReason={skippedByReason}
         />
       );
     }
