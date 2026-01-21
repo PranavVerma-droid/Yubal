@@ -90,18 +90,24 @@ class AudioFileTaggingService:
         metadata fields that all music players display. These fields should always
         be present.
 
-        Why artists are pre-joined: The TrackMetadata.artist and album_artist
-        fields are already semicolon-delimited strings (e.g., "Artist 1; Artist 2"),
-        matching the ID3v2.4 standard for multiple artists.
+        Multi-artist strategy for Jellyfin + Navidrome:
+        - ARTIST (singular): Delimiter-joined string for display and Jellyfin parsing
+        - ARTISTS (plural): Multi-value tag preferred by Navidrome
 
         Args:
             audio: MediaFile instance to modify.
             track: Metadata containing basic tag information.
         """
         audio.title = track.title
-        audio.artist = track.artist  # Already joined with "; "
         audio.album = track.album
-        audio.albumartist = track.album_artist  # Already joined with "; "
+
+        # Delimiter-joined for display and Jellyfin parsing
+        audio.artist = track.artist  # Joined with " / "
+        audio.albumartist = track.album_artist  # Joined with " / "
+
+        # Multi-value for Navidrome (and Jellyfin with PreferNonstandardArtistsTag)
+        audio.artists = track.artists
+        audio.albumartists = track.album_artists
 
     def _write_track_numbering(self, audio: MediaFile, track: TrackMetadata) -> None:
         """Write track position metadata to audio file.

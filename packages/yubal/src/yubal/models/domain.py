@@ -203,13 +203,16 @@ class TrackMetadata(BaseModel):
 
     @property
     def artist(self) -> str:
-        """Joined artists for metadata embedding."""
-        return "; ".join(self.artists)
+        """Joined artists for display and Jellyfin parsing.
+
+        Uses ' / ' delimiter which Jellyfin parses to link artists.
+        """
+        return " / ".join(self.artists)
 
     @property
     def album_artist(self) -> str:
-        """Joined album artists for metadata embedding."""
-        return "; ".join(self.album_artists)
+        """Joined album artists for display and Jellyfin parsing."""
+        return " / ".join(self.album_artists)
 
     @property
     def primary_album_artist(self) -> str:

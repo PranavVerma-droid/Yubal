@@ -106,19 +106,19 @@ class TestGenerateM3U:
         assert lines[0] == "#EXTM3U"
         assert lines[1] == "#EXTINF:-1,Radiohead - Airbag"
         assert "../Radiohead/" in lines[2]
-        assert lines[3] == "#EXTINF:-1,Coldplay; Guest Artist - Sparks"
+        assert lines[3] == "#EXTINF:-1,Coldplay / Guest Artist - Sparks"
         assert "../Coldplay/" in lines[4]
 
-    def test_multiple_artists_joined_with_semicolon(
+    def test_multiple_artists_joined_with_slash(
         self, sample_track_multiple_artists: TrackMetadata, tmp_path: Path
     ) -> None:
-        """Should join multiple artists with semicolon."""
+        """Should join multiple artists with slash delimiter."""
         track_path = tmp_path / "Coldplay" / "2000 - Parachutes" / "03 - Sparks.opus"
         m3u_path = tmp_path / "Playlists" / "My Playlist.m3u"
 
         content = generate_m3u([(sample_track_multiple_artists, track_path)], m3u_path)
 
-        assert "#EXTINF:-1,Coldplay; Guest Artist - Sparks" in content
+        assert "#EXTINF:-1,Coldplay / Guest Artist - Sparks" in content
 
     def test_empty_tracks_list(self, tmp_path: Path) -> None:
         """Should generate valid M3U with only header for empty track list."""

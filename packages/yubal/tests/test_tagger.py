@@ -50,9 +50,12 @@ class TestTagTrack:
             tag_track(Path("/fake/path.opus"), sample_track)
 
         assert mock_audio.title == "Test Song"
-        assert mock_audio.artist == "Artist One; Artist Two"
+        assert mock_audio.artist == "Artist One / Artist Two"
         assert mock_audio.album == "Test Album"
         assert mock_audio.albumartist == "Album Artist"
+        # Multi-value tags for Navidrome
+        assert mock_audio.artists == ["Artist One", "Artist Two"]
+        assert mock_audio.albumartists == ["Album Artist"]
         mock_audio.save.assert_called_once()
 
     def test_sets_track_number(self, sample_track: TrackMetadata) -> None:

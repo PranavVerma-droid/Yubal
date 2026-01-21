@@ -56,18 +56,54 @@ Albums are organized by artist and year. When downloading a playlist, each track
 ```
 
 > [!TIP]
-> **Playlists setup**
+> **Media Server Setup**
 >
-> I recommend [Navidrome](https://www.navidrome.org/), a subsonic-compatible server that supports relative paths in M3U files, with the following environment variables:
-> 
+> | Feature | Navidrome | Jellyfin | Gonic |
+> |---------|:---------:|:--------:|:-----:|
+> | Multi-artist tags | ✅ | ✅* | ✅* |
+> | M3U playlists | ✅ | ✅ | ❌ |
+>
+> <sup>* Requires configuration</sup>
+>
+> <details>
+> <summary><b>Navidrome</b> (recommended)</summary>
+>
+> Multi-artist tags work out of the box.
+>
+> For M3U playlist auto-import:
 > ```bash
-> # Enable .m3u playlist auto-import
 > ND_AUTOIMPORTPLAYLISTS=true
-> # Set imported playlists as public by default
 > ND_DEFAULTPLAYLISTPUBLICVISIBILITY=true
 > ```
-> 
-> This gives you album/artist navigation alongside yubal's M3U playlists. See [Navidrome configuration options](https://www.navidrome.org/docs/usage/configuration/options/) for more details.
+>
+> See [Navidrome configuration](https://www.navidrome.org/docs/usage/configuration/options/).
+> </details>
+>
+> <details>
+> <summary><b>Jellyfin</b></summary>
+>
+> M3U playlists work out of the box.
+>
+> For multi-artist tags, enable in library settings:
+> 1. Go to **Dashboard → Libraries → Music Library → Manage Library**
+> 2. Check **Prefer embedded tags over filenames**
+> 3. Check **Use non-standard artists tags**
+> 4. Save and rescan library
+> </details>
+>
+> <details>
+> <summary><b>Gonic</b></summary>
+>
+> M3U playlists are not supported.
+>
+> For multi-artist tags:
+> ```bash
+> GONIC_MULTI_VALUE_ARTIST=multi
+> GONIC_MULTI_VALUE_ALBUM_ARTIST=multi
+> ```
+>
+> See [gonic documentation](https://github.com/sentriz/gonic).
+> </details>
 
 ## ✨ Features
 

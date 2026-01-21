@@ -81,8 +81,8 @@ class TestTrackMetadata:
         assert track.atv_video_id == "atv123"
         assert track.track_number == 5
         assert track.year == "2024"
-        # Test computed properties
-        assert track.artist == "Artist One; Artist Two"
+        # Test computed properties (delimiter is " / " for Jellyfin compatibility)
+        assert track.artist == "Artist One / Artist Two"
         assert track.album_artist == "Various Artists"
         assert track.primary_album_artist == "Various Artists"
 
