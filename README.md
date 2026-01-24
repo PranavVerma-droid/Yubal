@@ -73,7 +73,7 @@ services:
   yubal:
     image: ghcr.io/guillevc/yubal:latest
     container_name: yubal
-    user: 1000:1000 # run as UID:GID (run `id` to check yours)
+    user: 1000:1000
     ports:
       - 8000:8000
     environment:
@@ -83,6 +83,11 @@ services:
       - ./config:/app/config
     restart: unless-stopped
 ```
+
+> **Volume permissions:** The container runs as UID:GID 1000:1000 by default. If your host user has a different UID, either:
+>
+> - Change `user:` to match your UID:GID (run `id` to check), or
+> - Set ownership on the volume directories: `sudo chown 1000:1000 data config`
 
 ```bash
 docker compose up -d

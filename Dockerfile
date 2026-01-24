@@ -44,16 +44,20 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && curl -fsSL https://deno.land/install.sh | DENO_INSTALL=/usr/local sh \
     && apt-get purge -y curl xz-utils unzip \
     && apt-get autoremove -y \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && groupadd -g 1000 yubal \
+    && useradd -u 1000 -g yubal -d /app -s /sbin/nologin yubal
 
-COPY --from=python-builder /app/.venv /app/.venv
-COPY --from=web-builder /app/web/dist ./web/dist
+COPY --from=python-builder --chown=yubal:yubal /app/.venv /app/.venv
+COPY --from=web-builder --chown=yubal:yubal /app/web/dist ./web/dist
 
 ENV PATH="/app/.venv/bin:$PATH" \
     PYTHONUNBUFFERED=1 \
     YUBAL_ROOT=/app \
     YUBAL_HOST=0.0.0.0 \
     YUBAL_PORT=8000
+
+USER yubal
 
 EXPOSE 8000
 
