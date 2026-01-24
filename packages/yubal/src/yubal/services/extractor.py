@@ -6,10 +6,12 @@ from collections.abc import Iterator
 from rapidfuzz import process
 
 from yubal.client import YTMusicProtocol
+from yubal.exceptions import TrackParseError
 from yubal.models.domain import (
     ContentKind,
     ExtractProgress,
     PlaylistInfo,
+    SingleTrackResult,
     SkipReason,
     TrackMetadata,
     UnavailableTrack,
@@ -18,7 +20,7 @@ from yubal.models.domain import (
 from yubal.models.ytmusic import Album, AlbumTrack, PlaylistTrack
 from yubal.utils.artists import format_artists
 from yubal.utils.thumbnails import get_square_thumbnail
-from yubal.utils.url import parse_playlist_id
+from yubal.utils.url import parse_playlist_id, parse_video_id
 
 logger = logging.getLogger(__name__)
 
@@ -62,34 +64,49 @@ class MetadataExtractorService:
     def extract(
         self, url: str, max_items: int | None = None
     ) -> Iterator[ExtractProgress]:
-        """Extract metadata for all tracks in a playlist with progress updates.
+        """Extract metadata from any YouTube Music URL with progress updates.
 
-        This is the main extraction pipeline. It fetches the playlist, determines
-        whether it's a complete album or a curated playlist, then processes each
-        track to enrich it with album metadata. Progress updates are yielded as
-        each track completes, making this ideal for CLI progress bars or UI updates.
+        This is the main extraction pipeline. It automatically detects whether
+        the URL is a single track, album, or playlist, then processes accordingly.
+        Progress updates are yielded as each track completes, making this ideal
+        for CLI progress bars or UI updates.
+
+        URL types supported:
+        - Single track: https://music.youtube.com/watch?v=VIDEO_ID
+        - Album: https://music.youtube.com/playlist?list=OLAK5uy_...
+        - Playlist: https://music.youtube.com/playlist?list=PL...
 
         Why yield progress: Allows callers to display real-time feedback during
         long-running extractions (some playlists have hundreds of tracks).
 
         Args:
-            url: YouTube Music playlist URL.
+            url: YouTube Music URL (single track, album, or playlist).
             max_items: Maximum number of tracks to extract. If None, extracts
-                all tracks. Useful for testing or quick previews.
+                all tracks. Useful for testing or quick previews. Ignored for
+                single tracks.
 
         Yields:
             ExtractProgress with current/total counts and the extracted track.
             The track field may be a fallback if extraction failed for that track.
 
         Raises:
-            PlaylistParseError: If URL is invalid.
+            PlaylistParseError: If URL is invalid (for playlists).
+            TrackParseError: If URL is invalid (for single tracks).
             PlaylistNotFoundError: If playlist doesn't exist.
+            TrackNotFoundError: If track doesn't exist.
             APIError: If API requests fail.
 
         Example:
             >>> for progress in extractor.extract(url):
             ...     print(f"[{progress.current}/{progress.total}]")
         """
+        # Check if this is a single track URL
+        video_id = parse_video_id(url)
+        if video_id:
+            yield from self._extract_single_track_as_progress(url)
+            return
+
+        # Playlist/album extraction
         playlist_id = parse_playlist_id(url)
         logger.debug("Extracting metadata for playlist: %s", playlist_id)
 
@@ -219,6 +236,83 @@ class MetadataExtractorService:
             APIError: If API requests fail.
         """
         return [p.track for p in self.extract(url, max_items=max_items)]
+
+    def extract_track(self, url: str) -> SingleTrackResult | None:
+        """Extract metadata for a single track from a watch URL.
+
+        Args:
+            url: YouTube Music watch URL with video ID.
+
+        Returns:
+            SingleTrackResult with track metadata and synthetic playlist info,
+            or None if the track has an unsupported video type (e.g., UGC).
+
+        Raises:
+            TrackParseError: If URL doesn't contain a video ID.
+            TrackNotFoundError: If track doesn't exist.
+            APIError: If API requests fail.
+        """
+        video_id = parse_video_id(url)
+        if not video_id:
+            raise TrackParseError(f"Could not extract video ID from: {url}")
+
+        logger.debug("Extracting metadata for track: %s", video_id)
+
+        # Fetch track using get_watch_playlist (same format as playlist tracks)
+        track = self._client.get_track(video_id)
+
+        # Process through existing single track extraction logic
+        metadata = self._extract_single_track(track)
+
+        # Return None for unsupported video types (UGC, etc.)
+        if metadata is None:
+            return None
+
+        # Create synthetic playlist info for single track
+        playlist_info = PlaylistInfo(
+            playlist_id=video_id,
+            title=metadata.title,
+            cover_url=metadata.cover_url,
+            kind=ContentKind.TRACK,
+            author=None,
+            unavailable_tracks=[],
+        )
+
+        return SingleTrackResult(track=metadata, playlist_info=playlist_info)
+
+    def _extract_single_track_as_progress(self, url: str) -> Iterator[ExtractProgress]:
+        """Extract a single track and yield it as ExtractProgress.
+
+        This is an internal helper that converts the single track extraction
+        into the same progress-based format used by playlist extraction.
+        This allows `extract()` to handle all URL types uniformly.
+
+        Args:
+            url: YouTube Music watch URL with video ID.
+
+        Yields:
+            Single ExtractProgress with the track metadata.
+            Does not yield anything if track has unsupported video type.
+
+        Raises:
+            TrackParseError: If URL doesn't contain a video ID.
+            TrackNotFoundError: If track doesn't exist.
+            APIError: If API requests fail.
+        """
+        result = self.extract_track(url)
+
+        # Don't yield anything for unsupported video types
+        if result is None:
+            return
+
+        yield ExtractProgress(
+            current=1,
+            total=1,
+            playlist_total=1,
+            skipped_by_reason={},
+            track=result.track,
+            playlist_info=result.playlist_info,
+        )
 
     # ============================================================================
     # CONTENT CLASSIFICATION - Distinguish albums from curated playlists

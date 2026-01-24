@@ -28,6 +28,7 @@ from yubal.config import AudioCodec, DownloadConfig, PlaylistDownloadConfig
 from yubal.exceptions import YTMetaError
 from yubal.models.domain import DownloadStatus, TrackMetadata, UnavailableTrack
 from yubal.services import MetadataExtractorService, PlaylistDownloadService
+from yubal.utils.url import is_single_track_url
 
 logger = logging.getLogger("yubal")
 
@@ -213,11 +214,12 @@ def main(verbose: bool) -> None:
 def meta_cmd(url: str, as_json: bool, cookies: Path | None) -> None:
     """Extract structured metadata from a YouTube Music URL.
 
-    URL should be a YouTube Music playlist URL. The content type (album vs
-    playlist) is automatically detected based on the tracks.
+    URL can be either a single track URL or a playlist/album URL.
+    The content type is automatically detected.
 
     \b
     Examples:
+      yubal meta "https://music.youtube.com/watch?v=VIDEO_ID"
       yubal meta "https://music.youtube.com/playlist?list=OLAK5uy_xxx"
       yubal meta "https://music.youtube.com/playlist?list=PLxxx"
     """
@@ -233,6 +235,12 @@ def meta_cmd(url: str, as_json: bool, cookies: Path | None) -> None:
         unavailable_tracks_list: list[UnavailableTrack] = []
         playlist_kind: str | None = None
         playlist_title: str | None = None
+
+        # Inform user about single track detection (early feedback)
+        if is_single_track_url(url):
+            console.print("[cyan]Detected single track[/cyan]")
+
+        # Unified extraction API handles all URL types
         with Progress(
             SpinnerColumn(),
             TextColumn("[progress.description]{task.description}"),
@@ -257,6 +265,12 @@ def meta_cmd(url: str, as_json: bool, cookies: Path | None) -> None:
                 )
                 playlist_kind = extract_progress.playlist_info.kind.value
                 playlist_title = extract_progress.playlist_info.title
+
+        if not tracks:
+            console.print(
+                "[yellow]No tracks found (may be unsupported video type)[/yellow]"
+            )
+            return
 
         if as_json:
             data = [t.model_dump() for t in tracks]
@@ -334,21 +348,26 @@ def download_cmd(
 ) -> None:
     """Download tracks from a YouTube Music URL.
 
+    URL can be either a single track URL or a playlist/album URL.
     Downloads each track using yt-dlp, preferring the ATV (Audio Track Video)
     version for better audio quality, falling back to OMV (Official Music Video)
     if ATV is unavailable. Existing files are automatically skipped.
 
-    The content type (album vs playlist) is automatically detected based on
-    the tracks. Albums skip M3U generation by default (use --album-m3u to override).
+    The content type (album, playlist, or single track) is automatically detected.
+    Albums skip M3U generation by default (use --album-m3u to override).
 
     \b
     Examples:
+      yubal download "https://music.youtube.com/watch?v=VIDEO_ID" ~/Music
       yubal download "https://music.youtube.com/playlist?list=OLAK5uy_xxx" ~/Music
       yubal download "https://music.youtube.com/playlist?list=PLxxx" ~/Music
     """
     console = Console()
 
     try:
+        # Detect single track URL and inform the user
+        if is_single_track_url(url):
+            console.print("[cyan]Detected single track[/cyan]")
         # Configure the playlist download service
         config = PlaylistDownloadConfig(
             download=DownloadConfig(

@@ -9,6 +9,7 @@ from yubal.config import PlaylistDownloadConfig
 from yubal.exceptions import CancellationError
 from yubal.models.domain import (
     CancelToken,
+    ContentKind,
     DownloadResult,
     DownloadStatus,
     PlaylistDownloadResult,
@@ -101,6 +102,13 @@ class PlaylistDownloadService:
         # Store last result for retrieval after iteration
         self._last_result: PlaylistDownloadResult | None = None
 
+        # Phase state (reset per download)
+        self._extracted_tracks: list[TrackMetadata] = []
+        self._playlist_info: PlaylistInfo | None = None
+        self._download_results: list[DownloadResult] = []
+        self._m3u_path: Path | None = None
+        self._cover_path: Path | None = None
+
     # ============================================================================
     # PUBLIC API - Main entry points for playlist downloads
     # ============================================================================
@@ -164,10 +172,8 @@ class PlaylistDownloadService:
             extra={"header": "New Download"},
         )
 
-        # Phase 1: Extract metadata from YouTube Music
-        yield from (
-            progress for progress in self._execute_extraction_phase(url, cancel_token)
-        )
+        # Phase 1: Extract metadata (handles all URL types: track, album, playlist)
+        yield from self._execute_extraction_phase(url, cancel_token)
         tracks, playlist_info = self._get_extraction_results()
 
         # Early exit if no tracks found
@@ -177,17 +183,12 @@ class PlaylistDownloadService:
             return
 
         # Phase 2: Download tracks to disk
-        yield from (
-            progress for progress in self._execute_download_phase(tracks, cancel_token)
-        )
+        yield from self._execute_download_phase(tracks, cancel_token)
         results = self._get_download_results()
 
         # Phase 3: Generate playlist artifacts
-        yield from (
-            progress
-            for progress in self._execute_composition_phase(
-                playlist_info, results, cancel_token
-            )
+        yield from self._execute_composition_phase(
+            playlist_info, results, cancel_token
         )
         m3u_path, cover_path = self._get_composition_results()
 
@@ -283,6 +284,11 @@ class PlaylistDownloadService:
     # PHASE 1: EXTRACTION - Fetch track metadata from YouTube Music
     # ============================================================================
 
+    def _reset_extraction_state(self) -> None:
+        """Reset extraction state for a new download."""
+        self._extracted_tracks = []
+        self._playlist_info = None
+
     def _execute_extraction_phase(
         self,
         url: str,
@@ -290,29 +296,28 @@ class PlaylistDownloadService:
     ) -> Iterator[PlaylistProgress]:
         """Execute metadata extraction phase with progress updates.
 
-        Fetches all track metadata from the YouTube Music playlist. Progress
-        is yielded after each track is extracted. This phase populates the
-        internal state with tracks and playlist_info for use by subsequent
-        phases.
+        Fetches track metadata from the YouTube Music URL. Handles all URL types
+        (single track, album, playlist). Progress is yielded after each track
+        is extracted. This phase populates the internal state with tracks and
+        playlist_info for use by subsequent phases.
 
         Why separate phase: Extraction is I/O-bound (API calls) and can take
         significant time for large playlists. Separating it allows clear
         progress reporting and early cancellation if needed.
 
         Args:
-            url: YouTube Music playlist URL.
+            url: YouTube Music URL (single track, album, or playlist).
             cancel_token: Optional cancellation token.
 
         Yields:
             PlaylistProgress with phase="extracting" and track metadata.
         """
         logger.info(
-            "Fetching playlist metadata",
+            "Fetching metadata",
             extra={"phase": "extracting", "phase_num": 1},
         )
 
-        self._extracted_tracks: list[TrackMetadata] = []
-        self._playlist_info: PlaylistInfo | None = None
+        self._reset_extraction_state()
         last_progress = None
 
         for progress in self._extractor.extract(url, max_items=self._config.max_items):
@@ -466,8 +471,6 @@ class PlaylistDownloadService:
         self._check_cancellation(cancel_token)
 
         # Determine what we're actually generating
-        from yubal.models.domain import ContentKind
-
         is_album = playlist_info.kind == ContentKind.ALBUM
         will_generate_m3u = self._config.generate_m3u and not (
             self._config.skip_album_m3u and is_album

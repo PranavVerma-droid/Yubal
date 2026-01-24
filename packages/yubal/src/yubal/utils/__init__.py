@@ -10,7 +10,7 @@ from yubal.utils.cover import clear_cover_cache, fetch_cover, get_cover_cache_si
 from yubal.utils.filename import build_track_path, clean_filename
 from yubal.utils.m3u import generate_m3u, write_m3u, write_playlist_cover
 from yubal.utils.thumbnails import get_square_thumbnail
-from yubal.utils.url import parse_playlist_id
+from yubal.utils.url import is_single_track_url, parse_playlist_id, parse_video_id
 
 __all__ = [
     "build_track_path",
@@ -23,7 +23,9 @@ __all__ = [
     "get_cover_cache_size",
     "get_square_thumbnail",
     "is_authenticated_cookies",
+    "is_single_track_url",
     "parse_playlist_id",
+    "parse_video_id",
     "write_m3u",
     "write_playlist_cover",
 ]

@@ -11,11 +11,12 @@ from yubal.exceptions import (
     APIError,
     AuthenticationRequiredError,
     PlaylistNotFoundError,
+    TrackNotFoundError,
     UnsupportedPlaylistError,
     YTMetaError,
 )
 from yubal.models.domain import SkipReason
-from yubal.models.ytmusic import Album, Playlist, SearchResult
+from yubal.models.ytmusic import Album, Playlist, PlaylistTrack, SearchResult
 from yubal.utils.cookies import cookies_to_ytmusic_auth
 
 logger = logging.getLogger(__name__)
@@ -38,6 +39,10 @@ class YTMusicProtocol(Protocol):
 
     def search_songs(self, query: str) -> list[SearchResult]:
         """Search for songs."""
+        ...
+
+    def get_track(self, video_id: str) -> PlaylistTrack:
+        """Fetch a single track by video ID."""
         ...
 
 
@@ -234,6 +239,78 @@ class YTMusicClient:
             raise APIError(f"Search failed: {e}") from e
 
         return [SearchResult.model_validate(r) for r in data]
+
+    def get_track(self, video_id: str) -> PlaylistTrack:
+        """Fetch a single track by video ID using get_watch_playlist().
+
+        Args:
+            video_id: YouTube video ID.
+
+        Returns:
+            Parsed PlaylistTrack model.
+
+        Raises:
+            ValueError: If video_id is empty.
+            TrackNotFoundError: If track doesn't exist or is inaccessible.
+            APIError: If API request fails.
+        """
+        if not video_id or not video_id.strip():
+            raise ValueError("video_id cannot be empty")
+
+        logger.debug("Fetching track: %s", video_id)
+        try:
+            data = self._ytm.get_watch_playlist(video_id)
+        except Exception as e:
+            logger.exception("Failed to fetch track %s: %s", video_id, e)
+            raise APIError(f"Failed to fetch track: {e}") from e
+
+        tracks = data.get("tracks") or []
+        if not tracks:
+            raise TrackNotFoundError(f"Track not found: {video_id}")
+
+        track_data = self._normalize_watch_track(tracks[0])
+        return PlaylistTrack.model_validate(track_data)
+
+    def _normalize_watch_track(self, track: dict) -> dict:
+        """Normalize get_watch_playlist track to PlaylistTrack format.
+
+        The get_watch_playlist API returns tracks with different field names:
+        - 'thumbnail' instead of 'thumbnails'
+        - 'length' (string) instead of 'duration_seconds' (int)
+        """
+        result = dict(track)
+
+        # Normalize thumbnail -> thumbnails
+        if "thumbnail" in result and "thumbnails" not in result:
+            result["thumbnails"] = result.pop("thumbnail")
+
+        # Normalize length -> duration_seconds
+        if "length" in result and "duration_seconds" not in result:
+            result["duration_seconds"] = self._parse_duration(result.pop("length"))
+
+        return result
+
+    def _parse_duration(self, length: str) -> int:
+        """Parse duration string like '3:00' or '1:23:45' to seconds.
+
+        Returns 0 for unparseable formats (logs warning).
+        """
+        if not length:
+            return 0
+
+        try:
+            parts = length.split(":")
+            if len(parts) == 2:
+                minutes, seconds = int(parts[0]), int(parts[1])
+                return minutes * 60 + seconds
+            elif len(parts) == 3:
+                hours, minutes, seconds = int(parts[0]), int(parts[1]), int(parts[2])
+                return hours * 3600 + minutes * 60 + seconds
+            logger.warning("Unexpected duration format: %s", length)
+            return 0
+        except ValueError:
+            logger.warning("Could not parse duration: %s", length)
+            return 0
 
     def clear_album_cache(self) -> None:
         """Clear the album cache."""

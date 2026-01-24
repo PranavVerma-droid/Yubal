@@ -28,10 +28,30 @@ class PlaylistParseError(YTMetaError):
     status_code: int = 400  # Bad Request
 
 
+class TrackParseError(YTMetaError):
+    """Failed to parse track URL.
+
+    Raised when the provided URL doesn't contain a valid video ID,
+    or when a playlist URL is provided instead of a single track URL.
+    """
+
+    status_code: int = 400  # Bad Request
+
+
 class PlaylistNotFoundError(YTMetaError):
     """Playlist not found or inaccessible.
 
     Raised when the playlist doesn't exist or is private.
+    """
+
+    status_code: int = 404  # Not Found
+
+
+class TrackNotFoundError(YTMetaError):
+    """Track not found or inaccessible.
+
+    Raised when the track doesn't exist, has been removed, or is
+    region-restricted and not available.
     """
 
     status_code: int = 404  # Not Found

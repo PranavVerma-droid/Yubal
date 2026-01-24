@@ -180,10 +180,11 @@ def aggregate_skip_reasons(
 
 
 class ContentKind(StrEnum):
-    """Type of music content (album vs playlist)."""
+    """Type of music content (album vs playlist vs track)."""
 
     ALBUM = "album"
     PLAYLIST = "playlist"
+    TRACK = "track"
 
 
 class TrackMetadata(BaseModel):
@@ -311,6 +312,15 @@ class ExtractProgress(BaseModel):
     def unavailable(self) -> int:
         """Tracks without video ID (for backward compatibility)."""
         return self.skipped_by_reason.get(SkipReason.NO_VIDEO_ID, 0)
+
+
+class SingleTrackResult(BaseModel):
+    """Result of extracting a single track."""
+
+    model_config = ConfigDict(frozen=True)
+
+    track: TrackMetadata
+    playlist_info: PlaylistInfo
 
 
 class DownloadProgress(BaseModel):

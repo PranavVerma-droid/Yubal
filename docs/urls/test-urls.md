@@ -10,8 +10,9 @@
 | Album (OLAK)                 | SABLE, fABLE                                              | Album         | https://music.youtube.com/playlist?list=OLAK5uy_mxPcDF6PkoNTfDzi7SI69_U5BtA2VYqYM |
 | Playlist                     | Full album (SABLE, fABLE) + 1 random UGC (music)          | Playlist      | https://music.youtube.com/playlist?list=PLxA687tYuMWjZfT1YGgX6xL0PYSMCpBIb        |
 | Album-formatted (OLAK)       | Top Charts Playlist. Mixed content. (Album-formatted URL) | Playlist      | https://music.youtube.com/playlist?list=OLAK5uy_mzYnlaHgFOvLaxqIPnnouEr-idiUn4NIM |
-|                              |                                                           |               |                                                                                   |
-|                              |                                                           |               |                                                                                   |
+| Single track                 | OMV                                                       | Track         | https://music.youtube.com/watch?v=GkTWxDB21cA                                     |
+| Single track                 | ATV                                                       | Track         | https://music.youtube.com/watch?v=Vgpv5PtWsn4                                     |
+| Single track                 | UGC (non-music)                                           | Skip          | https://www.youtube.com/watch?v=jNQXAC9IVRw                                       |
 
 Expected kind means:
 
