@@ -1336,100 +1336,105 @@ class TestNormalizeTitleForMatching:
 
     def test_strips_official_video_suffix(self) -> None:
         """Should strip (Official Video) suffix."""
-        from yubal.services.extractor import _normalize_title_for_matching
+        from yubal.utils.matching import normalize_title
 
-        assert _normalize_title_for_matching("THOUSAND MILES (Official Video)") == (
-            "thousand miles"
-        )
+        assert normalize_title("THOUSAND MILES (Official Video)") == ("thousand miles")
 
     def test_strips_official_music_video_suffix(self) -> None:
         """Should strip (Official Music Video) suffix."""
-        from yubal.services.extractor import _normalize_title_for_matching
+        from yubal.utils.matching import normalize_title
 
-        assert _normalize_title_for_matching("Song Title (Official Music Video)") == (
-            "song title"
-        )
+        assert normalize_title("Song Title (Official Music Video)") == ("song title")
 
     def test_strips_official_audio_suffix(self) -> None:
         """Should strip (Official Audio) suffix."""
-        from yubal.services.extractor import _normalize_title_for_matching
+        from yubal.utils.matching import normalize_title
 
-        assert _normalize_title_for_matching("Track Name (Official Audio)") == (
-            "track name"
-        )
+        assert normalize_title("Track Name (Official Audio)") == ("track name")
 
     def test_preserves_title_without_suffix(self) -> None:
         """Should preserve titles without video suffixes."""
-        from yubal.services.extractor import _normalize_title_for_matching
+        from yubal.utils.matching import normalize_title
 
-        assert _normalize_title_for_matching("Regular Song Title") == (
-            "regular song title"
-        )
+        assert normalize_title("Regular Song Title") == ("regular song title")
 
     def test_preserves_feat_suffix(self) -> None:
         """Should preserve (feat. Artist) which is part of the song title."""
-        from yubal.services.extractor import _normalize_title_for_matching
+        from yubal.utils.matching import normalize_title
 
-        assert _normalize_title_for_matching("Neverender (feat. Tame Impala)") == (
+        assert normalize_title("Neverender (feat. Tame Impala)") == (
             "neverender (feat. tame impala)"
         )
 
     def test_case_insensitive(self) -> None:
         """Should normalize to lowercase."""
-        from yubal.services.extractor import _normalize_title_for_matching
+        from yubal.utils.matching import normalize_title
 
-        assert _normalize_title_for_matching("UPPERCASE TITLE") == "uppercase title"
+        assert normalize_title("UPPERCASE TITLE") == "uppercase title"
 
 
-class TestFuzzyArtistMatch:
-    """Tests for fuzzy artist matching in album search."""
+class TestMatchArtists:
+    """Tests for artist matching in album search."""
 
-    def test_exact_match_returns_true(self) -> None:
+    def test_exact_match_returns_good_match(self) -> None:
         """Should match when artists are identical."""
-        from yubal.services.extractor import _fuzzy_artist_match
+        from yubal.utils.matching import match_artists
 
-        assert _fuzzy_artist_match({"artist one"}, {"artist one"}, 70) is True
+        result = match_artists({"artist one"}, {"artist one"})
+        assert result.is_good_match is True
+        assert result.best_score == 100.0
 
-    def test_similar_artist_returns_true(self) -> None:
+    def test_similar_artist_returns_good_match(self) -> None:
         """Should match when artists are similar above threshold."""
-        from yubal.services.extractor import _fuzzy_artist_match
+        from yubal.utils.matching import match_artists
 
         # "kid cudi" vs "kid cudi " (extra space) = ~95% match
-        assert _fuzzy_artist_match({"kid cudi"}, {"kid cudi "}, 70) is True
+        result = match_artists({"kid cudi"}, {"kid cudi "})
+        assert result.is_good_match is True
+        assert result.best_score > 70
 
-    def test_different_artist_returns_false(self) -> None:
+    def test_different_artist_returns_no_match(self) -> None:
         """Should not match when artists are completely different."""
-        from yubal.services.extractor import _fuzzy_artist_match
+        from yubal.utils.matching import match_artists
 
-        assert _fuzzy_artist_match({"taylor swift"}, {"kid cudi"}, 70) is False
+        result = match_artists({"taylor swift"}, {"kid cudi"})
+        assert result.is_good_match is False
 
     def test_one_matching_artist_sufficient(self) -> None:
         """Should match if any target artist matches any result artist."""
-        from yubal.services.extractor import _fuzzy_artist_match
+        from yubal.utils.matching import match_artists
 
         target = {"artist one", "artist two"}
-        result = {"artist two", "artist three"}
-        assert _fuzzy_artist_match(target, result, 70) is True
+        candidate = {"artist two", "artist three"}
+        result = match_artists(target, candidate)
+        assert result.is_good_match is True
 
     def test_no_matching_artists(self) -> None:
         """Should not match when no artists are similar."""
-        from yubal.services.extractor import _fuzzy_artist_match
+        from yubal.utils.matching import match_artists
 
         target = {"taylor swift", "ed sheeran"}
-        result = {"kid cudi", "travis scott"}
-        assert _fuzzy_artist_match(target, result, 70) is False
+        candidate = {"kid cudi", "travis scott"}
+        result = match_artists(target, candidate)
+        assert result.is_good_match is False
 
-    def test_below_threshold_returns_false(self) -> None:
+    def test_below_threshold_returns_no_match(self) -> None:
         """Should not match when similarity is below threshold."""
-        from yubal.services.extractor import _fuzzy_artist_match
+        from yubal.utils.matching import match_artists
 
         # "abc" vs "xyz" = 0% match
-        assert _fuzzy_artist_match({"abc"}, {"xyz"}, 70) is False
+        result = match_artists({"abc"}, {"xyz"})
+        assert result.is_good_match is False
+        assert result.best_score < 70
 
-    def test_empty_sets_returns_false(self) -> None:
+    def test_empty_sets_returns_no_match(self) -> None:
         """Should not match when either set is empty."""
-        from yubal.services.extractor import _fuzzy_artist_match
+        from yubal.utils.matching import match_artists
 
-        assert _fuzzy_artist_match(set(), {"artist"}, 70) is False
-        assert _fuzzy_artist_match({"artist"}, set(), 70) is False
-        assert _fuzzy_artist_match(set(), set(), 70) is False
+        result1 = match_artists(set(), {"artist"})
+        result2 = match_artists({"artist"}, set())
+        result3 = match_artists(set(), set())
+
+        assert result1.is_good_match is False
+        assert result2.is_good_match is False
+        assert result3.is_good_match is False

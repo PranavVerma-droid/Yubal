@@ -91,7 +91,7 @@ def generate_sapisidhash(sapisid: str, origin: str = YTM_ORIGIN) -> str:
     # SECURITY NOTE: SHA-1 is required by YouTube's SAPISIDHASH authentication
     # protocol. This is YouTube's legacy auth system, not a choice we can change.
     # The hash is used for request signing, not password storage.
-    sha1_hash = hashlib.sha1(hash_input.encode("utf-8")).hexdigest()  # noqa: S324
+    sha1_hash = hashlib.sha1(hash_input.encode("utf-8")).hexdigest()
     return f"SAPISIDHASH {timestamp}_{sha1_hash}"
 
 

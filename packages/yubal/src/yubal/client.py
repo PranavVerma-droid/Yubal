@@ -139,7 +139,9 @@ class YTMusicClient:
             raise APIError(f"Failed to fetch playlist: {e}") from e
         except KeyError as e:
             logger.warning("Missing data in playlist response %s: %s", playlist_id, e)
-            raise PlaylistNotFoundError(f"Playlist not found or malformed: {playlist_id}") from e
+            raise PlaylistNotFoundError(
+                f"Playlist not found or malformed: {playlist_id}"
+            ) from e
 
         if not data:
             raise PlaylistNotFoundError(f"Playlist not found: {playlist_id}")

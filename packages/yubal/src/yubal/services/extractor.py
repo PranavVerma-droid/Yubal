@@ -3,8 +3,6 @@
 import logging
 from collections.abc import Iterator
 
-from rapidfuzz import fuzz, process
-
 from yubal.client import YTMusicProtocol
 from yubal.exceptions import TrackParseError
 from yubal.models.domain import (
@@ -19,6 +17,7 @@ from yubal.models.domain import (
 )
 from yubal.models.ytmusic import Album, AlbumTrack, PlaylistTrack
 from yubal.utils.artists import format_artists
+from yubal.utils.matching import find_best_album_match, find_track_by_fuzzy_title
 from yubal.utils.thumbnails import get_square_thumbnail
 from yubal.utils.url import parse_playlist_id, parse_video_id
 
@@ -26,68 +25,6 @@ logger = logging.getLogger(__name__)
 
 # Supported video types for download (Audio Track Video and Official Music Video)
 SUPPORTED_VIDEO_TYPES = frozenset({VideoType.ATV, VideoType.OMV})
-
-# Fuzzy matching thresholds (using rapidfuzz, scale 0-100)
-FUZZY_MATCH_HIGH_CONFIDENCE = 80  # Auto-accept threshold
-FUZZY_MATCH_LOW_CONFIDENCE = 50  # Minimum acceptable threshold
-ALBUM_SEARCH_TITLE_THRESHOLD = 70  # Minimum similarity for album search results
-ALBUM_SEARCH_ARTIST_THRESHOLD = 70  # Minimum similarity for artist matching
-
-# Common video suffixes to strip when comparing titles (case-insensitive)
-# These are added by YouTube for music videos but aren't part of the actual song title
-_VIDEO_SUFFIXES = (
-    "(official video)",
-    "(official music video)",
-    "(official audio)",
-    "(official lyric video)",
-    "(official visualizer)",
-    "(music video)",
-    "(lyric video)",
-    "(lyrics)",
-    "(visualizer)",
-    "(audio)",
-    "(video)",
-)
-
-
-def _normalize_title_for_matching(title: str) -> str:
-    """Normalize a title by stripping common video suffixes.
-
-    OMV tracks often have suffixes like "(Official Video)" that don't appear
-    in the canonical track name. This function strips those for comparison.
-
-    Args:
-        title: Original track title.
-
-    Returns:
-        Normalized title with video suffixes removed.
-    """
-    normalized = title.lower().strip()
-    for suffix in _VIDEO_SUFFIXES:
-        if normalized.endswith(suffix):
-            normalized = normalized[: -len(suffix)].strip()
-            break  # Only strip one suffix
-    return normalized
-
-
-def _fuzzy_artist_match(
-    target_artists: set[str], result_artists: set[str], threshold: int
-) -> bool:
-    """Check if any target artist fuzzy-matches any result artist.
-
-    Args:
-        target_artists: Set of target artist names (lowercase, stripped).
-        result_artists: Set of result artist names (lowercase, stripped).
-        threshold: Minimum similarity percentage (0-100) to consider a match.
-
-    Returns:
-        True if any artist pair exceeds the threshold.
-    """
-    for target in target_artists:
-        for result in result_artists:
-            if fuzz.ratio(target, result) >= threshold:
-                return True
-    return False
 
 
 class MetadataExtractorService:
@@ -641,63 +578,51 @@ class MetadataExtractorService:
         if not results:
             return None, None, False
 
-        # Normalize titles to strip video suffixes like "(Official Video)"
-        target_title = _normalize_title_for_matching(track.title)
-        target_artists = {a.name.lower().strip() for a in track.artists if a.name}
-        had_results_with_album = False
+        # Use the matching module to find the best album match
+        match, had_results_with_album = find_best_album_match(
+            track_title=track.title,
+            track_artists=list(track.artists),
+            search_results=results,
+            video_type_atv_value=VideoType.ATV.value,
+        )
 
-        for result in results:
-            if not result.album:
-                continue
+        if match:
+            # Log match quality based on the result
+            title_match = match.title_match
+            artist_match = match.artist_match
 
-            had_results_with_album = True
-
-            # Validate title matches to avoid wrong albums
-            # Use normalized titles to handle OMV suffixes
-            result_title = _normalize_title_for_matching(result.title)
-            title_similarity = fuzz.ratio(target_title, result_title)
-
-            if title_similarity < ALBUM_SEARCH_TITLE_THRESHOLD:
+            if not title_match.is_good_match:
                 logger.warning(
-                    "Skipping result '%s' - low title match to '%s' (%.0f%% < %d%%)",
-                    result.title,
+                    "Low title match for '%s': '%s' (%.0f%%) - using anyway",
                     track.title,
-                    title_similarity,
-                    ALBUM_SEARCH_TITLE_THRESHOLD,
+                    title_match.candidate_normalized,
+                    title_match.similarity,
                 )
-                continue
-
-            # Validate at least one artist fuzzy-matches
-            result_artists = {a.name.lower().strip() for a in result.artists if a.name}
-            artist_matched = _fuzzy_artist_match(
-                target_artists, result_artists, ALBUM_SEARCH_ARTIST_THRESHOLD
-            )
-            # Compute best score for logging
-            best_artist_score = max(
-                (fuzz.ratio(t, r) for t in target_artists for r in result_artists),
-                default=0.0,
-            )
-            if not artist_matched:
+            elif title_match.is_base_match:
+                logger.debug(
+                    "Base title match for '%s': '%s' (base: %.0f%%, full: %.0f%%)",
+                    track.title,
+                    title_match.candidate_normalized,
+                    title_match.base_similarity,
+                    title_match.similarity,
+                )
+            elif not artist_match.is_good_match:
                 logger.warning(
-                    "Skipping '%s' - artist match too low (%.0f%% < %d%%): %s vs %s",
-                    result.title,
-                    best_artist_score,
-                    ALBUM_SEARCH_ARTIST_THRESHOLD,
-                    target_artists,
-                    result_artists,
+                    "Low artist match for '%s': %s vs %s (%.0f%%) - using anyway",
+                    title_match.candidate_normalized,
+                    artist_match.target_artists,
+                    artist_match.candidate_artists,
+                    artist_match.best_score,
                 )
-                continue
+            else:
+                logger.debug(
+                    "Album search match: '%s' (title: %.0f%%, artist: %.0f%%)",
+                    title_match.candidate_normalized,
+                    title_match.similarity,
+                    artist_match.best_score,
+                )
 
-            logger.warning(
-                "Album search match: '%s' (title: %.0f%%, artist: %.0f%%)",
-                result.title,
-                title_similarity,
-                best_artist_score,
-            )
-            atv_id = (
-                result.video_id if result.video_type == VideoType.ATV.value else None
-            )
-            return result.album.id, atv_id, False
+            return match.album_id, match.atv_video_id, False
 
         # Had results with album info but none matched title
         if had_results_with_album:
@@ -760,64 +685,25 @@ class MetadataExtractorService:
             if len(matches) == 1:
                 return matches[0]
 
-        # Fourth try: fuzzy title match using rapidfuzz
-        return self._find_track_by_fuzzy_title(album, track.title)
-
-    def _find_track_by_fuzzy_title(self, album: Album, title: str) -> AlbumTrack | None:
-        """Match track using fuzzy string similarity (tier 4 fallback).
-
-        Why fuzzy matching: Handles minor title variations like:
-        - "Song (Remastered)" vs "Song"
-        - "Song - Live" vs "Song (Live)"
-        - Typos or punctuation differences
-
-        Uses rapidfuzz library with confidence thresholds:
-        - >80% score: High confidence, accept silently
-        - 50-80% score: Medium confidence, accept with warning
-        - <50% score: Low confidence, reject to avoid false matches
-
-        Why two thresholds: >80% catches obvious matches like "Song (2024 Remaster)"
-        vs "Song". 50-80% catches fuzzier matches but warns the user in case it's
-        a false positive. <50% is rejected because it's likely a different track.
-
-        Args:
-            album: Album to search in.
-            title: Title to match against.
-
-        Returns:
-            Best matching album track or None if no confident match.
-        """
-        if not album.tracks:
-            return None
-
-        # Build a mapping from title to track for lookup
-        candidates: dict[str, AlbumTrack] = {t.title: t for t in album.tracks}
-
-        result = process.extractOne(title, candidates.keys())
-        if not result:
-            return None
-
-        matched_title, score, _ = result
-
-        if score > FUZZY_MATCH_HIGH_CONFIDENCE:
-            return candidates[matched_title]
-
-        if score > FUZZY_MATCH_LOW_CONFIDENCE:
+        # Fourth try: fuzzy title match using matching module
+        fuzzy_result = find_track_by_fuzzy_title(album.tracks, track.title)
+        if fuzzy_result:
+            if fuzzy_result.is_acceptable:
+                if not fuzzy_result.is_high_confidence:
+                    logger.warning(
+                        "Fuzzy match: '%s' -> '%s' (%.0f%%)",
+                        track.title,
+                        fuzzy_result.matched_track.title,
+                        fuzzy_result.score,
+                    )
+                return fuzzy_result.matched_track
+            # Low confidence - reject but log the best match found
             logger.warning(
-                "Fuzzy match: '%s' -> '%s' (%.0f%%)",
-                title,
-                matched_title,
-                score,
+                "No confident match for '%s' (best: '%s' @ %.0f%%)",
+                track.title,
+                fuzzy_result.matched_track.title,
+                fuzzy_result.score,
             )
-            return candidates[matched_title]
-
-        # Low confidence - reject
-        logger.warning(
-            "No confident match for '%s' (best: '%s' @ %.0f%%)",
-            title,
-            matched_title,
-            score,
-        )
         return None
 
     # ============================================================================

@@ -14,7 +14,7 @@ Usage in routes:
 from pathlib import Path
 from typing import Annotated
 
-from fastapi import Depends, Request
+from fastapi import Depends
 from yubal import AudioCodec
 
 from yubal_api.api.services_container import Services, get_services
