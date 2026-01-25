@@ -9,7 +9,7 @@ from contextlib import asynccontextmanager
 from datetime import datetime
 from importlib.metadata import version
 
-from fastapi import FastAPI
+from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from rich.console import Console
@@ -81,10 +81,19 @@ def create_services() -> Services:
     )
 
 
+def create_api_router() -> APIRouter:
+    """Create the API router with all routes under /api prefix."""
+    api_router = APIRouter(prefix="/api")
+    api_router.include_router(health.router)
+    api_router.include_router(jobs.router)
+    api_router.include_router(logs.router)
+    api_router.include_router(cookies.router)
+    return api_router
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Application lifespan handler for startup/shutdown."""
-    # Startup: initialize services
     logger.info("Starting application...")
     services = create_services()
     app.state.services = services
@@ -92,7 +101,6 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     yield
 
-    # Shutdown: cleanup
     logger.info("Shutting down...")
     services.close()
     clear_log_buffer()
@@ -105,35 +113,20 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     logger.info("Shutdown complete")
 
 
-def create_api() -> FastAPI:
-    """Create the API sub-application."""
-    api = FastAPI(
-        title="yubal API",
-        description="YouTube Music Downloader API",
-        version=version("yubal_api"),
-    )
-
-    # Register exception handlers
-    register_exception_handlers(api)
-
-    # API routes
-    api.include_router(health.router)
-    api.include_router(jobs.router)
-    api.include_router(logs.router)
-    api.include_router(cookies.router)
-
-    return api
-
-
 def create_app() -> FastAPI:
     """Create and configure the main FastAPI application."""
     settings = get_settings()
 
     app = FastAPI(
         title="yubal",
+        description="YouTube Music Downloader API",
+        version=version("yubal_api"),
         lifespan=lifespan,
         debug=settings.debug,
     )
+
+    # Register exception handlers
+    register_exception_handlers(app)
 
     # CORS middleware (type ignore needed due to Starlette typing limitations)
     app.add_middleware(
@@ -144,15 +137,15 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
-    # Mount API sub-app at /api
-    app.mount("/api", create_api())
+    # API routes under /api prefix
+    app.include_router(create_api_router())
 
     # Static files from YUBAL_ROOT/web/dist
     # Fix MIME types for Windows (registry defaults .js to text/plain)
     mimetypes.add_type("application/javascript", ".js")
     mimetypes.add_type("text/css", ".css")
 
-    web_build = get_settings().root / "web" / "dist"
+    web_build = settings.root / "web" / "dist"
     if web_build.exists():
         app.mount("/", StaticFiles(directory=web_build, html=True), name="static")
 
