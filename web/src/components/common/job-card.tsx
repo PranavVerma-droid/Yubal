@@ -142,7 +142,7 @@ function MetadataChip({
   );
 }
 
-function AlbumInfo({
+function ContentInfo({
   title,
   artist,
   year,
@@ -194,7 +194,7 @@ export function JobCard({ job, onCancel, onDelete }: JobCardProps) {
   const [isHovered, setIsHovered] = useState(false);
   const isRunning = isActive(job.status);
   const isJobFinished = isFinished(job.status);
-  const { album_info, download_stats } = job;
+  const { content_info, download_stats } = job;
   const hasPartialFailures =
     job.status === "completed" && (download_stats?.failed ?? 0) > 0;
 
@@ -208,22 +208,22 @@ export function JobCard({ job, onCancel, onDelete }: JobCardProps) {
     >
       <div className="flex items-center gap-3">
         <Thumbnail
-          url={album_info?.thumbnail_url ?? null}
+          url={content_info?.thumbnail_url ?? null}
           status={job.status}
           hasPartialFailures={hasPartialFailures}
         />
 
         <div className="min-w-0 flex-1 font-mono">
-          {album_info?.title ? (
-            <AlbumInfo
-              title={album_info.title}
-              artist={album_info.artist ?? null}
-              year={album_info.year ?? null}
-              trackCount={album_info.track_count ?? null}
-              audioCodec={album_info.audio_codec ?? null}
-              audioBitrate={album_info.audio_bitrate ?? null}
+          {content_info?.title ? (
+            <ContentInfo
+              title={content_info.title}
+              artist={content_info.artist ?? null}
+              year={content_info.year ?? null}
+              trackCount={content_info.track_count ?? null}
+              audioCodec={content_info.audio_codec ?? null}
+              audioBitrate={content_info.audio_bitrate ?? null}
               showBitrate={isJobFinished}
-              kind={album_info.kind ?? null}
+              kind={content_info.kind ?? null}
             />
           ) : (
             <p className="text-foreground-500 truncate text-xs">{job.url}</p>

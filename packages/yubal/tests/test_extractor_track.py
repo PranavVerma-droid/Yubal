@@ -3,7 +3,7 @@
 import pytest
 from yubal.exceptions import TrackParseError
 from yubal.models.domain import ContentKind, VideoType
-from yubal.models.ytmusic import Album, PlaylistTrack, SearchResult
+from yubal.models.ytmusic import Album, Playlist, PlaylistTrack, SearchResult
 from yubal.services.extractor import MetadataExtractorService
 
 
@@ -33,9 +33,12 @@ class MockClientForTrack:
             raise ValueError("No album configured")
         return self._album
 
-    def search_songs(self, query: str) -> list:
+    def search_songs(self, query: str) -> list[SearchResult]:
         self.search_songs_calls.append(query)
         return []
+
+    def get_playlist(self, playlist_id: str) -> Playlist:
+        raise NotImplementedError("MockClientForTrack doesn't support playlists")
 
 
 @pytest.fixture
@@ -178,13 +181,15 @@ class TestExtractTrack:
             def search_songs(self, query: str) -> list[SearchResult]:
                 self.search_songs_calls.append(query)
                 return [
-                    SearchResult.model_validate({
-                        "videoId": "plnfIj7dkJE",
-                        "videoType": "MUSIC_VIDEO_TYPE_ATV",
-                        "title": "Starboy",
-                        "artists": [{"name": "The Weeknd", "id": "UC456"}],
-                        "album": {"id": "MPREb_starboy", "name": "Starboy"},
-                    })
+                    SearchResult.model_validate(
+                        {
+                            "videoId": "plnfIj7dkJE",
+                            "videoType": "MUSIC_VIDEO_TYPE_ATV",
+                            "title": "Starboy",
+                            "artists": [{"name": "The Weeknd", "id": "UC456"}],
+                            "album": {"id": "MPREb_starboy", "name": "Starboy"},
+                        }
+                    )
                 ]
 
             def get_album(self, album_id: str) -> Album:

@@ -8,7 +8,7 @@ from datetime import datetime
 from yubal import AudioCodec, PhaseStats
 
 from yubal_api.core.enums import JobStatus
-from yubal_api.core.models import AlbumInfo, Job
+from yubal_api.core.models import ContentInfo, Job
 from yubal_api.core.types import Clock, IdGenerator
 
 logger = logging.getLogger(__name__)
@@ -152,7 +152,7 @@ class JobStore:
         job: Job,
         status: JobStatus | None = None,
         progress: float | None = None,
-        album_info: AlbumInfo | None = None,
+        content_info: ContentInfo | None = None,
         download_stats: PhaseStats | None = None,
         started_at: datetime | None = None,
         completed_at: datetime | None = None,
@@ -162,8 +162,8 @@ class JobStore:
             job.status = status
         if progress is not None:
             job.progress = progress
-        if album_info is not None:
-            job.album_info = album_info
+        if content_info is not None:
+            job.content_info = content_info
         if download_stats is not None:
             job.download_stats = download_stats
         if started_at is not None:
@@ -182,7 +182,7 @@ class JobStore:
         job_id: str,
         status: JobStatus,
         progress: float | None = None,
-        album_info: AlbumInfo | None = None,
+        content_info: ContentInfo | None = None,
         download_stats: PhaseStats | None = None,
         started_at: datetime | None = None,
     ) -> Job | None:
@@ -193,7 +193,7 @@ class JobStore:
                 return None
 
             self._apply_job_updates(
-                job, status, progress, album_info, download_stats, started_at
+                job, status, progress, content_info, download_stats, started_at
             )
             return job
 

@@ -44,32 +44,37 @@ Examples:
         """,
     )
     parser.add_argument(
-        "-v", "--video-id",
+        "-v",
+        "--video-id",
         type=str,
         default=None,
         help="Video ID or URL of the played video",
     )
     parser.add_argument(
-        "-p", "--playlist-id",
+        "-p",
+        "--playlist-id",
         type=str,
         default=None,
         help="Playlist ID or URL of the played playlist or album",
     )
     parser.add_argument(
-        "-l", "--limit",
+        "-l",
+        "--limit",
         type=int,
         default=25,
         help="Minimum number of watch playlist items to return (default: 25)",
     )
     parser.add_argument(
-        "-r", "--radio",
+        "-r",
+        "--radio",
         action="store_true",
         help="Get a radio playlist (changes each time)",
     )
     parser.add_argument(
-        "-s", "--shuffle",
+        "-s",
+        "--shuffle",
         action="store_true",
-        help="Shuffle the input playlist (requires --playlist-id, incompatible with --radio)",
+        help="Shuffle the playlist (requires --playlist-id, no --radio)",
     )
 
     args = parser.parse_args()

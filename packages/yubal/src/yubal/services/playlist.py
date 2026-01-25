@@ -188,9 +188,7 @@ class PlaylistDownloadService:
         results = self._get_download_results()
 
         # Phase 3: Generate playlist artifacts
-        yield from self._execute_composition_phase(
-            playlist_info, results, cancel_token
-        )
+        yield from self._execute_composition_phase(playlist_info, results, cancel_token)
         m3u_path, cover_path = self._get_composition_results()
 
         # Store complete result for retrieval via get_result()

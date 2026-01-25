@@ -8,8 +8,8 @@ from yubal import AudioCodec, ContentKind, PhaseStats
 from yubal_api.core.enums import JobStatus
 
 
-class AlbumInfo(BaseModel):
-    """Information about an album/playlist."""
+class ContentInfo(BaseModel):
+    """Information about downloaded content (album, playlist, or track)."""
 
     title: str
     artist: str
@@ -34,7 +34,7 @@ class Job(BaseModel):
     max_items: int | None = None
     status: JobStatus = JobStatus.PENDING
     progress: float = 0.0
-    album_info: AlbumInfo | None = None
+    content_info: ContentInfo | None = None
     download_stats: PhaseStats | None = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     started_at: datetime | None = None

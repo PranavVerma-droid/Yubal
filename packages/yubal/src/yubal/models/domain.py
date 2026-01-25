@@ -74,7 +74,8 @@ class SkipReason(StrEnum):
     """Reason why a track was skipped.
 
     Used in both extraction and download phases:
-    - Extraction: UNSUPPORTED_VIDEO_TYPE, NO_VIDEO_ID, REGION_UNAVAILABLE, NO_ALBUM_MATCH
+    - Extraction: UNSUPPORTED_VIDEO_TYPE, NO_VIDEO_ID, REGION_UNAVAILABLE,
+      NO_ALBUM_MATCH
     - Download: FILE_EXISTS
     """
 

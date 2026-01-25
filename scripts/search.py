@@ -10,7 +10,10 @@ from ytmusicapi import YTMusic
 def main() -> None:
     if len(sys.argv) < 2:
         print("Usage: python search.py <query> [filter]")
-        print("Filters: songs, videos, albums, artists, playlists, community_playlists, featured_playlists, uploads")
+        print(
+            "Filters: songs, videos, albums, artists, playlists, "
+            "community_playlists, featured_playlists, uploads"
+        )
         sys.exit(1)
 
     query = sys.argv[1]

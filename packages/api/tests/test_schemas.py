@@ -104,9 +104,7 @@ class TestCreateJobRequest:
 
     def test_max_items_optional(self) -> None:
         """Should allow max_items to be omitted."""
-        request = CreateJobRequest(
-            url="https://music.youtube.com/watch?v=abc123"
-        )
+        request = CreateJobRequest(url="https://music.youtube.com/watch?v=abc123")
         assert request.max_items is None
 
     def test_max_items_valid_range(self) -> None:

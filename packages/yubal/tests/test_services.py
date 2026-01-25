@@ -1,14 +1,15 @@
 """Tests for services."""
 
+from __future__ import annotations
+
 import logging
 
 import pytest
+from conftest import MockYTMusicClient
 from pydantic import ValidationError
 from yubal.models.domain import VideoType
 from yubal.models.ytmusic import Album, Playlist, SearchResult
 from yubal.services import MetadataExtractorService
-
-from tests.conftest import MockYTMusicClient
 
 
 class TestMetadataExtractorService:

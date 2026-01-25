@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from yubal_api.core.enums import JobStatus, ProgressStep
-from yubal_api.core.models import AlbumInfo, Job
+from yubal_api.core.models import ContentInfo, Job
 from yubal_api.services.protocols import JobExecutionStore
 from yubal_api.services.sync.cancel import CancelToken
 from yubal_api.services.sync_service import SyncService
@@ -129,7 +129,7 @@ class JobExecutor:
                     return
 
                 status = self._step_to_status(step)
-                album_info = self._parse_album_info(details) if details else None
+                content_info = self._parse_content_info(details) if details else None
 
                 # Skip terminal states - handled by result
                 if status in (JobStatus.COMPLETED, JobStatus.FAILED):
@@ -140,7 +140,7 @@ class JobExecutor:
                     job_id,
                     status,
                     progress,
-                    album_info,
+                    content_info,
                 )
 
             # Run sync in thread pool
@@ -163,7 +163,7 @@ class JobExecutor:
                     job_id,
                     JobStatus.COMPLETED,
                     progress=PROGRESS_COMPLETE,
-                    album_info=result.album_info,
+                    content_info=result.content_info,
                     download_stats=result.download_stats,
                 )
             else:
@@ -191,11 +191,11 @@ class JobExecutor:
         }.get(step, JobStatus.DOWNLOADING)
 
     @staticmethod
-    def _parse_album_info(details: dict[str, Any]) -> AlbumInfo | None:
+    def _parse_content_info(details: dict[str, Any]) -> ContentInfo | None:
         """Extract album info from details dict."""
-        if data := details.get("album_info"):
+        if data := details.get("content_info"):
             try:
-                return AlbumInfo(**data)
+                return ContentInfo(**data)
             except (TypeError, ValueError) as e:
                 logger.warning("Failed to parse album info: %s", e)
         return None

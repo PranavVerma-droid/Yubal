@@ -91,6 +91,7 @@ def print_no_tracks_message(console: Console, state: ExtractionState) -> None:
     if state.unavailable_tracks:
         print_unavailable_tracks(console, state.unavailable_tracks)
 
+
 # Standard progress bar columns used by both meta and download commands.
 # Using the same console for Progress and RichHandler ensures logs appear
 # above the progress bar rather than interfering with it.

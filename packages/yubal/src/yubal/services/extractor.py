@@ -237,7 +237,7 @@ class MetadataExtractorService:
             PlaylistNotFoundError: If playlist doesn't exist.
             APIError: If API requests fail.
         """
-        return [p.track for p in self.extract(url, max_items=max_items)]
+        return [p.track for p in self.extract(url, max_items=max_items) if p.track]
 
     def extract_track(self, url: str) -> SingleTrackResult | None:
         """Extract metadata for a single track from a watch URL.
@@ -600,7 +600,7 @@ class MetadataExtractorService:
 
             if title_similarity < ALBUM_SEARCH_TITLE_THRESHOLD:
                 logger.debug(
-                    "Skipping search result '%s' - low title similarity to '%s' (%.0f%%)",
+                    "Skipping result '%s' - low title match to '%s' (%.0f%%)",
                     result.title,
                     track.title,
                     title_similarity,

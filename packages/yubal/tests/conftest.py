@@ -201,6 +201,10 @@ class MockYTMusicClient:
         self.search_songs_calls.append(query)
         return self._search_results
 
+    def get_track(self, video_id: str) -> PlaylistTrack:
+        """Mock get_track - not implemented for playlist tests."""
+        raise NotImplementedError("MockYTMusicClient doesn't support get_track")
+
 
 @pytest.fixture
 def mock_client(

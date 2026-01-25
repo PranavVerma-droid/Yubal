@@ -187,10 +187,36 @@ export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         /**
-         * AlbumInfo
-         * @description Information about an album/playlist.
+         * AudioCodec
+         * @description Supported audio output codecs.
+         * @enum {string}
          */
-        AlbumInfo: {
+        AudioCodec: "opus" | "mp3" | "m4a";
+        /**
+         * CancelJobResponse
+         * @description Response when a job is cancelled.
+         */
+        CancelJobResponse: {
+            /**
+             * Message
+             * @default Job cancelled
+             * @constant
+             */
+            message: "Job cancelled";
+        };
+        /**
+         * ClearJobsResponse
+         * @description Response when jobs are cleared.
+         */
+        ClearJobsResponse: {
+            /** Cleared */
+            cleared: number;
+        };
+        /**
+         * ContentInfo
+         * @description Information about downloaded content (album, playlist, or track).
+         */
+        ContentInfo: {
             /** Title */
             title: string;
             /** Artist */
@@ -217,32 +243,6 @@ export interface components {
             audio_bitrate?: number | null;
             /** @default playlist */
             kind: components["schemas"]["ContentKind"];
-        };
-        /**
-         * AudioCodec
-         * @description Supported audio output codecs.
-         * @enum {string}
-         */
-        AudioCodec: "opus" | "mp3" | "m4a";
-        /**
-         * CancelJobResponse
-         * @description Response when a job is cancelled.
-         */
-        CancelJobResponse: {
-            /**
-             * Message
-             * @default Job cancelled
-             * @constant
-             */
-            message: "Job cancelled";
-        };
-        /**
-         * ClearJobsResponse
-         * @description Response when jobs are cleared.
-         */
-        ClearJobsResponse: {
-            /** Cleared */
-            cleared: number;
         };
         /**
          * ContentKind
@@ -343,7 +343,7 @@ export interface components {
              * @default 0
              */
             progress: number;
-            album_info?: components["schemas"]["AlbumInfo"] | null;
+            content_info?: components["schemas"]["ContentInfo"] | null;
             download_stats?: components["schemas"]["PhaseStats"] | null;
             /**
              * Created At

@@ -6,7 +6,7 @@ from typing import Protocol
 from yubal import PhaseStats
 
 from yubal_api.core.enums import JobStatus
-from yubal_api.core.models import AlbumInfo, Job
+from yubal_api.core.models import ContentInfo, Job
 
 
 class JobExecutionStore(Protocol):
@@ -23,7 +23,7 @@ class JobExecutionStore(Protocol):
         job_id: str,
         status: JobStatus,
         progress: float | None = None,
-        album_info: AlbumInfo | None = None,
+        content_info: ContentInfo | None = None,
         download_stats: PhaseStats | None = None,
         started_at: datetime | None = None,
     ) -> Job | None:

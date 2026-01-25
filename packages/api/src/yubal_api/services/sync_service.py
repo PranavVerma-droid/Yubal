@@ -20,7 +20,7 @@ from yubal import (
 from yubal.models.domain import ContentKind, PlaylistInfo
 
 from yubal_api.core.enums import ProgressStep
-from yubal_api.core.models import AlbumInfo
+from yubal_api.core.models import ContentInfo
 from yubal_api.services.sync.cancel import CancelToken
 
 logger = logging.getLogger(__name__)
@@ -67,7 +67,7 @@ class SyncResult:
     """Result of a sync operation."""
 
     success: bool
-    album_info: AlbumInfo | None = None
+    content_info: ContentInfo | None = None
     download_stats: PhaseStats | None = None
     destination: str | None = None
     error: str | None = None
@@ -80,13 +80,13 @@ def _map_phase(phase: str) -> ProgressStep:
     return _PHASE_MAP[phase]
 
 
-def album_info_from_yubal(
+def content_info_from_yubal(
     playlist_info: PlaylistInfo,
     tracks: list[TrackMetadata],
     url: str,
     audio_format: str,
-) -> AlbumInfo:
-    """Map yubal's extraction result to API's AlbumInfo schema."""
+) -> ContentInfo:
+    """Map yubal's extraction result to API's ContentInfo schema."""
     first = tracks[0] if tracks else None
 
     # Only include year for albums, not playlists
@@ -103,7 +103,7 @@ def album_info_from_yubal(
     else:
         artist = first.primary_album_artist if first else "Various Artists"
 
-    return AlbumInfo(
+    return ContentInfo(
         title=playlist_info.title or "Unknown",
         artist=artist,
         year=year_int,
@@ -178,7 +178,7 @@ class SyncService:
             if progress_callback:
                 progress_callback(step, msg, pct, details)
 
-        album_info: AlbumInfo | None = None
+        content_info: ContentInfo | None = None
         tracks: list[TrackMetadata] = []
         playlist_info: PlaylistInfo | None = None
 
@@ -210,25 +210,26 @@ class SyncService:
                 )
 
                 if progress.phase == "extracting":
-                    # Collect tracks for album_info building
+                    # Collect tracks for content_info building
                     if progress.extract_progress:
-                        tracks.append(progress.extract_progress.track)
+                        if progress.extract_progress.track is not None:
+                            tracks.append(progress.extract_progress.track)
                         playlist_info = progress.extract_progress.playlist_info
 
                     msg = self._format_extract_message(progress)
                     emit(step, msg, pct)
 
-                    # Build album_info when extraction completes
+                    # Build content_info when extraction completes
                     if progress.current == progress.total and playlist_info and tracks:
-                        album_info = album_info_from_yubal(
+                        content_info = content_info_from_yubal(
                             playlist_info, tracks, url, self._audio_format
                         )
                         track_word = "track" if len(tracks) == 1 else "tracks"
                         emit(
                             step,
-                            f"Found {len(tracks)} {track_word}: {album_info.title}",
+                            f"Found {len(tracks)} {track_word}: {content_info.title}",
                             pct,
-                            {"album_info": album_info.model_dump()},
+                            {"content_info": content_info.model_dump()},
                         )
 
                 elif progress.phase == "downloading":
@@ -238,12 +239,12 @@ class SyncService:
                     # Update bitrate from first successful download
                     if (
                         progress.download_progress
-                        and album_info
-                        and not album_info.audio_bitrate
+                        and content_info
+                        and not content_info.audio_bitrate
                     ):
                         result = progress.download_progress.result
                         if result.status == DownloadStatus.SUCCESS and result.bitrate:
-                            album_info.audio_bitrate = result.bitrate
+                            content_info.audio_bitrate = result.bitrate
 
                 elif progress.phase == "composing":
                     msg = progress.message or "Generating playlist files..."
@@ -253,7 +254,7 @@ class SyncService:
             result = service.get_result()
             if not result:
                 return SyncResult(
-                    success=False, album_info=album_info, error="No tracks found"
+                    success=False, content_info=content_info, error="No tracks found"
                 )
 
             # Determine destination from results
@@ -271,7 +272,7 @@ class SyncService:
 
             return SyncResult(
                 success=True,
-                album_info=album_info,
+                content_info=content_info,
                 download_stats=result.download_stats,
                 destination=destination,
             )
@@ -280,7 +281,7 @@ class SyncService:
             logger.info("Download cancelled", extra={"status": "failed"})
             return SyncResult(
                 success=False,
-                album_info=album_info,
+                content_info=content_info,
                 error="Cancelled",
             )
         except Exception as e:
@@ -288,7 +289,7 @@ class SyncService:
             emit(ProgressStep.FAILED, str(e))
             return SyncResult(
                 success=False,
-                album_info=album_info,
+                content_info=content_info,
                 error=str(e),
             )
 
@@ -296,7 +297,8 @@ class SyncService:
         """Format progress message for extraction phase."""
         if progress.extract_progress:
             ep = progress.extract_progress
-            return f"Extracted {ep.current}/{ep.total}: {ep.track.title}"
+            title = ep.track.title if ep.track else "skipped"
+            return f"Extracted {ep.current}/{ep.total}: {title}"
         return f"Extracting {progress.current}/{progress.total}..."
 
     def _format_download_message(self, progress: PlaylistProgress) -> str:
