@@ -98,11 +98,6 @@ class Settings(BaseSettings):
     def cookies_file(self) -> Path:
         return self.ytdlp_dir / "cookies.txt"
 
-    @property
-    def content_dir(self) -> Path:
-        """Directory for downloaded content (albums, playlists, tracks)."""
-        return self.data / "Playlists"
-
 
 @cache
 def get_settings() -> Settings:
