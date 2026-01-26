@@ -33,13 +33,17 @@ data/
 ├── Pink Floyd/
 │   └── 1973 - The Dark Side of the Moon/
 │       ├── 01 - Speak to Me.opus
+│       ├── 01 - Speak to Me.lrc
 │       ├── 02 - Breathe.opus
+│       ├── 02 - Breathe.lrc
 │       └── cover.jpg
 │
 ├── Radiohead/
 │   └── 1997 - OK Computer/
 │       ├── 01 - Airbag.opus
+│       ├── 01 - Airbag.lrc
 │       ├── 02 - Paranoid Android.opus
+│       ├── 02 - Paranoid Android.lrc
 │       └── cover.jpg
 │
 └── Playlists/
