@@ -376,11 +376,11 @@ class JobStore:
         if completed_at is not None:
             job.completed_at = completed_at
 
-        # Auto-finalize when status becomes finished
+        # Auto-set completion timestamp when status becomes finished
+        # Note: Do NOT clear _active_job_id here - the executor is responsible
+        # for calling release_active() after cleanup completes
         if job.status.is_finished:
             job.completed_at = job.completed_at or self._clock()
-            if self._active_job_id == job.id:
-                self._active_job_id = None
 
     def _check_timeout(self, job: Job) -> bool:
         """Check if a job has timed out and mark it as failed.
@@ -407,8 +407,8 @@ class JobStore:
 
         job.status = JobStatus.FAILED
         job.completed_at = now
-        if self._active_job_id == job.id:
-            self._active_job_id = None
+        # Note: Do NOT clear _active_job_id here - the executor is responsible
+        # for calling release_active() after cleanup completes
 
         logger.warning(
             "Job %s timed out after %d seconds",
