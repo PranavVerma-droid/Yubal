@@ -25,5 +25,6 @@ class Subscription(SQLModel, table=True):
     name: str = Field(max_length=200)
     enabled: bool = Field(default=True)
     max_items: int | None = Field(default=None, ge=1, le=10000)
+    thumbnail_url: str | None = Field(default=None, max_length=2048)
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     last_synced_at: datetime | None = Field(default=None)

@@ -778,6 +778,11 @@ export interface components {
             /** Max Items */
             max_items: number | null;
             /**
+             * Thumbnail Url
+             * Format: uri
+             */
+            thumbnail_url?: string | null;
+            /**
              * Created At
              * Format: date-time
              */

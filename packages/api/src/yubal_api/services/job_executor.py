@@ -191,14 +191,16 @@ class JobExecutor:
                     content_info=result.content_info,
                     download_stats=result.download_stats,
                 )
-                # Update subscription name with latest title from YouTube Music
+                # Update subscription metadata with latest info from YouTube Music
                 if (
                     self._subscription_repository
                     and result.content_info
                     and result.content_info.title
                 ):
-                    self._subscription_repository.update_name_by_url(
-                        url, result.content_info.title
+                    self._subscription_repository.update_metadata_by_url(
+                        url,
+                        result.content_info.title,
+                        result.content_info.thumbnail_url,
                     )
             else:
                 error_msg = result.error or "Unknown error"

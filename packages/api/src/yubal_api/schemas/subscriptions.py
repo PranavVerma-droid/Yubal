@@ -31,6 +31,7 @@ class SubscriptionResponse(BaseModel):
     name: str
     enabled: bool
     max_items: int | None
+    thumbnail_url: str | None = Field(default=None, json_schema_extra={"format": "uri"})
     created_at: datetime
     last_synced_at: datetime | None
 

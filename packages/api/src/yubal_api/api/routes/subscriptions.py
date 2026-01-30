@@ -74,9 +74,9 @@ def create_subscription(
             detail=f"Subscription with URL already exists: {existing.id}",
         )
 
-    # Fetch name from YouTube Music
+    # Fetch metadata from YouTube Music
     try:
-        name = playlist_info_service.get_playlist_title(str(data.url))
+        metadata = playlist_info_service.get_playlist_metadata(str(data.url))
     except PlaylistNotFoundError as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -101,7 +101,8 @@ def create_subscription(
     subscription = Subscription(
         type=SubscriptionType.PLAYLIST,
         url=str(data.url),
-        name=name,
+        name=metadata.title,
+        thumbnail_url=metadata.thumbnail_url,
         enabled=True,
         max_items=data.max_items,
         created_at=datetime.now(UTC),

@@ -88,12 +88,15 @@ class SubscriptionRepository:
                 stmt = stmt.where(Subscription.type == type)
             return session.exec(stmt).one()
 
-    def update_name_by_url(self, url: str, name: str) -> bool:
-        """Update subscription name by URL.
+    def update_metadata_by_url(
+        self, url: str, name: str, thumbnail_url: str | None
+    ) -> bool:
+        """Update subscription metadata by URL.
 
         Args:
             url: The subscription URL.
             name: The new name.
+            thumbnail_url: The new thumbnail URL.
 
         Returns:
             True if a subscription was updated, False if not found.
@@ -104,5 +107,6 @@ class SubscriptionRepository:
             if subscription is None:
                 return False
             subscription.name = name
+            subscription.thumbnail_url = thumbnail_url
             session.commit()
             return True

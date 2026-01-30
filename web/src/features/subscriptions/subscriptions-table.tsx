@@ -9,7 +9,7 @@ import {
   TableCell,
   TableColumn,
   TableHeader,
-  TableRow
+  TableRow,
 } from "@heroui/react";
 import {
   InboxIcon,
@@ -48,9 +48,17 @@ export function SubscriptionsTable({
         case "name":
           return (
             <div className="flex items-center gap-3">
-              <div className="bg-content3 flex h-8 w-8 shrink-0 items-center justify-center rounded">
-                <ListMusicIcon className="text-foreground-400 h-4 w-4" />
-              </div>
+              {subscription.thumbnail_url ? (
+                <img
+                  src={subscription.thumbnail_url}
+                  alt=""
+                  className="h-8 w-8 shrink-0 rounded object-cover"
+                />
+              ) : (
+                <div className="bg-content3 flex h-8 w-8 shrink-0 items-center justify-center rounded">
+                  <ListMusicIcon className="text-foreground-400 h-4 w-4" />
+                </div>
+              )}
               <span className="font-mono text-sm">{subscription.name}</span>
             </div>
           );

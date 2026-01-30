@@ -1,9 +1,18 @@
 """Service for fetching playlist information from YouTube Music."""
 
+from dataclasses import dataclass
 from pathlib import Path
 
 from yubal.client import YTMusicClient
 from yubal.utils.url import parse_playlist_id
+
+
+@dataclass(frozen=True)
+class PlaylistMetadata:
+    """Metadata about a playlist."""
+
+    title: str
+    thumbnail_url: str | None
 
 
 class PlaylistInfoService:
@@ -17,14 +26,14 @@ class PlaylistInfoService:
         """
         self._client = YTMusicClient(cookies_path=cookies_path)
 
-    def get_playlist_title(self, url: str) -> str:
-        """Get the title of a playlist from its URL.
+    def get_playlist_metadata(self, url: str) -> PlaylistMetadata:
+        """Get the metadata of a playlist from its URL.
 
         Args:
             url: YouTube Music playlist URL.
 
         Returns:
-            The playlist title.
+            PlaylistMetadata containing title and thumbnail URL.
 
         Raises:
             PlaylistParseError: If URL cannot be parsed (400).
@@ -35,4 +44,6 @@ class PlaylistInfoService:
         """
         playlist_id = parse_playlist_id(url)
         playlist = self._client.get_playlist(playlist_id)
-        return playlist.title or "Unknown Playlist"
+        title = playlist.title or "Unknown Playlist"
+        thumbnail_url = playlist.thumbnails[-1].url if playlist.thumbnails else None
+        return PlaylistMetadata(title=title, thumbnail_url=thumbnail_url)
