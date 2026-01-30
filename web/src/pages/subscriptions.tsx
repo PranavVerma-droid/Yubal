@@ -3,7 +3,7 @@ import { SubscriptionsTable } from "@/features/subscriptions/subscriptions-table
 import { useSubscriptions } from "@/features/subscriptions/use-subscriptions";
 import { isValidUrl } from "@/lib/url";
 import { Button, NumberInput, Tooltip } from "@heroui/react";
-import { Hash, Plus, RefreshCw } from "lucide-react";
+import { HashIcon, RefreshCwIcon, RssIcon } from "lucide-react";
 import { useState } from "react";
 
 const DEFAULT_MAX_ITEMS = 100;
@@ -66,7 +66,7 @@ export function SubscriptionsPage() {
               useGrouping: false,
             }}
             placeholder="Max"
-            startContent={<Hash className="text-foreground-400 h-4 w-4" />}
+            startContent={<HashIcon className="text-foreground-400 h-4 w-4" />}
             className="w-20 font-mono"
           />
         </Tooltip>
@@ -78,7 +78,7 @@ export function SubscriptionsPage() {
           onPress={handleAdd}
           isDisabled={!canAdd}
           isLoading={isAdding}
-          startContent={!isAdding && <Plus className="h-4 w-4" />}
+          startContent={!isAdding && <RssIcon className="h-4 w-4" />}
         >
           Subscribe
         </Button>
@@ -94,10 +94,10 @@ export function SubscriptionsPage() {
             </span>
             <Button
               variant="light"
-              size="md"
+              radius="lg"
               className="text-foreground-500 hover:text-primary"
               onPress={syncAll}
-              startContent={<RefreshCw className="h-3.5 w-3.5" />}
+              startContent={<RefreshCwIcon className="h-3.5 w-3.5" />}
             >
               Sync All
             </Button>

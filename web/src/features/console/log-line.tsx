@@ -1,5 +1,11 @@
 import type { components } from "@/api/schema";
-import { AlertTriangle, ArrowDown, Check, Circle, X } from "lucide-react";
+import {
+  AlertTriangleIcon,
+  ArrowDownIcon,
+  CheckIcon,
+  CircleIcon,
+  XIcon,
+} from "lucide-react";
 
 type LogEntry = components["schemas"]["LogEntry"];
 type LogStatus = NonNullable<LogEntry["status"]>;
@@ -11,12 +17,14 @@ type SkippedByReason = NonNullable<
 const ICON_CLASS = "h-4 w-4 shrink-0";
 
 /** Status icon configuration mapping status to icon component and color */
-const STATUS_CONFIG: Record<LogStatus, { icon: typeof Check; color: string }> =
-  {
-    success: { icon: Check, color: "text-success" },
-    skipped: { icon: Circle, color: "text-warning" },
-    failed: { icon: X, color: "text-danger" },
-  };
+const STATUS_CONFIG: Record<
+  LogStatus,
+  { icon: typeof CheckIcon; color: string }
+> = {
+  success: { icon: CheckIcon, color: "text-success" },
+  skipped: { icon: CircleIcon, color: "text-warning" },
+  failed: { icon: XIcon, color: "text-danger" },
+};
 
 /** Header log - prominent visual separator */
 function HeaderLog({ header }: { header: string }) {
@@ -77,7 +85,7 @@ function ExtractionStatsLog({
 
   return (
     <div className="flex items-center gap-1">
-      <Check className={`${ICON_CLASS} text-success`} />
+      <CheckIcon className={`${ICON_CLASS} text-success`} />
       <span className="text-success">{success} extracted</span>
       <span>,</span>
       <span className="text-warning">{skipped} skipped</span>
@@ -99,7 +107,7 @@ function DownloadStatsLog({
 }) {
   // Show warning icon if any tracks failed
   const hasIssues = failed > 0;
-  const Icon = hasIssues ? AlertTriangle : Check;
+  const Icon = hasIssues ? AlertTriangleIcon : CheckIcon;
   const iconColor = hasIssues ? "text-warning" : "text-success";
 
   return (
@@ -130,7 +138,7 @@ function ProgressLog({
 }) {
   return (
     <div className="flex items-center gap-1">
-      {isDownload && <ArrowDown className={`${ICON_CLASS} text-primary`} />}
+      {isDownload && <ArrowDownIcon className={`${ICON_CLASS} text-primary`} />}
       <span className="text-foreground-400">
         [{current}/{total}]
       </span>

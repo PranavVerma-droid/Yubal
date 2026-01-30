@@ -5,7 +5,7 @@ import { Panel, PanelContent, PanelHeader } from "@/components/common/panel";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { isActive } from "@/lib/job-status";
 import { Chip, Spinner } from "@heroui/react";
-import { ChevronDown, CloudOff, Terminal } from "lucide-react";
+import { ChevronDownIcon, CloudOffIcon, TerminalIcon } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useMemo, useRef } from "react";
 import { LogLine } from "./log-line";
@@ -60,7 +60,7 @@ export function ConsolePanel({ jobs = [] }: ConsolePanelProps) {
       <PanelHeader
         className="hover:bg-content2 cursor-pointer select-none"
         onClick={() => setIsExpanded(!isExpanded)}
-        leadingIcon={<Terminal size={18} />}
+        leadingIcon={<TerminalIcon size={18} />}
         badge={
           isOffline ? (
             <Chip
@@ -68,7 +68,7 @@ export function ConsolePanel({ jobs = [] }: ConsolePanelProps) {
               radius="full"
               color="warning"
               variant="flat"
-              startContent={<CloudOff size={16} className="mr-1 ml-1" />}
+              startContent={<CloudOffIcon size={16} className="mr-1 ml-1" />}
             >
               offline
             </Chip>
@@ -92,7 +92,7 @@ export function ConsolePanel({ jobs = [] }: ConsolePanelProps) {
             transition={{ duration: 0.2 }}
             className="flex items-center justify-center"
           >
-            <ChevronDown size={18} />
+            <ChevronDownIcon size={18} />
           </motion.div>
         }
       >
@@ -112,7 +112,7 @@ export function ConsolePanel({ jobs = [] }: ConsolePanelProps) {
               className="console-logs space-y-0.5 p-4 font-mono text-xs"
             >
               {parsedLines.length === 0 ? (
-                <EmptyState icon={Terminal} title="No activity yet" mono />
+                <EmptyState icon={TerminalIcon} title="No activity yet" mono />
               ) : (
                 <AnimatePresence initial={false}>
                   {parsedLines.map((parsed) => (

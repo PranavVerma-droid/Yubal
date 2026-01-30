@@ -2,7 +2,7 @@ import type { Job } from "@/api/jobs";
 import { EmptyState } from "@/components/common/empty-state";
 import { Panel, PanelContent, PanelHeader } from "@/components/common/panel";
 import { isActive } from "@/lib/job-status";
-import { Download, Inbox } from "lucide-react";
+import { DownloadIcon, InboxIcon } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { JobCard } from "./job-card";
 
@@ -20,7 +20,7 @@ export function DownloadsPanel({
   return (
     <Panel>
       <PanelHeader
-        leadingIcon={<Download size={18} />}
+        leadingIcon={<DownloadIcon size={18} />}
         badge={
           jobs.length > 0 && (
             <span className="text-foreground-400 font-mono text-xs">
@@ -33,7 +33,7 @@ export function DownloadsPanel({
       </PanelHeader>
       <PanelContent height="h-[400px]" className="space-y-2">
         {jobs.length === 0 ? (
-          <EmptyState icon={Inbox} title="No downloads yet" />
+          <EmptyState icon={InboxIcon} title="No downloads yet" />
         ) : (
           <AnimatePresence initial={false}>
             {jobs.map((job) => (

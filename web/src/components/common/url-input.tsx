@@ -1,6 +1,6 @@
 import { YOUTUBE_MUSIC_URL_PATTERN } from "@/lib/url";
 import { Input } from "@heroui/react";
-import { Link } from "lucide-react";
+import { LinkIcon } from "lucide-react";
 
 interface UrlInputProps {
   value: string;
@@ -29,7 +29,7 @@ export function UrlInput({
       isInvalid={!isValid}
       radius="lg"
       errorMessage={!isValid ? "Enter a valid YouTube URL" : undefined}
-      startContent={<Link className="text-foreground-400 h-4 w-4" />}
+      startContent={<LinkIcon className="text-foreground-400 h-4 w-4" />}
     />
   );
 }

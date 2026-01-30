@@ -15,7 +15,7 @@ import {
   NavbarMenuToggle,
 } from "@heroui/react";
 import { useRouterState } from "@tanstack/react-router";
-import { Disc3, Star } from "lucide-react";
+import { Disc3Icon, StarIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 
 const navItems = [
@@ -60,7 +60,7 @@ export function Header() {
 
       <NavbarBrand className="mr-4">
         <Link href="/" className="flex items-center">
-          <Disc3 className="text-primary h-7 w-7" />
+          <Disc3Icon className="text-primary h-7 w-7" />
           <p className="text-foreground ml-2 text-xl font-bold">yubal</p>
         </Link>
       </NavbarBrand>
@@ -109,7 +109,7 @@ export function Header() {
             rel="noopener noreferrer"
             variant="light"
             startContent={
-              <Star
+              <StarIcon
                 className="h-4 w-4 fill-amber-400 text-amber-400 dark:fill-amber-300 dark:text-amber-300"
                 strokeWidth={1}
               />

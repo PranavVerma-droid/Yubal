@@ -1,5 +1,5 @@
 import { Button } from "@heroui/react";
-import { Moon, Sun } from "lucide-react";
+import { MoonIcon, SunIcon } from "lucide-react";
 import { useCallback, useRef } from "react";
 import { flushSync } from "react-dom";
 import { useTheme } from "@/hooks/use-theme";
@@ -74,9 +74,9 @@ export function AnimatedThemeToggler({
       onPress={handleToggle}
     >
       {theme === "dark" ? (
-        <Moon className="h-5 w-5" />
+        <MoonIcon className="h-5 w-5" />
       ) : (
-        <Sun className="h-5 w-5" />
+        <SunIcon className="h-5 w-5" />
       )}
     </Button>
   );

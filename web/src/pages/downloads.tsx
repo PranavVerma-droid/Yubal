@@ -4,7 +4,7 @@ import { DownloadsPanel } from "@/features/downloads/downloads-panel";
 import { useJobs } from "@/features/downloads/use-jobs";
 import { isValidUrl } from "@/lib/url";
 import { Button, NumberInput, Tooltip } from "@heroui/react";
-import { Download, Hash } from "lucide-react";
+import { DownloadIcon, HashIcon } from "lucide-react";
 import { useState } from "react";
 
 const DEFAULT_MAX_ITEMS = 100;
@@ -51,7 +51,7 @@ export function DownloadsPage() {
               useGrouping: false,
             }}
             placeholder="Max"
-            startContent={<Hash className="text-foreground-400 h-4 w-4" />}
+            startContent={<HashIcon className="text-foreground-400 h-4 w-4" />}
             className="w-20 font-mono"
           />
         </Tooltip>
@@ -62,7 +62,7 @@ export function DownloadsPage() {
           className="shadow-primary-100/50"
           onPress={handleDownload}
           isDisabled={!canDownload}
-          startContent={<Download className="h-4 w-4" />}
+          startContent={<DownloadIcon className="h-4 w-4" />}
         >
           Download
         </Button>

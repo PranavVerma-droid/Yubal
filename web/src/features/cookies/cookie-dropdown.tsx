@@ -7,7 +7,7 @@ import {
   Link,
   Tooltip,
 } from "@heroui/react";
-import { Cookie, Trash2, Upload } from "lucide-react";
+import { CookieIcon, Trash2Icon, UploadIcon } from "lucide-react";
 
 interface CookieDropdownProps {
   cookiesConfigured: boolean;
@@ -36,7 +36,7 @@ export function CookieDropdown({
             aria-label="Cookie options"
             isLoading={isDeleting}
           >
-            <Cookie className="h-5 w-5 text-amber-500 dark:text-orange-300" />
+            <CookieIcon className="h-5 w-5 text-amber-500 dark:text-orange-300" />
           </Button>
         </DropdownTrigger>
         <CookieDropdownMenu onAction={onDropdownAction} />
@@ -53,7 +53,7 @@ export function CookieDropdown({
           isLoading={isUploading}
           onPress={onUploadClick}
         >
-          <Cookie className="h-5 w-5" />
+          <CookieIcon className="h-5 w-5" />
         </Button>
       </Tooltip>
     );
@@ -64,7 +64,7 @@ export function CookieDropdown({
     <Dropdown>
       <DropdownTrigger>
         <Link as="button" color="foreground" className="w-full gap-2" size="lg">
-          <Cookie className="text-success h-4 w-4" />
+          <CookieIcon className="text-success h-4 w-4" />
           Cookies configured
         </Link>
       </DropdownTrigger>
@@ -78,7 +78,7 @@ export function CookieDropdown({
       size="lg"
       onPress={onUploadClick}
     >
-      <Cookie className="h-4 w-4" />
+      <CookieIcon className="h-4 w-4" />
       Upload cookies
     </Link>
   );
@@ -91,14 +91,17 @@ interface CookieDropdownMenuProps {
 function CookieDropdownMenu({ onAction }: CookieDropdownMenuProps) {
   return (
     <DropdownMenu aria-label="Cookie actions" onAction={onAction}>
-      <DropdownItem key="upload" startContent={<Upload className="h-4 w-4" />}>
+      <DropdownItem
+        key="upload"
+        startContent={<UploadIcon className="h-4 w-4" />}
+      >
         Upload new cookies
       </DropdownItem>
       <DropdownItem
         key="delete"
         color="danger"
         className="text-danger"
-        startContent={<Trash2 className="h-4 w-4" />}
+        startContent={<Trash2Icon className="h-4 w-4" />}
       >
         Delete cookies
       </DropdownItem>
