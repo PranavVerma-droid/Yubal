@@ -1,5 +1,6 @@
 """FastAPI application factory and configuration."""
 
+import asyncio
 import logging
 import mimetypes
 import shutil
@@ -8,7 +9,7 @@ from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from datetime import datetime
 from importlib.metadata import version
-from pathlib import Path
+from importlib.resources import files
 
 from alembic import command
 from alembic.config import Config
@@ -94,8 +95,7 @@ logger = logging.getLogger(__name__)
 
 def run_migrations() -> None:
     """Run database migrations using Alembic."""
-    # Path: packages/api/src/yubal_api/api/app.py -> packages/api/alembic.ini
-    alembic_ini = Path(__file__).parents[3] / "alembic.ini"
+    alembic_ini = files("yubal_api").joinpath("alembic.ini")
     alembic_cfg = Config(str(alembic_ini))
     command.upgrade(alembic_cfg, "head")
 
@@ -166,8 +166,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     settings = get_settings()
     logger.info("Starting application...")
 
-    # Run database migrations
-    run_migrations()
+    # Run database migrations (in thread to avoid blocking event loop)
+    await asyncio.to_thread(run_migrations)
     logger.info("Database migrations complete")
 
     # Create database engine

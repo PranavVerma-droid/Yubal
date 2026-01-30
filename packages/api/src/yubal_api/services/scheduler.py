@@ -110,7 +110,7 @@ class Scheduler:
                 job, _ = result
                 job_ids.append(job.id)
                 self._repository.update(
-                    subscription,
+                    subscription.id,
                     last_synced_at=datetime.now(UTC),
                 )
                 logger.info(

@@ -49,29 +49,27 @@ class SubscriptionRepository:
             session.refresh(subscription)
             return subscription
 
-    def update(self, subscription: Subscription, **kwargs: object) -> Subscription:
-        """Update subscription fields."""
-        with Session(self._engine) as session:
-            # Re-fetch within this session
-            db_subscription = session.get(Subscription, subscription.id)
-            if db_subscription is None:
-                msg = f"Subscription {subscription.id} not found"
-                raise ValueError(msg)
-            for key, value in kwargs.items():
-                setattr(db_subscription, key, value)
-            session.commit()
-            session.refresh(db_subscription)
-            return db_subscription
-
-    def delete(self, id: UUID) -> Subscription | None:
-        """Delete subscription by ID. Returns deleted subscription or None."""
+    def update(self, id: UUID, **kwargs: object) -> Subscription | None:
+        """Update subscription fields by ID. Returns None if not found."""
         with Session(self._engine) as session:
             subscription = session.get(Subscription, id)
             if subscription is None:
                 return None
+            for key, value in kwargs.items():
+                setattr(subscription, key, value)
+            session.commit()
+            session.refresh(subscription)
+            return subscription
+
+    def delete(self, id: UUID) -> bool:
+        """Delete subscription by ID. Returns True if deleted, False if not found."""
+        with Session(self._engine) as session:
+            subscription = session.get(Subscription, id)
+            if subscription is None:
+                return False
             session.delete(subscription)
             session.commit()
-            return subscription
+            return True
 
     def count(
         self,

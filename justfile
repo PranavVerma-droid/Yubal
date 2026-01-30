@@ -359,19 +359,19 @@ cli *args:
 # Database migrations
 [group('db')]
 [doc("Generate a new migration")]
-[working-directory('packages/api')]
+[working-directory('packages/api/src/yubal_api')]
 db-generate message:
     uv run alembic revision --autogenerate -m "{{message}}"
 
 [group('db')]
 [doc("Run pending migrations")]
-[working-directory('packages/api')]
+[working-directory('packages/api/src/yubal_api')]
 db-migrate:
     uv run alembic upgrade head
 
 [group('db')]
 [doc("Reset database (delete and recreate)")]
-[working-directory('packages/api')]
+[working-directory('packages/api/src/yubal_api')]
 [confirm("Delete database and run all migrations?")]
 db-reset:
     rm -f "${YUBAL_CONFIG:-config}/yubal/yubal.db"
@@ -379,7 +379,7 @@ db-reset:
 
 [group('db')]
 [doc("Consolidate all migrations into a single initial migration")]
-[working-directory('packages/api')]
+[working-directory('packages/api/src/yubal_api')]
 [confirm("Delete all migrations and regenerate from current schema?")]
 db-consolidate:
     rm -f "${YUBAL_CONFIG:-config}/yubal/yubal.db"

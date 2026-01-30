@@ -117,16 +117,17 @@ def update_subscription(
     repository: RepositoryDep,
 ) -> SubscriptionResponse:
     """Update a subscription."""
-    subscription = repository.get(subscription_id)
+    updates = data.model_dump(exclude_unset=True)
+    if not updates:
+        subscription = repository.get(subscription_id)
+    else:
+        subscription = repository.update(subscription_id, **updates)
+
     if subscription is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Subscription not found",
         )
-
-    updates = data.model_dump(exclude_unset=True)
-    if updates:
-        subscription = repository.update(subscription, **updates)
 
     return SubscriptionResponse.model_validate(subscription)
 
@@ -137,8 +138,7 @@ def delete_subscription(
     repository: RepositoryDep,
 ) -> None:
     """Delete a subscription."""
-    deleted = repository.delete(subscription_id)
-    if deleted is None:
+    if not repository.delete(subscription_id):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Subscription not found",

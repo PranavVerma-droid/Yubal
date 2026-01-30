@@ -100,13 +100,14 @@ class TestSubscriptionRepository:
         )
         created = repository.create(sub)
 
-        updated = repository.update(created, name="Updated Name", enabled=False)
+        updated = repository.update(created.id, name="Updated Name", enabled=False)
 
+        assert updated is not None
         assert updated.name == "Updated Name"
         assert updated.enabled is False
 
     def test_delete(self, repository: SubscriptionRepository) -> None:
-        """Should delete subscription and return it."""
+        """Should delete subscription and return True, or False if not found."""
         sub = Subscription(
             type=SubscriptionType.PLAYLIST,
             url="https://music.youtube.com/playlist?list=PLdelete",
@@ -114,15 +115,12 @@ class TestSubscriptionRepository:
         )
         created = repository.create(sub)
 
-        deleted = repository.delete(created.id)
-        assert deleted is not None
-        assert deleted.name == "To Delete"
-
+        assert repository.delete(created.id) is True
         assert repository.get(created.id) is None
 
         from uuid import uuid4
 
-        assert repository.delete(uuid4()) is None
+        assert repository.delete(uuid4()) is False
 
     def test_count(self, repository: SubscriptionRepository) -> None:
         """Should count subscriptions with filters."""
