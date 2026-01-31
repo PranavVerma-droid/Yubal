@@ -40,7 +40,7 @@ export function SubscriptionsPage() {
   return (
     <>
       {/* Page Title */}
-      <h1 className="text-foreground mb-5 text-2xl font-bold">My Playlists</h1>
+      <h1 className="text-foreground mb-5 text-2xl font-bold">My playlists</h1>
 
       {/* URL Input Section */}
       <section className="mb-4 flex gap-2">
@@ -94,8 +94,9 @@ export function SubscriptionsPage() {
             </span>
             <Button
               variant="light"
+              size="sm"
               radius="lg"
-              className="text-foreground-500 hover:text-primary"
+              className="text-foreground-500 hover:text-primary text-small"
               onPress={syncAll}
               startContent={<RefreshCwIcon className="h-3.5 w-3.5" />}
             >

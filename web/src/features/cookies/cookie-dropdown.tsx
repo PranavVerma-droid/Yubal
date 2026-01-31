@@ -49,6 +49,7 @@ export function CookieDropdown({
       >
         <Button
           isIconOnly
+          size="sm"
           variant="light"
           aria-label="Upload cookies"
           isLoading={isUploading}

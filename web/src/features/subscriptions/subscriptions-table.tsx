@@ -3,6 +3,7 @@ import { EmptyState } from "@/components/common/empty-state";
 import { formatTimeAgo } from "@/lib/format";
 import {
   Button,
+  Image,
   Switch,
   Table,
   TableBody,
@@ -45,23 +46,32 @@ export function SubscriptionsTable({
   const renderCell = useCallback(
     (subscription: Subscription, columnKey: ColumnKey) => {
       switch (columnKey) {
-        case "name":
+        case "name": {
+          const size = 40;
           return (
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-4">
               {subscription.thumbnail_url ? (
-                <img
+                <Image
+                  alt="Playlist thumbnail"
                   src={subscription.thumbnail_url}
-                  alt=""
-                  className="h-8 w-8 shrink-0 rounded object-cover"
+                  width={size}
+                  height={size}
+                  radius="md"
+                  fallbackSrc=""
                 />
               ) : (
                 <div className="bg-content3 flex h-8 w-8 shrink-0 items-center justify-center rounded">
-                  <ListMusicIcon className="text-foreground-400 h-4 w-4" />
+                  <ListMusicIcon
+                    width={size}
+                    height={size}
+                    className="text-foreground-400"
+                  />
                 </div>
               )}
               <span className="font-mono text-sm">{subscription.name}</span>
             </div>
           );
+        }
         case "lastSynced":
           return (
             <span className="text-foreground-500 font-mono text-sm">
@@ -119,7 +129,11 @@ export function SubscriptionsTable({
         {(column) => (
           <TableColumn
             key={column.key}
-            align={column.key === "actions" ? "center" : "start"}
+            align={
+              column.key === "actions" || column.key == "enabled"
+                ? "center"
+                : "start"
+            }
           >
             {column.name}
           </TableColumn>

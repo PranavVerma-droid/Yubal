@@ -15,12 +15,12 @@ import {
   NavbarMenuToggle,
 } from "@heroui/react";
 import { useRouterState } from "@tanstack/react-router";
-import { Disc3Icon, StarIcon } from "lucide-react";
+import { Disc3Icon, DownloadIcon, ListMusicIcon, StarIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 
 const navItems = [
-  { label: "Downloads", href: "/" },
-  { label: "My playlists", href: "/subscriptions" },
+  { label: "Downloads", startIcon: DownloadIcon, href: "/" },
+  { label: "My playlists", startIcon: ListMusicIcon, href: "/subscriptions" },
 ];
 
 export function Header() {
@@ -73,28 +73,34 @@ export function Header() {
             className="group"
             isActive={currentPath === item.href}
           >
-            <Link
-              isBlock
+            <Button
+              disableRipple
+              variant="light"
+              size="sm"
+              as={Link}
               href={item.href}
-              color="foreground"
-              className="text-foreground-400 text-small group-data-[active=true]:text-foreground flex items-center gap-2 px-3 py-2 font-medium"
+              startContent={<item.startIcon className="h-4 w-4" />}
+              endContent={
+                item.href === "/subscriptions" &&
+                subscriptionCount > 0 && (
+                  <Chip
+                    size="sm"
+                    variant="flat"
+                    radius="sm"
+                    className="font-mono"
+                    classNames={{
+                      content:
+                        "text-foreground-400 text-xs group-data-[active=true]:text-foreground",
+                    }}
+                  >
+                    {subscriptionCount}
+                  </Chip>
+                )
+              }
+              className="text-foreground-400 text-small group-data-[active=true]:text-foreground flex items-center gap-2 font-medium"
             >
               {item.label}
-              {item.href === "/subscriptions" && subscriptionCount > 0 && (
-                <Chip
-                  size="sm"
-                  variant="flat"
-                  radius="sm"
-                  className="font-mono"
-                  classNames={{
-                    content:
-                      "text-foreground-400 text-xs group-data-[active=true]:text-foreground",
-                  }}
-                >
-                  {subscriptionCount}
-                </Chip>
-              )}
-            </Link>
+            </Button>
           </NavbarItem>
         ))}
       </NavbarContent>
@@ -104,6 +110,7 @@ export function Header() {
         <NavbarItem className="hidden sm:flex">
           <Button
             as="a"
+            disableAnimation
             size="sm"
             href="https://github.com/guillevc/yubal"
             target="_blank"
@@ -115,8 +122,9 @@ export function Header() {
                 strokeWidth={1}
               />
             }
+            className="text-small"
           >
-            <span className="text-small">Star on GitHub</span>
+            Star on GitHub
           </Button>
         </NavbarItem>
         <NavbarItem className="hidden sm:flex">
