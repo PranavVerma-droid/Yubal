@@ -1,9 +1,16 @@
 import { UrlInput } from "@/components/common/url-input";
 import { SubscriptionsTable } from "@/features/subscriptions/subscriptions-table";
 import { useSubscriptions } from "@/features/subscriptions/use-subscriptions";
+import { useCountdown } from "@/hooks/use-countdown";
 import { isValidUrl } from "@/lib/url";
-import { Button, NumberInput, Spacer, Tooltip } from "@heroui/react";
-import { HashIcon, RefreshCwIcon, RssIcon } from "lucide-react";
+import { Button, Card, CardBody, NumberInput, Tooltip } from "@heroui/react";
+import {
+  ClockIcon,
+  HashIcon,
+  ListMusicIcon,
+  RefreshCwIcon,
+  RssIcon,
+} from "lucide-react";
 import { useState } from "react";
 
 const DEFAULT_MAX_ITEMS = 100;
@@ -14,6 +21,7 @@ export function SubscriptionsPage() {
   const [isAdding, setIsAdding] = useState(false);
   const {
     subscriptions,
+    schedulerStatus,
     isLoading,
     addSubscription,
     updateSubscription,
@@ -21,6 +29,7 @@ export function SubscriptionsPage() {
     syncSubscription,
     syncAll,
   } = useSubscriptions();
+  const [isSyncing, setIsSyncing] = useState(false);
 
   const canAdd = isValidUrl(url);
   const isEmpty = subscriptions.length == 0;
@@ -39,13 +48,26 @@ export function SubscriptionsPage() {
     await updateSubscription(id, { enabled });
   };
 
+  const handleSyncAll = async () => {
+    setIsSyncing(true);
+    await syncAll();
+    setIsSyncing(false);
+  };
+
+  const nextSyncTime = schedulerStatus?.next_run_at
+    ? new Date(schedulerStatus.next_run_at)
+    : null;
+  const countdown = useCountdown(nextSyncTime);
+  const enabledCount = subscriptions.filter((s) => s.enabled).length;
+  const totalCount = subscriptions.length;
+
   return (
     <>
       {/* Page Title */}
       <h1 className="text-foreground mb-5 text-2xl font-bold">My playlists</h1>
 
       {/* URL Input Section */}
-      <section className="mb-6 flex gap-2">
+      <section className="mb-4 flex gap-2">
         <div className="flex-1">
           <UrlInput
             value={url}
@@ -86,36 +108,72 @@ export function SubscriptionsPage() {
         </Button>
       </section>
 
-      {/* Subscriptions Table */}
-      <section>
-        <div className="mb-2 flex items-center justify-between">
-          {!isEmpty && (
-            <span className="text-foreground-400 text-small font-mono">
-              {subscriptions.filter((s) => s.enabled).length}/
-              {subscriptions.length} enabled
+      {/* Stats Cards */}
+      <div className="mb-4 grid grid-cols-3 gap-3">
+        {/* Active playlists */}
+        <Card>
+          <CardBody className="flex-row items-center gap-3 py-3">
+            <div className="bg-secondary/10 rounded-lg p-2">
+              <ListMusicIcon className="text-secondary h-[18px] w-[18px]" />
+            </div>
+            <div>
+              <p className="text-default-500 text-xs tracking-wide uppercase">
+                Active
+              </p>
+              <p className="text-lg font-semibold">
+                {enabledCount}
+                <span className="text-default-400 text-sm font-normal">
+                  /{totalCount}
+                </span>
+              </p>
+            </div>
+          </CardBody>
+        </Card>
+
+        {/* Next sync */}
+        <Card>
+          <CardBody className="flex-row items-center gap-3 py-3">
+            <div className="bg-success/10 rounded-lg p-2">
+              <ClockIcon className="text-success h-[18px] w-[18px]" />
+            </div>
+            <div>
+              <p className="text-default-500 text-xs tracking-wide uppercase">
+                Next Sync
+              </p>
+              <p className="text-success font-mono text-lg font-semibold">
+                {countdown}
+              </p>
+            </div>
+          </CardBody>
+        </Card>
+
+        {/* Sync all button */}
+        <Card
+          as={Button}
+          isPressable
+          isDisabled={isSyncing || isEmpty}
+          onPress={handleSyncAll}
+          className="bg-default-100 border-default-200 hover:bg-default-200 border transition-colors"
+        >
+          <CardBody className="flex-row items-center justify-center gap-2 py-3">
+            <RefreshCwIcon
+              className={`text-default-500 h-[18px] w-[18px] ${isSyncing ? "animate-spin" : ""}`}
+            />
+            <span className="text-default-600 font-medium">
+              {isSyncing ? "Syncing..." : "Sync All"}
             </span>
-          )}
-          <Spacer />
-          <Button
-            variant="light"
-            size="sm"
-            radius="lg"
-            className="text-foreground-500 hover:text-primary text-small"
-            onPress={syncAll}
-            isDisabled={isEmpty}
-            startContent={<RefreshCwIcon className="h-3.5 w-3.5" />}
-          >
-            Sync All
-          </Button>
-        </div>
-        <SubscriptionsTable
-          subscriptions={subscriptions}
-          isLoading={isLoading}
-          onToggleEnabled={handleToggleEnabled}
-          onSync={syncSubscription}
-          onDelete={deleteSubscription}
-        />
-      </section>
+          </CardBody>
+        </Card>
+      </div>
+
+      {/* Subscriptions Table */}
+      <SubscriptionsTable
+        subscriptions={subscriptions}
+        isLoading={isLoading}
+        onToggleEnabled={handleToggleEnabled}
+        onSync={syncSubscription}
+        onDelete={deleteSubscription}
+      />
     </>
   );
 }
