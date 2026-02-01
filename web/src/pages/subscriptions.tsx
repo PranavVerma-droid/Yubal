@@ -1,4 +1,5 @@
 import { UrlInput } from "@/components/common/url-input";
+import { SubscriptionCard } from "@/features/subscriptions/subscription-card";
 import { SubscriptionsTable } from "@/features/subscriptions/subscriptions-table";
 import { useSubscriptions } from "@/features/subscriptions/use-subscriptions";
 import { useCountdown } from "@/hooks/use-countdown";
@@ -109,44 +110,29 @@ export function SubscriptionsPage() {
       </section>
 
       {/* Stats Cards */}
-      <div className="mb-4 grid grid-cols-3 gap-3">
+      <div className="mb-8 grid w-full grid-cols-1 gap-4 md:grid-cols-3">
         {/* Active playlists */}
-        <Card>
-          <CardBody className="flex-row items-center gap-3 py-3">
-            <div className="bg-secondary/10 rounded-lg p-2">
-              <ListMusicIcon className="text-secondary h-[18px] w-[18px]" />
-            </div>
-            <div>
-              <p className="text-default-500 text-xs tracking-wide uppercase">
-                Active
-              </p>
-              <p className="text-lg font-semibold">
-                {enabledCount}
-                <span className="text-default-400 text-sm font-normal">
-                  /{totalCount}
-                </span>
-              </p>
-            </div>
-          </CardBody>
-        </Card>
-
+        <SubscriptionCard>
+          <SubscriptionCard.Header title="Active">
+            <SubscriptionCard.Value suffix={`of ${totalCount}`}>
+              {enabledCount}
+            </SubscriptionCard.Value>
+          </SubscriptionCard.Header>
+          <SubscriptionCard.Icon className="text-success bg-success/10">
+            <ListMusicIcon />
+          </SubscriptionCard.Icon>
+        </SubscriptionCard>
         {/* Next sync */}
-        <Card>
-          <CardBody className="flex-row items-center gap-3 py-3">
-            <div className="bg-success/10 rounded-lg p-2">
-              <ClockIcon className="text-success h-[18px] w-[18px]" />
-            </div>
-            <div>
-              <p className="text-default-500 text-xs tracking-wide uppercase">
-                Next Sync
-              </p>
-              <p className="text-success font-mono text-lg font-semibold">
-                {countdown}
-              </p>
-            </div>
-          </CardBody>
-        </Card>
-
+        <SubscriptionCard>
+          <SubscriptionCard.Header title="Next sync">
+            <SubscriptionCard.Value suffix="remaining">
+              <span className="font-mono">{countdown}</span>
+            </SubscriptionCard.Value>
+          </SubscriptionCard.Header>
+          <SubscriptionCard.Icon>
+            <ClockIcon />
+          </SubscriptionCard.Icon>
+        </SubscriptionCard>
         {/* Sync all button */}
         <Card
           as={Button}
