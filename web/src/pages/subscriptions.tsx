@@ -9,7 +9,7 @@ import {
   ClockIcon,
   HashIcon,
   ListMusicIcon,
-  RefreshCwIcon,
+  RefreshCw,
   RssIcon,
 } from "lucide-react";
 import { useState } from "react";
@@ -65,10 +65,10 @@ export function SubscriptionsPage() {
   return (
     <>
       {/* Page Title */}
-      <h1 className="text-foreground mb-5 text-2xl font-bold">My playlists</h1>
+      <h1 className="text-foreground mb-6 text-2xl font-bold">My playlists</h1>
 
       {/* URL Input Section */}
-      <section className="mb-4 flex gap-2">
+      <section className="mb-8 flex gap-2">
         <div className="flex-1">
           <UrlInput
             value={url}
@@ -110,12 +110,12 @@ export function SubscriptionsPage() {
       </section>
 
       {/* Stats Cards */}
-      <div className="mb-8 grid w-full grid-cols-1 gap-4 md:grid-cols-3">
+      <div className="mb-6 grid w-full grid-cols-1 gap-4 md:grid-cols-3">
         {/* Active playlists */}
         <SubscriptionCard>
           <SubscriptionCard.Header title="Active">
             <SubscriptionCard.Value suffix={`of ${totalCount}`}>
-              {enabledCount}
+              <span className="font-mono">{enabledCount}</span>
             </SubscriptionCard.Value>
           </SubscriptionCard.Header>
           <SubscriptionCard.Icon className="text-success bg-success/10">
@@ -136,17 +136,18 @@ export function SubscriptionsPage() {
         {/* Sync all button */}
         <Card
           as={Button}
+          isHoverable
           isPressable
           isDisabled={isSyncing || isEmpty}
           onPress={handleSyncAll}
-          className="bg-default-100 border-default-200 hover:bg-default-200 border transition-colors"
         >
-          <CardBody className="flex-row items-center justify-center gap-2 py-3">
-            <RefreshCwIcon
-              className={`text-default-500 h-[18px] w-[18px] ${isSyncing ? "animate-spin" : ""}`}
+          <CardBody className="flex flex-1 flex-col items-center justify-center gap-2">
+            <RefreshCw
+              size={24}
+              className={`mb-1 ${isSyncing ? "text-success-400 animate-spin" : "transition-transform duration-500 group-hover:rotate-180"}`}
             />
-            <span className="text-default-600 font-medium">
-              {isSyncing ? "Syncing..." : "Sync All"}
+            <span className="text-small font-medium">
+              {isSyncing ? "Synchronizing..." : "Trigger Sync All"}
             </span>
           </CardBody>
         </Card>

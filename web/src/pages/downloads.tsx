@@ -30,10 +30,10 @@ export function DownloadsPage() {
   return (
     <>
       {/* Page Title */}
-      <h1 className="text-foreground mb-5 text-2xl font-bold">Downloads</h1>
+      <h1 className="text-foreground mb-6 text-2xl font-bold">Downloads</h1>
 
       {/* URL Input Section */}
-      <section className="mb-6 flex gap-2">
+      <section className="mb-8 flex gap-2">
         <div className="flex-1">
           <UrlInput value={url} onChange={setUrl} />
         </div>
@@ -69,7 +69,7 @@ export function DownloadsPage() {
       </section>
 
       {/* Downloads Panels */}
-      <section className="mb-6 flex flex-col gap-4">
+      <section className="flex flex-col gap-6">
         <DownloadsPanel
           jobs={jobs}
           onCancel={cancelJob}

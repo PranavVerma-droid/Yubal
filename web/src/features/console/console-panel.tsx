@@ -109,6 +109,7 @@ export function ConsolePanel({ jobs = [] }: ConsolePanelProps) {
           >
             <PanelContent
               ref={containerRef}
+              height="h-70"
               className="console-logs space-y-0.5 p-4 font-mono text-xs"
             >
               {parsedLines.length === 0 ? (

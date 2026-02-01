@@ -31,7 +31,7 @@ export function DownloadsPanel({
       >
         Downloads
       </PanelHeader>
-      <PanelContent height="h-[400px]" className="space-y-2">
+      <PanelContent height="h-124" className="space-y-2">
         {jobs.length === 0 ? (
           <EmptyState icon={InboxIcon} title="No downloads yet" />
         ) : (
