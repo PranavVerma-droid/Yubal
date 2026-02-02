@@ -1,8 +1,8 @@
+import { useTheme } from "@/hooks/use-theme";
 import { Button } from "@heroui/react";
 import { MoonIcon, SunIcon } from "lucide-react";
 import { useCallback, useRef } from "react";
 import { flushSync } from "react-dom";
-import { useTheme } from "@/hooks/use-theme";
 
 type Props = {
   duration?: number;

@@ -2,6 +2,7 @@ import { listSubscriptions } from "@/api/subscriptions";
 import { AnimatedThemeToggler } from "@/components/magicui/animated-theme-toggler";
 import { CookieDropdown } from "@/features/cookies/cookie-dropdown";
 import { useCookies } from "@/features/cookies/use-cookies";
+import { useVersionCheck } from "@/hooks/use-version-check";
 import {
   Button,
   Chip,
@@ -15,7 +16,13 @@ import {
   NavbarMenuToggle,
 } from "@heroui/react";
 import { useRouterState } from "@tanstack/react-router";
-import { Disc3Icon, DownloadIcon, ListMusicIcon, StarIcon } from "lucide-react";
+import {
+  Disc3Icon,
+  DownloadIcon,
+  ListMusicIcon,
+  RocketIcon,
+  StarIcon,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 
 const navItems = [
@@ -37,6 +44,7 @@ export function Header() {
     handleDropdownAction,
     triggerFileUpload,
   } = useCookies();
+  const { data: versionInfo } = useVersionCheck();
 
   useEffect(() => {
     listSubscriptions().then((subs) => setSubscriptionCount(subs.length));
@@ -78,6 +86,7 @@ export function Header() {
               variant="light"
               size="sm"
               as={Link}
+              radius="lg"
               href={item.href}
               startContent={<item.startIcon className="h-4 w-4" />}
               endContent={
@@ -107,6 +116,25 @@ export function Header() {
 
       {/* Actions */}
       <NavbarContent className="items-center gap-2" justify="end">
+        {versionInfo?.updateAvailable && (
+          <NavbarItem className="hidden sm:flex">
+            <Button
+              as="a"
+              disableAnimation
+              size="sm"
+              href={versionInfo.releaseUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              variant="flat"
+              color="success"
+              radius="lg"
+              startContent={<RocketIcon className="h-4 w-4" />}
+              className="text-small font-mono"
+            >
+              {versionInfo.latestVersion}
+            </Button>
+          </NavbarItem>
+        )}
         <NavbarItem className="hidden sm:flex">
           <Button
             as="a"
@@ -116,6 +144,7 @@ export function Header() {
             target="_blank"
             rel="noopener noreferrer"
             variant="light"
+            radius="lg"
             startContent={
               <StarIcon
                 className="h-4 w-4 fill-amber-400 text-amber-400 dark:fill-amber-300 dark:text-amber-300"

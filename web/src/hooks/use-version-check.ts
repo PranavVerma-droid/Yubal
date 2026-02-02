@@ -3,23 +3,23 @@ import { useEffect, useState } from "react";
 const CACHE_KEY = "yubal-version-check";
 const CACHE_DURATION_MS = 6 * 60 * 60 * 1000; // 6 hours
 
-interface VersionInfo {
+type VersionInfo = {
   latestVersion: string;
   updateAvailable: boolean;
   releaseUrl: string;
-}
+};
 
-interface CachedData {
+type CachedData = {
   latestVersion: string;
   releaseUrl: string;
   checkedVersion: string;
   timestamp: number;
-}
+};
 
-interface GitHubRelease {
+type GitHubRelease = {
   tag_name: string;
   html_url: string;
-}
+};
 
 function compareVersions(current: string, latest: string): boolean {
   const normalize = (v: string) => v.replace(/^v/, "");
