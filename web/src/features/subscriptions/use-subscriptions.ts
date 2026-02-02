@@ -9,7 +9,7 @@ import {
   type SchedulerStatus,
   type Subscription,
 } from "@/api/subscriptions";
-import { showErrorToast } from "@/lib/toast";
+import { showErrorToast, showSuccessToast } from "@/lib/toast";
 import { useCallback, useEffect, useState } from "react";
 
 export type { SchedulerStatus, Subscription } from "@/api/subscriptions";
@@ -93,6 +93,7 @@ export function useSubscriptions(): UseSubscriptionsResult {
         return;
       }
       await fetchData();
+      showSuccessToast("Sync queued", "Subscription will sync shortly");
     },
     [fetchData],
   );
@@ -104,6 +105,7 @@ export function useSubscriptions(): UseSubscriptionsResult {
       return;
     }
     await fetchData();
+    showSuccessToast("Sync queued", "All subscriptions will sync shortly");
   }, [fetchData]);
 
   useEffect(() => {

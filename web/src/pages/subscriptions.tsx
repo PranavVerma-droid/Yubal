@@ -136,7 +136,7 @@ export function SubscriptionsPage() {
         </SubscriptionCard>
         {/* Sync all button */}
         <Card
-          isHoverable
+          isHoverable={canSyncAll}
           isPressable={canSyncAll}
           isDisabled={!canSyncAll}
           onPress={handleSyncAll}

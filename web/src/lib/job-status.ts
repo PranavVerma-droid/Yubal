@@ -2,7 +2,6 @@ import type { JobStatus } from "@/api/jobs";
 
 /** Active states that indicate job is in progress */
 const ACTIVE_STATUSES = new Set<JobStatus>([
-  "pending",
   "fetching_info",
   "downloading",
   "importing",

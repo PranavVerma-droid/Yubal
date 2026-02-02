@@ -3,18 +3,27 @@ import { useEffect, useState } from "react";
 function formatCountdown(targetDate: Date | null): string {
   if (!targetDate) return "—";
 
-  const now = new Date();
-  const diff = targetDate.getTime() - now.getTime();
+  const ms = targetDate.getTime() - Date.now();
 
-  if (diff <= 0) return "Now";
+  if (ms <= 0) return "Now";
 
-  const hours = Math.floor(diff / (1000 * 60 * 60));
-  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-  const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+  const totalSeconds = Math.floor(ms / 1000);
+  const days = Math.floor(totalSeconds / 86400);
 
-  if (hours > 0) return `${hours}h ${minutes}m ${seconds}s`;
-  if (minutes > 0) return `${minutes}m ${seconds}s`;
-  return `${seconds}s`;
+  if (days >= 1) {
+    return `${days} day${days === 1 ? "" : "s"}`;
+  }
+
+  const hours = Math.floor(totalSeconds / 3600);
+  const mins = Math.floor((totalSeconds % 3600) / 60);
+  const secs = totalSeconds % 60;
+
+  const pad = (n: number) => n.toString().padStart(2, "0");
+
+  if (hours > 0) {
+    return `${hours}:${pad(mins)}:${pad(secs)}`;
+  }
+  return `${mins}:${pad(secs)}`;
 }
 
 export function useCountdown(targetDate: Date | null): string {
@@ -30,7 +39,6 @@ export function useCountdown(targetDate: Date | null): string {
     return () => clearInterval(interval);
   }, [targetDate]);
 
-  // Re-compute on each tick or when targetDate changes
   void tick;
   return formatCountdown(targetDate);
 }
