@@ -3,7 +3,6 @@ import { EmptyState } from "@/components/common/empty-state";
 import { Panel, PanelContent, PanelHeader } from "@/components/common/panel";
 import { isActive } from "@/lib/job-status";
 import { DownloadIcon, InboxIcon } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
 import { JobCard } from "./job-card";
 
 interface DownloadsPanelProps {
@@ -35,23 +34,15 @@ export function DownloadsPanel({
         {jobs.length === 0 ? (
           <EmptyState icon={InboxIcon} title="No downloads yet" />
         ) : (
-          <AnimatePresence initial={false}>
+          <div className="flex flex-col gap-2">
             {jobs.map((job) => (
-              <motion.div
-                key={job.id}
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-                transition={{ duration: 0.2 }}
-              >
-                <JobCard
-                  job={job}
-                  onCancel={isActive(job.status) ? onCancel : undefined}
-                  onDelete={!isActive(job.status) ? onDelete : undefined}
-                />
-              </motion.div>
+              <JobCard
+                job={job}
+                onCancel={isActive(job.status) ? onCancel : undefined}
+                onDelete={!isActive(job.status) ? onDelete : undefined}
+              />
             ))}
-          </AnimatePresence>
+          </div>
         )}
       </PanelContent>
     </Panel>

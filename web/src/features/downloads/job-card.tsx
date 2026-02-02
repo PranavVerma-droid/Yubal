@@ -1,4 +1,16 @@
-import { Button, Chip, Image, Progress } from "@heroui/react";
+import type { Job, JobStatus } from "@/api/jobs";
+import { HoverFade } from "@/components/common/hover-fade";
+import { useHover } from "@/hooks/use-hover";
+import { isActive, isFinished } from "@/lib/job-status";
+import {
+  Button,
+  Card,
+  CardBody,
+  CardFooter,
+  Chip,
+  Image,
+  Progress,
+} from "@heroui/react";
 import {
   CheckCircle,
   CircleAlert,
@@ -8,17 +20,15 @@ import {
   Trash2,
   X,
   XCircle,
+  ZapIcon,
 } from "lucide-react";
-import type { Job, JobStatus } from "@/api/jobs";
-import { HoverFade } from "@/components/common/hover-fade";
-import { useHover } from "@/hooks/use-hover";
-import { isActive, isFinished } from "@/lib/job-status";
+import { JobChip } from "./job-chip";
 
-interface JobCardProps {
+type Props = {
   job: Job;
   onCancel?: (jobId: string) => void;
   onDelete?: (jobId: string) => void;
-}
+};
 
 type ProgressColor =
   | "default"
@@ -69,8 +79,6 @@ const STATUS_CONFIG: Record<
   cancelled: { icon: X, color: "text-warning", progressColor: "warning" },
 };
 
-const ICON_CLASS = "h-4 w-4";
-
 function StatusIcon({
   status,
   hasPartialFailures,
@@ -78,13 +86,15 @@ function StatusIcon({
   status: JobStatus;
   hasPartialFailures?: boolean;
 }) {
+  const sizeClass = "h-4 w-4";
+
   if (status === "completed" && hasPartialFailures) {
-    return <CircleAlert className={`${ICON_CLASS} text-warning`} />;
+    return <CircleAlert className={`${sizeClass} text-warning`} />;
   }
 
   const { icon: Icon, color, spin } = STATUS_CONFIG[status];
   return (
-    <Icon className={`${ICON_CLASS} ${color} ${spin ? "animate-spin" : ""}`} />
+    <Icon className={`${sizeClass} ${color} ${spin ? "animate-spin" : ""}`} />
   );
 }
 
@@ -101,45 +111,19 @@ function Thumbnail({
     <StatusIcon status={status} hasPartialFailures={hasPartialFailures} />
   );
 
-  if (!url) {
-    return (
-      <div className="bg-content3 flex h-16 w-16 shrink-0 items-center justify-center rounded">
-        {statusIcon}
-      </div>
-    );
-  }
-
   return (
-    <div className="relative h-16 w-16 shrink-0">
-      <Image
-        src={url}
-        alt=""
-        radius="sm"
-        isBlurred
-        className="h-16 w-16 object-cover"
-      />
-      <div className="bg-content2/80 absolute right-0.5 bottom-0.5 z-10 grid h-5 w-5 place-items-center rounded-full">
+    <div className="relative h-18 w-18 shrink-0">
+      {url ? (
+        <Image src={url} radius="sm" isBlurred />
+      ) : (
+        <div className="bg-content3 flex h-16 w-16 shrink-0 items-center justify-center rounded">
+          {statusIcon}
+        </div>
+      )}
+      <div className="bg-content2/80 absolute right-0.5 bottom-0.5 z-10 grid h-6 w-6 place-items-center rounded-full">
         {statusIcon}
       </div>
     </div>
-  );
-}
-
-function MetadataChip({
-  children,
-  className,
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <Chip
-      size="sm"
-      variant="flat"
-      className={`text-foreground-500 ${className ?? ""}`}
-    >
-      {children}
-    </Chip>
   );
 }
 
@@ -160,60 +144,74 @@ function ContentInfo({
   audioCodec: string | null;
   audioBitrate: number | null;
   showBitrate: boolean;
-  kind: string | null;
+  kind: "playlist" | "album" | "track" | null;
 }) {
   return (
-    <>
-      <div className="flex min-w-0 items-baseline gap-1 text-sm">
-        <span className="text-foreground truncate">{title}</span>
-        {year && <span className="text-foreground-500 shrink-0">({year})</span>}
+    <div>
+      <div className="flex flex-col gap-1">
+        <div className="text-small flex min-w-0 items-baseline gap-2 font-mono">
+          <span className="text-foreground truncate">{title}</span>
+          {year && (
+            <span className="text-foreground-500 shrink-0">({year})</span>
+          )}
+        </div>
+        <p className="text-foreground-500 text-small mb-1 min-w-0 truncate">
+          {artist}
+        </p>
       </div>
-      <p className="text-foreground-500 mb-1 min-w-0 truncate text-xs">
-        {artist}
-      </p>
-      <div className="flex items-center gap-1">
-        {kind && <MetadataChip className="capitalize">{kind}</MetadataChip>}
+      <div className="flex items-center gap-2">
+        {kind && (
+          <JobChip variant={kind}>
+            <span className="capitalize">{kind}</span>
+          </JobChip>
+        )}
         {trackCount && kind !== "track" && (
-          <MetadataChip>
+          <JobChip variant="flat">
             {trackCount} {trackCount === 1 ? "track" : "tracks"}
-          </MetadataChip>
+          </JobChip>
         )}
         {audioCodec && (
-          <MetadataChip>
-            <span className="uppercase">{audioCodec}</span>
-          </MetadataChip>
+          <JobChip variant="flat">
+            {`${audioCodec} ${showBitrate && audioBitrate ? `@ ${audioBitrate}kbps` : ""}`}
+          </JobChip>
         )}
-        {showBitrate && audioBitrate && (
-          <MetadataChip>{audioBitrate}kbps</MetadataChip>
-        )}
+        <Chip
+          size="sm"
+          variant="flat"
+          startContent={<ZapIcon size={14} className="mx-1" />}
+          className="bg-sky-500/15 font-mono text-sky-600 dark:bg-sky-500/20 dark:text-sky-300"
+        >
+          Auto
+        </Chip>
       </div>
-    </>
+    </div>
   );
 }
 
-export function JobCard({ job, onCancel, onDelete }: JobCardProps) {
+export function JobCard({ job, onCancel, onDelete }: Props) {
   const [isHovered, hoverHandlers] = useHover();
   const isRunning = isActive(job.status);
   const isJobFinished = isFinished(job.status);
   const { content_info, download_stats } = job;
   const hasPartialFailures =
     job.status === "completed" && (download_stats?.failed ?? 0) > 0;
+  const opacity = `${job.status === "cancelled" ? "opacity - 50" : ""}`;
 
   return (
-    <div
-      className={`bg-content2 shadow-small rounded-large overflow-hidden px-3 py-2.5 transition-colors ${
-        job.status === "cancelled" ? "opacity-50" : ""
-      }`}
+    <Card
+      classNames={{
+        base: `bg-content2 transition-colors ${opacity}`,
+      }}
       {...hoverHandlers}
     >
-      <div className="flex items-center gap-3">
+      <CardBody className="flex flex-row items-center gap-3">
         <Thumbnail
           url={content_info?.thumbnail_url ?? null}
           status={job.status}
           hasPartialFailures={hasPartialFailures}
         />
 
-        <div className="min-w-0 flex-1 font-mono">
+        <div className="flex-1">
           {content_info?.title ? (
             <ContentInfo
               title={content_info.title}
@@ -270,10 +268,10 @@ export function JobCard({ job, onCancel, onDelete }: JobCardProps) {
             </Button>
           </HoverFade>
         )}
-      </div>
+      </CardBody>
 
       {isRunning && (
-        <div className="mt-2 flex items-center gap-2">
+        <CardFooter className="mt-2 flex items-center gap-2">
           <Progress
             value={job.progress}
             size="sm"
@@ -287,8 +285,8 @@ export function JobCard({ job, onCancel, onDelete }: JobCardProps) {
           <span className="text-foreground-500 w-8 text-right font-mono text-xs">
             {Math.round(job.progress)}%
           </span>
-        </div>
+        </CardFooter>
       )}
-    </div>
+    </Card>
   );
 }

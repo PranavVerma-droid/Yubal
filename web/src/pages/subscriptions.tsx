@@ -34,7 +34,7 @@ export function SubscriptionsPage() {
 
   const canAdd = isValidUrl(url);
   const isEmpty = subscriptions.length == 0;
-  const canSyncAll = !isEmpty && !isSyncing && !isLoading
+  const canSyncAll = !isEmpty && !isSyncing && !isLoading;
 
   const handleAdd = async () => {
     if (!canAdd) return;
@@ -141,16 +141,17 @@ export function SubscriptionsPage() {
           isDisabled={!canSyncAll}
           onPress={handleSyncAll}
           classNames={{
-            body: "flex flex-1 flex-col items-center justify-center gap-2"
+            base: "group",
+            body: "flex flex-1 flex-col items-center justify-center gap-2",
           }}
         >
           <CardBody>
             <RefreshCw
               size={24}
-              className={`mb-1 ${isSyncing ? "text-success-400 animate-spin" : "transition-transform duration-500 group-hover:rotate-180"}`}
+              className={`mb-1 ${isSyncing ? "text-success-400 animate-spin" : "transition-transform duration-500 group-data-[hover=true]:rotate-180"}`}
             />
             <span className="text-small font-medium">
-              {isSyncing ? "Synchronizing..." : "Trigger Sync All"}
+              {isSyncing ? "Synchronizing..." : "Sync all now"}
             </span>
           </CardBody>
         </Card>
