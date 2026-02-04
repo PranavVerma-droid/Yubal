@@ -139,7 +139,18 @@ class YTMusicClient:
             logger.warning("YTMusic error for playlist %s: %s", playlist_id, e)
             raise APIError(f"Failed to fetch playlist: {e}") from e
         except KeyError as e:
+            error_msg = str(e)
             logger.warning("Missing data in playlist response %s: %s", playlist_id, e)
+
+            # Check if YouTube returned a "Sign in" page (auth failure)
+            if self._is_sign_in_response(error_msg):
+                raise AuthenticationRequiredError(
+                    "Authentication failed. YouTube returned a 'Sign in' page instead "
+                    "of playlist data. Your cookies may be invalid, expired, or from "
+                    "a non-authenticated session. Please re-export your cookies while "
+                    "logged into YouTube Music."
+                ) from e
+
             raise PlaylistNotFoundError(
                 f"Playlist not found or malformed: {playlist_id}"
             ) from e
@@ -380,6 +391,28 @@ class YTMusicClient:
                     "a different API format that is not supported. "
                     "Try saving the playlist to your library first."
                 )
+
+    def _is_sign_in_response(self, error_msg: str) -> bool:
+        """Check if error indicates YouTube returned a 'Sign in' page.
+
+        When cookies are invalid/expired, YouTube returns a page asking the user
+        to sign in instead of the expected playlist data. ytmusicapi then raises
+        a KeyError because expected fields are missing.
+
+        Args:
+            error_msg: Error message from ytmusicapi KeyError.
+
+        Returns:
+            True if error indicates auth failure (sign-in page returned).
+        """
+        # These patterns indicate YouTube returned a sign-in page
+        sign_in_indicators = [
+            "'Sign in'",
+            "Sign in to listen",
+            "signInEndpoint",
+            "singleColumnBrowseResultsRenderer",  # Used for sign-in pages
+        ]
+        return any(indicator in error_msg for indicator in sign_in_indicators)
 
     def _parse_playlist_error(
         self, error_msg: str, playlist_id: str

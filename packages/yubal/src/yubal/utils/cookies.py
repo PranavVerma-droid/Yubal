@@ -41,6 +41,20 @@ ESSENTIAL_COOKIES = frozenset(
     }
 )
 
+# Minimum required cookies for authentication to work.
+# If any of these are missing, auth will fail with "Sign in" response.
+REQUIRED_AUTH_COOKIES = frozenset(
+    {
+        "SID",
+        "HSID",
+        "SSID",
+    }
+)
+
+# Minimum number of essential cookies expected from a valid browser export.
+# If fewer than this are found, the cookies may be from a non-authenticated session.
+MIN_EXPECTED_COOKIES = 5
+
 
 def parse_netscape_cookies(cookies_path: Path) -> dict[str, str]:
     """Parse Netscape format cookies.txt into a dict.
@@ -89,6 +103,19 @@ def filter_essential_cookies(cookies: dict[str, str]) -> dict[str, str]:
         Dict containing only cookies required for authentication.
     """
     return {k: v for k, v in cookies.items() if k in ESSENTIAL_COOKIES}
+
+
+def validate_auth_cookies(cookies: dict[str, str]) -> tuple[bool, list[str]]:
+    """Validate that cookies contain the minimum required for authentication.
+
+    Args:
+        cookies: Dict mapping cookie name to value.
+
+    Returns:
+        Tuple of (is_valid, list of missing required cookies).
+    """
+    missing = [name for name in REQUIRED_AUTH_COOKIES if name not in cookies]
+    return len(missing) == 0, missing
 
 
 def build_cookie_header(cookies: dict[str, str]) -> str:
@@ -172,6 +199,25 @@ def cookies_to_ytmusic_auth(cookies_path: Path) -> dict[str, str] | None:
         len(cookies),
         len(filtered),
     )
+
+    # Validate that required session cookies are present
+    is_valid, missing = validate_auth_cookies(filtered)
+    if not is_valid:
+        logger.warning(
+            "Cookies may be incomplete - missing required cookies: %s. "
+            "Authentication may fail. Please export cookies while logged into "
+            "YouTube Music.",
+            ", ".join(missing),
+        )
+
+    # Warn if very few essential cookies found (likely non-authenticated export)
+    if len(filtered) < MIN_EXPECTED_COOKIES:
+        logger.warning(
+            "Only %d essential cookies found (expected at least %d). "
+            "Cookies may have been exported from a non-authenticated session.",
+            len(filtered),
+            MIN_EXPECTED_COOKIES,
+        )
 
     cookie_header = build_cookie_header(filtered)
     authorization = generate_sapisidhash(sapisid)

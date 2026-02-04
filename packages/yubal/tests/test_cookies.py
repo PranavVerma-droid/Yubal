@@ -4,6 +4,7 @@ from pathlib import Path
 
 from yubal.utils.cookies import (
     ESSENTIAL_COOKIES,
+    REQUIRED_AUTH_COOKIES,
     build_cookie_header,
     cookies_to_ytmusic_auth,
     filter_essential_cookies,
@@ -11,6 +12,7 @@ from yubal.utils.cookies import (
     get_sapisid,
     is_authenticated_cookies,
     parse_netscape_cookies,
+    validate_auth_cookies,
 )
 
 
@@ -114,6 +116,41 @@ class TestFilterEssentialCookies:
         # These are the minimum required for ytmusicapi auth
         required = {"__Secure-3PAPISID", "SAPISID", "SID", "HSID", "SSID"}
         assert required.issubset(ESSENTIAL_COOKIES)
+
+
+class TestValidateAuthCookies:
+    """Tests for validate_auth_cookies."""
+
+    def test_valid_with_all_required_cookies(self) -> None:
+        """Should return valid when all required cookies present."""
+        cookies = {
+            "SID": "sid_value",
+            "HSID": "hsid_value",
+            "SSID": "ssid_value",
+            "__Secure-3PAPISID": "sapisid_value",
+        }
+
+        is_valid, missing = validate_auth_cookies(cookies)
+
+        assert is_valid is True
+        assert missing == []
+
+    def test_invalid_with_missing_required_cookies(self) -> None:
+        """Should return invalid with list of missing cookies."""
+        cookies = {
+            "__Secure-3PAPISID": "sapisid_value",
+            "SID": "sid_value",
+            # Missing HSID and SSID
+        }
+
+        is_valid, missing = validate_auth_cookies(cookies)
+
+        assert is_valid is False
+        assert set(missing) == {"HSID", "SSID"}
+
+    def test_required_auth_cookies_constant(self) -> None:
+        """REQUIRED_AUTH_COOKIES should be subset of ESSENTIAL_COOKIES."""
+        assert REQUIRED_AUTH_COOKIES.issubset(ESSENTIAL_COOKIES)
 
 
 class TestBuildCookieHeader:
