@@ -14,14 +14,17 @@ Paste a link, get a properly tagged and organized library. Subscribe to playlist
 <picture>
   <img src="docs/demo.gif" alt="yubal demo">
 </picture>
+
 </div>
+
+<br/>
 
 > [!IMPORTANT]
 > **Upgrading from a previous version?** Folder and file names now preserve unicode characters (`Bjork` → `Björk`), which may create duplicates alongside existing ASCII-named items.
 >
 > Check your library and merge any duplicates after upgrading.
 
-## 📖 Why yubal?
+## 📖 How It Works?
 
 Downloading music is easy. _Organizing_ it is the hard part.
 
@@ -66,7 +69,7 @@ When downloading a playlist, each track goes to its album folder—the M3U file 
 - **Albums, playlists & tracks** — Paste any YouTube Music link, get organized files
 - **Scheduled sync** — Subscribe to playlists; new tracks download automatically
 - **Smart deduplication** — Same track across 10 playlists? Stored once, referenced everywhere
-- **Reliable downloads** — Automatic retry on failures, safe to interrupt
+- **Reliable downloads** — Automatic retry on failures, graceful cancellation
 - **Automatic lyrics** — Synced `.lrc` files downloaded alongside tracks when available
 - **Format options** — Native `opus` (best quality), or transcode to `mp3`/`m4a`
 - **Media server ready** — Tested with [Navidrome, Jellyfin, and Gonic](#-media-server-integration)
@@ -83,7 +86,6 @@ services:
     ports:
       - 8000:8000
     environment:
-      YUBAL_SCHEDULER_ENABLED: true
       YUBAL_SCHEDULER_CRON: "0 0 * * *"
       YUBAL_TZ: UTC
     volumes:
@@ -93,7 +95,7 @@ services:
 ```
 
 > [!TIP]
-> **Volume permissions:** The container runs as UID:GID 1000:1000 by default. If your host user has a different UID, either:
+> **Volume permissions:** The container runs as UID:GID `1000:1000` by default. If your host user has a different UID, either:
 >
 > - Change `user:` to match your UID:GID (run `id` to check), or
 > - Set ownership on the volume directories: `sudo chown 1000:1000 data config`
@@ -201,11 +203,9 @@ Need age-restricted content, private playlists, or Premium quality? Add your coo
 
 ## 💜 Support
 
-If yubal is useful to you:
+If yubal is useful to you, consider supporting its development:
 
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/guillevc) [![Sponsor](https://img.shields.io/badge/sponsor-GitHub-ea4aaa?logo=github)](https://github.com/sponsors/guillevc)
-
-Thanks to everyone who has supported the project 💝
 
 A ⭐ also helps others discover yubal!
 
@@ -217,7 +217,7 @@ A ⭐ also helps others discover yubal!
 
 Built with [yt-dlp](https://github.com/yt-dlp/yt-dlp) and [ytmusicapi](https://github.com/sigma67/ytmusicapi).
 
-Thanks to everyone who's starred, shared, reported bugs, suggested features, or [supported the project](https://ko-fi.com/guillevc).
+Thanks to everyone who's starred, shared, reported bugs, suggested features, or [supported the project](https://ko-fi.com/guillevc) 💝
 
 ## License
 
