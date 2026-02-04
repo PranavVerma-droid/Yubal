@@ -24,7 +24,7 @@ Paste a link, get a properly tagged and organized library. Subscribe to playlist
 >
 > Check your library and merge any duplicates after upgrading.
 
-## 📖 How It Works?
+## 📖 How It Works
 
 Downloading music is easy. _Organizing_ it is the hard part.
 
