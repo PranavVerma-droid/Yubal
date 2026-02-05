@@ -1,5 +1,4 @@
 import type { Job, JobStatus } from "@/api/jobs";
-import { HoverFade } from "@/components/common/hover-fade";
 import { formatDateTime } from "@/lib/format";
 import { isActive, isFinished, isRunning } from "@/lib/job-status";
 import {
@@ -13,14 +12,15 @@ import {
   Tooltip,
 } from "@heroui/react";
 import {
-  CheckCircle,
-  CircleAlert,
-  Clock,
-  ExternalLink,
+  CheckCircleIcon,
+  CircleAlertIcon,
+  ClockIcon,
+  ExternalLinkIcon,
   Loader2,
-  Trash2,
-  X,
-  XCircle,
+  Loader2Icon,
+  Trash2Icon,
+  XCircleIcon,
+  XIcon,
   ZapIcon,
 } from "lucide-react";
 import { JobChip } from "./job-chip";
@@ -42,25 +42,25 @@ type ProgressColor =
 const STATUS_CONFIG: Record<
   JobStatus,
   {
-    icon: typeof Clock;
+    icon: typeof ClockIcon;
     color: string;
     progressColor: ProgressColor;
     spin?: boolean;
   }
 > = {
   pending: {
-    icon: Clock,
+    icon: ClockIcon,
     color: "text-foreground-400",
     progressColor: "default",
   },
   fetching_info: {
-    icon: Loader2,
+    icon: Loader2Icon,
     color: "text-foreground-500",
     progressColor: "default",
     spin: true,
   },
   downloading: {
-    icon: Loader2,
+    icon: Loader2Icon,
     color: "text-primary",
     progressColor: "primary",
     spin: true,
@@ -72,12 +72,12 @@ const STATUS_CONFIG: Record<
     spin: true,
   },
   completed: {
-    icon: CheckCircle,
+    icon: CheckCircleIcon,
     color: "text-success",
     progressColor: "success",
   },
-  failed: { icon: XCircle, color: "text-danger", progressColor: "danger" },
-  cancelled: { icon: X, color: "text-warning", progressColor: "warning" },
+  failed: { icon: XCircleIcon, color: "text-danger", progressColor: "danger" },
+  cancelled: { icon: XIcon, color: "text-warning", progressColor: "warning" },
 };
 
 function StatusIcon({
@@ -90,7 +90,7 @@ function StatusIcon({
   const sizeClass = "h-4 w-4";
 
   if (status === "completed" && hasPartialFailures) {
-    return <CircleAlert className={`${sizeClass} text-warning`} />;
+    return <CircleAlertIcon className={`${sizeClass} text-warning`} />;
   }
 
   const { icon: Icon, color, spin } = STATUS_CONFIG[status];
@@ -150,7 +150,7 @@ function ContentInfo({
   createdAt: string | undefined;
 }) {
   return (
-    <div>
+    <div className="min-w-0">
       <div className="flex flex-col gap-1">
         <div className="text-small flex min-w-0 items-baseline gap-2 font-mono">
           <span className="text-foreground truncate">{title}</span>
@@ -220,7 +220,7 @@ export function JobCard({ job, onCancel, onDelete }: Props) {
           hasPartialFailures={hasPartialFailures}
         />
 
-        <div className="flex-1">
+        <div className="min-w-0 flex-1">
           {content_info?.title ? (
             <ContentInfo
               title={content_info.title}
@@ -241,20 +241,18 @@ export function JobCard({ job, onCancel, onDelete }: Props) {
           )}
         </div>
 
-        <HoverFade show={isJobActive} initialShow={isJobActive}>
-          <Button
-            as="a"
-            href={job.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            variant="light"
-            size="sm"
-            isIconOnly
-            className="text-foreground-500 hover:text-primary h-7 w-7 shrink-0 not-group-hover:hidden max-md:hidden"
-          >
-            <ExternalLink className="h-4 w-4" />
-          </Button>
-        </HoverFade>
+        <Button
+          as="a"
+          href={job.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          variant="light"
+          size="sm"
+          isIconOnly
+          className="text-foreground-500 hover:text-primary h-7 w-7 shrink-0 md:not-group-hover:hidden"
+        >
+          <ExternalLinkIcon className="h-4 w-4" />
+        </Button>
 
         {isJobActive && onCancel && (
           <Button
@@ -264,7 +262,7 @@ export function JobCard({ job, onCancel, onDelete }: Props) {
             className="text-foreground-500 hover:text-danger h-7 w-7 shrink-0 md:not-group-hover:hidden"
             onPress={() => onCancel(job.id)}
           >
-            <X className="h-4 w-4" />
+            <XIcon className="h-4 w-4" />
           </Button>
         )}
 
@@ -276,7 +274,7 @@ export function JobCard({ job, onCancel, onDelete }: Props) {
             className="text-foreground-500 hover:text-danger h-7 w-7 shrink-0 not-group-hover:hidden max-md:hidden"
             onPress={() => onDelete(job.id)}
           >
-            <Trash2 className="h-4 w-4" />
+            <Trash2Icon className="h-4 w-4" />
           </Button>
         )}
       </CardBody>
