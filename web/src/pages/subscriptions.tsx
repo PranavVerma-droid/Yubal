@@ -4,14 +4,7 @@ import { SubscriptionsTable } from "@/features/subscriptions/subscriptions-table
 import { useSubscriptions } from "@/features/subscriptions/use-subscriptions";
 import { useScheduleCountdown } from "@/hooks/use-schedule-countdown";
 import { isValidUrl } from "@/lib/url";
-import {
-  Alert,
-  Button,
-  Card,
-  CardBody,
-  NumberInput,
-  Tooltip,
-} from "@heroui/react";
+import { Alert, Button, Card, CardBody, Input, Tooltip } from "@heroui/react";
 import {
   CircleQuestionMarkIcon,
   ClockIcon,
@@ -88,20 +81,22 @@ export function SubscriptionsPage() {
           />
         </div>
         <Tooltip content="Max tracks to sync per run" offset={14}>
-          <NumberInput
-            hideStepper
-            value={maxItems}
-            onValueChange={setMaxItems}
-            minValue={1}
-            maxValue={10000}
-            radius="lg"
-            fullWidth={false}
-            formatOptions={{
-              useGrouping: false,
+          <Input
+            type="number"
+            value={String(maxItems)}
+            onChange={(e) => {
+              const value = parseInt(e.target.value, 10);
+              if (!Number.isNaN(value) && value >= 1) setMaxItems(value);
             }}
+            min={1}
+            max={10000}
+            radius="lg"
             placeholder="Max"
             startContent={<HashIcon className="text-foreground-400 h-4 w-4" />}
-            className="w-20 font-mono"
+            classNames={{
+              base: "w-24",
+              input: "font-mono",
+            }}
           />
         </Tooltip>
         <Button

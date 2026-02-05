@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+import time
 from datetime import UTC, datetime
 from functools import partial
 from pathlib import Path
@@ -167,7 +168,11 @@ class JobExecutor:
             )
 
             # Create progress callback that updates job store
+            # Throttle progress updates to reduce SSE event frequency
             loop = asyncio.get_running_loop()
+            last_update_time = 0.0
+            last_status: JobStatus | None = None
+            THROTTLE_INTERVAL = 0.5  # seconds
 
             def on_progress(
                 step: ProgressStep,
@@ -175,6 +180,8 @@ class JobExecutor:
                 progress: float | None,
                 details: dict[str, Any] | None,
             ) -> None:
+                nonlocal last_update_time, last_status
+
                 if cancel_token.is_cancelled:
                     return
 
@@ -184,6 +191,15 @@ class JobExecutor:
                 # Skip terminal states - handled by result
                 if status in (JobStatus.COMPLETED, JobStatus.FAILED):
                     return
+
+                # Always emit on status change, throttle progress-only updates
+                now = time.monotonic()
+                status_changed = status != last_status
+                if not status_changed and (now - last_update_time) < THROTTLE_INTERVAL:
+                    return
+
+                last_update_time = now
+                last_status = status
 
                 loop.call_soon_threadsafe(
                     partial(
