@@ -23,7 +23,7 @@ export function formatCountdown(targetDate: Date | null): string {
 
   const ms = targetDate.getTime() - Date.now();
 
-  if (ms <= 0) return "Now";
+  if (ms <= 0) return "0";
 
   const totalSeconds = Math.floor(ms / 1000);
   const days = Math.floor(totalSeconds / 86400);
