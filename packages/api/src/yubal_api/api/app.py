@@ -17,10 +17,13 @@ from alembic.config import Config
 from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
-from fastapi.staticfiles import StaticFiles
 from pydantic import TypeAdapter
 from rich.console import Console
 from rich.logging import RichHandler
+from starlette.exceptions import HTTPException as StarletteHTTPException
+from starlette.responses import Response
+from starlette.staticfiles import StaticFiles
+from starlette.types import Scope
 from yubal import cleanup_part_files
 
 from yubal_api.api.container import Services
@@ -286,6 +289,19 @@ def custom_openapi(app: FastAPI) -> dict[str, Any]:
     return schema
 
 
+class SPAStaticFiles(StaticFiles):
+    """StaticFiles configured for SPA fallback to index.html."""
+
+    async def get_response(self, path: str, scope: Scope) -> Response:
+        """Serve static files, falling back to index.html for SPA routes."""
+        try:
+            return await super().get_response(path, scope)
+        except StarletteHTTPException as ex:
+            if ex.status_code == 404:
+                return await super().get_response("index.html", scope)
+            raise
+
+
 def create_app() -> FastAPI:
     """Create and configure the main FastAPI application."""
     settings = get_settings()
@@ -323,7 +339,7 @@ def create_app() -> FastAPI:
 
     web_build = settings.root / "web" / "dist"
     if web_build.exists():
-        app.mount("/", StaticFiles(directory=web_build, html=True), name="static")
+        app.mount("/", SPAStaticFiles(directory=web_build, html=True), name="spa")
 
     return app
 
