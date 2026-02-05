@@ -19,11 +19,11 @@ HEARTBEAT_INTERVAL = 30
 
 
 @router.get(
-    "/history",
+    "/",
     summary="Get buffered log entries",
     description="Returns all currently buffered log entries as an array.",
 )
-async def get_log_history() -> list[LogEntry]:
+async def get_logs() -> list[LogEntry]:
     """Get all buffered log entries.
 
     Returns the current log buffer contents. Useful for initial page load
