@@ -9,7 +9,6 @@ import {
   type SchedulerStatus,
   type Subscription,
 } from "@/api/subscriptions";
-import { useJobs } from "@/features/downloads/jobs-context";
 import { showErrorToast, showSuccessToast } from "@/lib/toast";
 import { useCallback, useEffect, useState } from "react";
 
@@ -35,7 +34,6 @@ export function useSubscriptions(): UseSubscriptionsResult {
   const [schedulerStatus, setSchedulerStatus] =
     useState<SchedulerStatus | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const { refreshJobs } = useJobs();
 
   const fetchData = useCallback(async () => {
     const [subscriptionsData, statusData] = await Promise.all([
@@ -95,10 +93,9 @@ export function useSubscriptions(): UseSubscriptionsResult {
         return;
       }
       await fetchData();
-      await refreshJobs();
       showSuccessToast("Sync queued", "Subscription will sync shortly");
     },
-    [fetchData, refreshJobs],
+    [fetchData],
   );
 
   const syncAll = useCallback(async () => {
@@ -108,9 +105,8 @@ export function useSubscriptions(): UseSubscriptionsResult {
       return;
     }
     await fetchData();
-    await refreshJobs();
     showSuccessToast("Sync queued", "All subscriptions will sync shortly");
-  }, [fetchData, refreshJobs]);
+  }, [fetchData]);
 
   useEffect(() => {
     let mounted = true;

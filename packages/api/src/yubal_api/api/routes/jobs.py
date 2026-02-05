@@ -4,7 +4,12 @@ Handles job lifecycle: creation, listing, cancellation, and deletion.
 Jobs are processed sequentially in FIFO order.
 """
 
+import asyncio
+import json
+from collections.abc import AsyncIterator
+
 from fastapi import APIRouter, status
+from fastapi.responses import StreamingResponse
 
 from yubal_api.api.deps import (
     JobExecutorDep,
@@ -24,6 +29,7 @@ from yubal_api.schemas.jobs import (
     JobCreatedResponse,
     JobsResponse,
 )
+from yubal_api.services.job_event_bus import get_job_event_bus
 from yubal_api.services.job_store import JobStore
 
 router = APIRouter(prefix="/jobs", tags=["jobs"])
@@ -121,3 +127,49 @@ async def delete_job(job_id: str, job_store: JobStoreDep) -> None:
         raise JobConflictError("Cannot delete a running or queued job", job_id=job_id)
 
     job_store.delete(job_id)
+
+
+HEARTBEAT_INTERVAL = 30.0
+
+
+@router.get("/sse", response_class=StreamingResponse)
+async def stream_jobs(job_store: JobStoreDep) -> StreamingResponse:
+    """Stream job events via Server-Sent Events.
+
+    Events:
+    - snapshot: Initial state with all jobs
+    - created: New job created
+    - updated: Job status/progress changed
+    - deleted: Job removed
+    - cleared: Finished jobs cleared
+    """
+    bus = get_job_event_bus()
+
+    async def event_generator() -> AsyncIterator[str]:
+        async with bus.subscribe() as queue:
+            # Subscribe first, then snapshot (events queue up correctly)
+            jobs = job_store.get_all()
+            snapshot = {
+                "type": "snapshot",
+                "jobs": [j.model_dump(mode="json") for j in jobs],
+            }
+            yield f"data: {json.dumps(snapshot)}\n\n"
+
+            while True:
+                try:
+                    data = await asyncio.wait_for(
+                        queue.get(), timeout=HEARTBEAT_INTERVAL
+                    )
+                    yield f"data: {data}\n\n"
+                except TimeoutError:
+                    yield ": heartbeat\n\n"
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )

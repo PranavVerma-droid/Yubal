@@ -166,23 +166,25 @@ export function SubscriptionsPage() {
         </Card>
       </div>
       {/* Scheduler disabled alert */}
-      <div className="mb-6 flex w-full items-center justify-center">
-        <Alert
-          icon={<ZapOffIcon size={18} />}
-          endContent={
-            <a
-              target="_blank"
-              rel="noopener noreferrer"
-              href="https://github.com/guillevc/yubal?tab=readme-ov-file#%EF%B8%8F-configuration"
-            >
-              <CircleQuestionMarkIcon size={20} className="mr-2" />
-            </a>
-          }
-          color="warning"
-          title="Scheduler is disabled."
-          description="You can still add playlists and sync them manually."
-        />
-      </div>
+      {schedulerStatus?.enabled === false && (
+        <div className="mb-6 flex w-full items-center justify-center">
+          <Alert
+            icon={<ZapOffIcon size={18} />}
+            endContent={
+              <a
+                target="_blank"
+                rel="noopener noreferrer"
+                href="https://github.com/guillevc/yubal?tab=readme-ov-file#%EF%B8%8F-configuration"
+              >
+                <CircleQuestionMarkIcon size={20} className="mr-2" />
+              </a>
+            }
+            color="warning"
+            title="Scheduler is disabled."
+            description="You can still add playlists and sync them manually."
+          />
+        </div>
+      )}
       {/* Subscriptions Table */}
       <SubscriptionsTable
         subscriptions={subscriptions}

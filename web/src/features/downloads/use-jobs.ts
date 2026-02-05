@@ -3,129 +3,124 @@ import {
   cancelJob as cancelJobApi,
   createJob,
   deleteJob as deleteJobApi,
-  listJobs,
   type Job,
+  type JobEvent,
 } from "@/api/jobs";
 import { isActive } from "@/lib/job-status";
 import { showErrorToast } from "@/lib/toast";
 
 export type { Job } from "@/api/jobs";
 
-const POLL_INTERVAL = 2000;
+const SSE_URL = "/api/jobs/sse";
+const RECONNECT_DELAYS = [1000, 2000, 4000, 8000, 16000] as const;
 
 export function useJobsState() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  const stopPolling = useCallback(() => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
-  }, []);
-
-  const fetchJobs = useCallback(async (): Promise<Job[]> => {
-    const { jobs: jobList } = await listJobs();
-    const reversed = [...jobList].reverse(); // Newest first
-    setJobs(reversed);
-    return jobList;
-  }, []);
-
-  const startPolling = useCallback(() => {
-    // Already polling
-    if (intervalRef.current) return;
-
-    intervalRef.current = setInterval(async () => {
-      try {
-        const jobList = await fetchJobs();
-        // Stop polling when no active jobs
-        if (!jobList.some((j) => isActive(j.status))) {
-          stopPolling();
-        }
-      } catch (error) {
-        console.error("Failed to fetch jobs:", error);
-      }
-    }, POLL_INTERVAL);
-  }, [fetchJobs, stopPolling]);
-
-  const startJob = useCallback(
-    async (url: string, maxItems?: number) => {
-      const result = await createJob(url, maxItems);
-
-      if (!result.success) {
-        showErrorToast("Download failed", result.error);
-        await fetchJobs();
-        return;
-      }
-
-      await fetchJobs();
-      startPolling();
-    },
-    [fetchJobs, startPolling],
+  const [isOffline, setIsOffline] = useState(false);
+  const eventSourceRef = useRef<EventSource | null>(null);
+  const reconnectAttemptRef = useRef(0);
+  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
   );
 
-  const cancelJob = useCallback(
-    async (jobId: string) => {
-      try {
-        await cancelJobApi(jobId);
-      } catch (error) {
-        console.error("Failed to cancel job:", error);
-      }
-      await fetchJobs();
-    },
-    [fetchJobs],
-  );
-
-  const deleteJob = useCallback(
-    async (jobId: string) => {
-      try {
-        await deleteJobApi(jobId);
-      } catch (error) {
-        console.error("Failed to delete job:", error);
-      }
-      await fetchJobs();
-    },
-    [fetchJobs],
-  );
-
-  const refreshJobs = useCallback(async () => {
-    const jobList = await fetchJobs();
-    if (jobList.some((j) => isActive(j.status))) {
-      startPolling();
-    }
-  }, [fetchJobs, startPolling]);
-
-  // Initial fetch on mount
   useEffect(() => {
     let mounted = true;
 
-    async function init() {
-      try {
-        const { jobs: jobList } = await listJobs();
-        if (!mounted) return;
-
-        const reversed = [...jobList].reverse();
-        setJobs(reversed);
-
-        // Start polling if there are active jobs
-        if (jobList.some((j) => isActive(j.status))) {
-          startPolling();
-        }
-      } catch (error) {
-        console.error("Failed to fetch jobs:", error);
-      } finally {
-        if (mounted) setIsLoading(false);
+    function connect() {
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
       }
+
+      const eventSource = new EventSource(SSE_URL);
+      eventSourceRef.current = eventSource;
+
+      eventSource.onopen = () => {
+        if (!mounted) return;
+        setIsOffline(false);
+        reconnectAttemptRef.current = 0;
+      };
+
+      eventSource.onmessage = (event) => {
+        if (!mounted) return;
+        const data = JSON.parse(event.data) as JobEvent;
+
+        switch (data.type) {
+          case "snapshot":
+            setJobs([...data.jobs].reverse());
+            setIsLoading(false);
+            break;
+          case "created":
+          case "updated":
+            setJobs((prev) => {
+              const exists = prev.some((j) => j.id === data.job.id);
+              if (exists) {
+                return prev.map((j) => (j.id === data.job.id ? data.job : j));
+              }
+              return [data.job, ...prev];
+            });
+            break;
+          case "deleted":
+            setJobs((prev) => prev.filter((j) => j.id !== data.jobId));
+            break;
+          case "cleared":
+            setJobs((prev) => prev.filter((j) => isActive(j.status)));
+            break;
+        }
+      };
+
+      eventSource.onerror = () => {
+        if (!mounted) return;
+        setIsOffline(true);
+        eventSource.close();
+
+        const delayIndex = Math.min(
+          reconnectAttemptRef.current,
+          RECONNECT_DELAYS.length - 1,
+        );
+        const delay = RECONNECT_DELAYS[delayIndex] ?? RECONNECT_DELAYS[0];
+        const jitter = Math.random() * (delay * 0.5);
+        reconnectAttemptRef.current++;
+
+        reconnectTimeoutRef.current = setTimeout(connect, delay + jitter);
+      };
     }
 
-    init();
+    connect();
 
     return () => {
       mounted = false;
-      stopPolling();
+      if (reconnectTimeoutRef.current)
+        clearTimeout(reconnectTimeoutRef.current);
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+        eventSourceRef.current = null;
+      }
     };
-  }, [startPolling, stopPolling]);
+  }, []);
+
+  const startJob = useCallback(async (url: string, maxItems?: number) => {
+    const result = await createJob(url, maxItems);
+    if (!result.success) {
+      showErrorToast("Download failed", result.error);
+    }
+  }, []);
+
+  const cancelJob = useCallback(async (jobId: string) => {
+    try {
+      await cancelJobApi(jobId);
+    } catch (error) {
+      console.error("Failed to cancel job:", error);
+    }
+  }, []);
+
+  const deleteJob = useCallback(async (jobId: string) => {
+    try {
+      await deleteJobApi(jobId);
+    } catch (error) {
+      console.error("Failed to delete job:", error);
+    }
+  }, []);
 
   const hasActiveJobs = jobs.some((j) => isActive(j.status));
 
@@ -133,10 +128,10 @@ export function useJobsState() {
     jobs,
     hasActiveJobs,
     isLoading,
+    isOffline,
     startJob,
     cancelJob,
     deleteJob,
-    refreshJobs,
   };
 }
 

@@ -14,6 +14,7 @@ from yubal import AudioCodec, PhaseStats
 from yubal_api.domain.enums import JobSource, JobStatus
 from yubal_api.domain.job import ContentInfo, Job
 from yubal_api.domain.types import Clock, IdGenerator
+from yubal_api.services.job_event_bus import get_job_event_bus
 
 logger = logging.getLogger(__name__)
 
@@ -97,6 +98,7 @@ class JobStore:
             if should_start:
                 self._active_job_id = job.id
 
+            get_job_event_bus().emit_created(job)
             return job, should_start
 
     def get(self, job_id: str) -> Job | None:
@@ -148,6 +150,7 @@ class JobStore:
                 return False
 
             self._remove(job_id)
+            get_job_event_bus().emit_deleted(job_id)
             logger.debug("Job removed: %s", job_id[:8])
             return True
 
@@ -161,7 +164,10 @@ class JobStore:
             finished_ids = [job.id for job in self._iter_finished()]
             for job_id in finished_ids:
                 self._remove(job_id)
-            return len(finished_ids)
+            count = len(finished_ids)
+            if count > 0:
+                get_job_event_bus().emit_cleared(count)
+            return count
 
     # -------------------------------------------------------------------------
     # Public API: Job state transitions
@@ -202,6 +208,7 @@ class JobStore:
                 download_stats=download_stats,
                 started_at=started_at,
             )
+            get_job_event_bus().emit_updated(job)
             return job
 
     def cancel(self, job_id: str) -> bool:
@@ -229,6 +236,7 @@ class JobStore:
 
             job.status = JobStatus.CANCELLED
             job.completed_at = self._clock()
+            get_job_event_bus().emit_updated(job)
             return True
 
     # -------------------------------------------------------------------------

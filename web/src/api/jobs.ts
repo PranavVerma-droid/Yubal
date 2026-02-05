@@ -15,6 +15,13 @@ export type Job = Omit<components["schemas"]["Job"], "status"> & {
   status: JobStatus;
 };
 
+export type JobEvent =
+  | { type: "snapshot"; jobs: Job[] }
+  | { type: "created"; job: Job }
+  | { type: "updated"; job: Job }
+  | { type: "deleted"; jobId: string }
+  | { type: "cleared"; count: number };
+
 export type CreateJobResult =
   | {
       success: true;
