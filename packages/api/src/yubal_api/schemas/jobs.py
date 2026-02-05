@@ -76,3 +76,41 @@ class CancelJobResponse(BaseModel):
     """Response when a job is cancelled."""
 
     message: Literal["Job cancelled"] = "Job cancelled"
+
+
+# SSE Event schemas
+
+
+class SnapshotEvent(BaseModel):
+    """Initial snapshot of all jobs sent on SSE connection."""
+
+    type: Literal["snapshot"] = "snapshot"
+    jobs: list[Job]
+
+
+class CreatedEvent(BaseModel):
+    """Emitted when a new job is created."""
+
+    type: Literal["created"] = "created"
+    job: Job
+
+
+class UpdatedEvent(BaseModel):
+    """Emitted when a job's status or progress changes."""
+
+    type: Literal["updated"] = "updated"
+    job: Job
+
+
+class DeletedEvent(BaseModel):
+    """Emitted when a job is deleted."""
+
+    type: Literal["deleted"] = "deleted"
+    jobId: str
+
+
+class ClearedEvent(BaseModel):
+    """Emitted when finished jobs are cleared."""
+
+    type: Literal["cleared"] = "cleared"
+    count: int

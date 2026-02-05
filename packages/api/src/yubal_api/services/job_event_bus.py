@@ -3,10 +3,18 @@
 from __future__ import annotations
 
 import asyncio
-import json
 import threading
 from contextlib import asynccontextmanager
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
+
+from pydantic import BaseModel
+
+from yubal_api.schemas.jobs import (
+    ClearedEvent,
+    CreatedEvent,
+    DeletedEvent,
+    UpdatedEvent,
+)
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
@@ -43,13 +51,13 @@ class JobEventBus:
             with self._lock:
                 self._subscribers.remove(queue)
 
-    def emit(self, event: dict[str, Any]) -> None:
-        """Emit event to all subscribers.
+    def _emit(self, event: BaseModel) -> None:
+        """Emit a typed event to all subscribers.
 
         Note: This method is always called from the event loop thread
         (either from async code or via call_soon_threadsafe from worker threads).
         """
-        data = json.dumps(event)
+        data = event.model_dump_json(by_alias=True)
         with self._lock:
             for queue in list(self._subscribers):
                 self._safe_put(queue, data)
@@ -67,19 +75,19 @@ class JobEventBus:
 
     def emit_created(self, job: Job) -> None:
         """Emit job created event."""
-        self.emit({"type": "created", "job": job.model_dump(mode="json")})
+        self._emit(CreatedEvent(job=job))
 
     def emit_updated(self, job: Job) -> None:
         """Emit job updated event."""
-        self.emit({"type": "updated", "job": job.model_dump(mode="json")})
+        self._emit(UpdatedEvent(job=job))
 
     def emit_deleted(self, job_id: str) -> None:
         """Emit job deleted event."""
-        self.emit({"type": "deleted", "jobId": job_id})
+        self._emit(DeletedEvent(jobId=job_id))
 
     def emit_cleared(self, count: int) -> None:
         """Emit jobs cleared event."""
-        self.emit({"type": "cleared", "count": count})
+        self._emit(ClearedEvent(count=count))
 
 
 # Singleton instance

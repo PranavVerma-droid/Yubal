@@ -10,12 +10,15 @@ from contextlib import asynccontextmanager
 from datetime import datetime
 from importlib.metadata import version
 from importlib.resources import files
+from typing import Any
 
 from alembic import command
 from alembic.config import Config
 from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.openapi.utils import get_openapi
 from fastapi.staticfiles import StaticFiles
+from pydantic import TypeAdapter
 from rich.console import Console
 from rich.logging import RichHandler
 from yubal import cleanup_part_files
@@ -24,6 +27,14 @@ from yubal_api.api.container import Services
 from yubal_api.api.exceptions import register_exception_handlers
 from yubal_api.api.routes import cookies, health, jobs, logs, scheduler, subscriptions
 from yubal_api.db import SubscriptionRepository, create_db_engine
+from yubal_api.schemas.jobs import (
+    ClearedEvent,
+    CreatedEvent,
+    DeletedEvent,
+    SnapshotEvent,
+    UpdatedEvent,
+)
+from yubal_api.schemas.logs import LogEntry
 from yubal_api.services.job_executor import JobExecutor
 from yubal_api.services.job_store import JobStore
 from yubal_api.services.log_buffer import (
@@ -208,6 +219,73 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     services.close()
 
 
+def custom_openapi(app: FastAPI) -> dict[str, Any]:
+    """Generate OpenAPI schema with SSE event types included.
+
+    SSE event schemas aren't auto-discovered by FastAPI since they're
+    returned via StreamingResponse. This function injects them into
+    the OpenAPI schema so TypeScript types are generated.
+    """
+    if app.openapi_schema:
+        return app.openapi_schema
+
+    schema = get_openapi(
+        title=app.title,
+        version=app.version,
+        description=app.description,
+        routes=app.routes,
+    )
+
+    # Inject SSE event schemas (not auto-discovered due to StreamingResponse)
+    sse_models = [
+        # Jobs SSE events
+        (SnapshotEvent, "SnapshotEvent"),
+        (CreatedEvent, "CreatedEvent"),
+        (UpdatedEvent, "UpdatedEvent"),
+        (DeletedEvent, "DeletedEvent"),
+        (ClearedEvent, "ClearedEvent"),
+        # Logs SSE event
+        (LogEntry, "LogEntry"),
+    ]
+    for model, name in sse_models:
+        json_schema = TypeAdapter(model).json_schema(
+            ref_template="#/components/schemas/{model}"
+        )
+        defs = json_schema.pop("$defs", {})
+        schema["components"]["schemas"].update(defs)
+        schema["components"]["schemas"][name] = json_schema
+
+    # Define SSE endpoint response schemas
+    sse_endpoints = {
+        "/api/jobs/sse": {
+            "schema": {
+                "oneOf": [
+                    {"$ref": "#/components/schemas/SnapshotEvent"},
+                    {"$ref": "#/components/schemas/CreatedEvent"},
+                    {"$ref": "#/components/schemas/UpdatedEvent"},
+                    {"$ref": "#/components/schemas/DeletedEvent"},
+                    {"$ref": "#/components/schemas/ClearedEvent"},
+                ]
+            },
+        },
+        "/api/logs/sse": {
+            "schema": {"$ref": "#/components/schemas/LogEntry"},
+        },
+    }
+
+    # Inject response schemas into SSE endpoints
+    for path, config in sse_endpoints.items():
+        if path in schema["paths"]:
+            schema["paths"][path]["get"]["responses"]["200"]["content"] = {
+                "text/event-stream": {
+                    "schema": config["schema"],
+                }
+            }
+
+    app.openapi_schema = schema
+    return schema
+
+
 def create_app() -> FastAPI:
     """Create and configure the main FastAPI application."""
     settings = get_settings()
@@ -219,6 +297,9 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
         debug=settings.debug,
     )
+
+    # Custom OpenAPI schema to include SSE event types
+    app.openapi = lambda: custom_openapi(app)  # type: ignore[method-assign]
 
     # Register exception handlers
     register_exception_handlers(app)

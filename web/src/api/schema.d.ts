@@ -103,15 +103,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Stream Jobs
-         * @description Stream job events via Server-Sent Events.
-         *
-         *     Events:
-         *     - snapshot: Initial state with all jobs
-         *     - created: New job created
-         *     - updated: Job status/progress changed
-         *     - deleted: Job removed
-         *     - cleared: Finished jobs cleared
+         * Stream job events via SSE
+         * @description On connect, sends a snapshot event with all current jobs, then streams events as they occur. Heartbeat comments sent every 30s.
          */
         get: operations["stream_jobs_api_jobs_sse_get"];
         put?: never;
@@ -150,8 +143,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Stream structured logs via SSE
-         * @description Each SSE data line contains a JSON-serialized LogEntry object.
+         * Stream log entries via SSE
+         * @description On connect, sends all buffered log entries, then streams new entries as they arrive. Heartbeat comments sent every 30s.
          */
         get: operations["stream_logs_api_logs_sse_get"];
         put?: never;
@@ -356,8 +349,11 @@ export interface components {
             title: string;
             /** Artist */
             artist: string;
-            /** Year */
-            year?: number | null;
+            /**
+             * Year
+             * @default null
+             */
+            year: number | null;
             /** Track Count */
             track_count: number;
             /**
@@ -368,17 +364,25 @@ export interface components {
             /**
              * Url
              * Format: uri
+             * @default null
              */
-            url?: string | null;
+            url: string | null;
             /**
              * Thumbnail Url
              * Format: uri
+             * @default null
              */
-            thumbnail_url?: string | null;
-            /** Audio Codec */
-            audio_codec?: string | null;
-            /** Audio Bitrate */
-            audio_bitrate?: number | null;
+            thumbnail_url: string | null;
+            /**
+             * Audio Codec
+             * @default null
+             */
+            audio_codec: string | null;
+            /**
+             * Audio Bitrate
+             * @default null
+             */
+            audio_bitrate: number | null;
             /** @default playlist */
             kind: components["schemas"]["ContentKind"];
         };
@@ -476,8 +480,11 @@ export interface components {
             url: string;
             /** @default opus */
             audio_format: components["schemas"]["AudioCodec"];
-            /** Max Items */
-            max_items?: number | null;
+            /**
+             * Max Items
+             * @default null
+             */
+            max_items: number | null;
             /** @default manual */
             source: components["schemas"]["JobSource"];
             /** @default pending */
@@ -487,17 +494,25 @@ export interface components {
              * @default 0
              */
             progress: number;
-            content_info?: components["schemas"]["ContentInfo"] | null;
-            download_stats?: components["schemas"]["PhaseStats"] | null;
+            /** @default null */
+            content_info: components["schemas"]["ContentInfo"] | null;
+            /** @default null */
+            download_stats: components["schemas"]["PhaseStats"] | null;
             /**
              * Created At
              * Format: date-time
              */
             created_at?: string;
-            /** Started At */
-            started_at?: string | null;
-            /** Completed At */
-            completed_at?: string | null;
+            /**
+             * Started At
+             * @default null
+             */
+            started_at: string | null;
+            /**
+             * Completed At
+             * @default null
+             */
+            completed_at: string | null;
         };
         /**
          * JobCreatedResponse
@@ -602,60 +617,74 @@ export interface components {
             /**
              * Phase
              * @description Current operation phase: extracting, downloading, composing
+             * @default null
              */
-            phase?: string | null;
+            phase: string | null;
             /**
              * Phase Num
              * @description Phase number (1, 2, 3)
+             * @default null
              */
-            phase_num?: number | null;
+            phase_num: number | null;
             /**
              * Event Type
              * @description Specific event type for granular tracking
+             * @default null
              */
-            event_type?: string | null;
+            event_type: string | null;
             /**
              * Current
              * @description Current item index in progress (0-indexed)
+             * @default null
              */
-            current?: number | null;
+            current: number | null;
             /**
              * Total
              * @description Total number of items to process
+             * @default null
              */
-            total?: number | null;
+            total: number | null;
             /**
              * Status
              * @description Operation result status
+             * @default null
              */
-            status?: ("success" | "skipped" | "failed") | null;
-            /** @description Aggregate statistics for batch operations */
-            stats?: components["schemas"]["LogStats"] | null;
+            status: ("success" | "skipped" | "failed") | null;
+            /**
+             * @description Aggregate statistics for batch operations
+             * @default null
+             */
+            stats: components["schemas"]["LogStats"] | null;
             /**
              * File Path
              * @description Path to generated or downloaded file
+             * @default null
              */
-            file_path?: string | null;
+            file_path: string | null;
             /**
              * File Type
              * @description Type of file: m3u, cover, audio
+             * @default null
              */
-            file_type?: string | null;
+            file_type: string | null;
             /**
              * Track Title
              * @description Track title being processed
+             * @default null
              */
-            track_title?: string | null;
+            track_title: string | null;
             /**
              * Track Artist
              * @description Track artist name
+             * @default null
              */
-            track_artist?: string | null;
+            track_artist: string | null;
             /**
              * Header
              * @description Section header text for visual separation
+             * @default null
              */
-            header?: string | null;
+            header: string | null;
         };
         /**
          * LogStats
@@ -857,6 +886,74 @@ export interface components {
             msg: string;
             /** Error Type */
             type: string;
+        };
+        /**
+         * SnapshotEvent
+         * @description Initial snapshot of all jobs sent on SSE connection.
+         */
+        SnapshotEvent: {
+            /**
+             * Type
+             * @default snapshot
+             * @constant
+             */
+            type: "snapshot";
+            /** Jobs */
+            jobs: components["schemas"]["Job"][];
+        };
+        /**
+         * CreatedEvent
+         * @description Emitted when a new job is created.
+         */
+        CreatedEvent: {
+            /**
+             * Type
+             * @default created
+             * @constant
+             */
+            type: "created";
+            job: components["schemas"]["Job"];
+        };
+        /**
+         * UpdatedEvent
+         * @description Emitted when a job's status or progress changes.
+         */
+        UpdatedEvent: {
+            /**
+             * Type
+             * @default updated
+             * @constant
+             */
+            type: "updated";
+            job: components["schemas"]["Job"];
+        };
+        /**
+         * DeletedEvent
+         * @description Emitted when a job is deleted.
+         */
+        DeletedEvent: {
+            /**
+             * Type
+             * @default deleted
+             * @constant
+             */
+            type: "deleted";
+            /** Jobid */
+            jobId: string;
+        };
+        /**
+         * ClearedEvent
+         * @description Emitted when finished jobs are cleared.
+         */
+        ClearedEvent: {
+            /**
+             * Type
+             * @default cleared
+             * @constant
+             */
+            type: "cleared";
+            /** Count */
+            count: number;
         };
     };
     responses: never;
@@ -1079,7 +1176,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "text/event-stream": components["schemas"]["SnapshotEvent"] | components["schemas"]["CreatedEvent"] | components["schemas"]["UpdatedEvent"] | components["schemas"]["DeletedEvent"] | components["schemas"]["ClearedEvent"];
+                };
             };
         };
     };
@@ -1117,7 +1216,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "text/event-stream": components["schemas"]["LogEntry"];
+                };
             };
         };
     };

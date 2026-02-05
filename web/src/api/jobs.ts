@@ -1,26 +1,15 @@
 import { api } from "./client";
 import type { components } from "./schema";
 
-export type JobStatus =
-  | "pending"
-  | "fetching_info"
-  | "downloading"
-  | "importing"
-  | "completed"
-  | "failed"
-  | "cancelled";
-
-// Override status field to use JobStatus instead of string
-export type Job = Omit<components["schemas"]["Job"], "status"> & {
-  status: JobStatus;
-};
+export type Job = components["schemas"]["Job"];
+export type JobStatus = components["schemas"]["JobStatus"];
 
 export type JobEvent =
-  | { type: "snapshot"; jobs: Job[] }
-  | { type: "created"; job: Job }
-  | { type: "updated"; job: Job }
-  | { type: "deleted"; jobId: string }
-  | { type: "cleared"; count: number };
+  | components["schemas"]["SnapshotEvent"]
+  | components["schemas"]["CreatedEvent"]
+  | components["schemas"]["UpdatedEvent"]
+  | components["schemas"]["DeletedEvent"]
+  | components["schemas"]["ClearedEvent"];
 
 export type CreateJobResult =
   | {
@@ -67,7 +56,7 @@ export async function listJobs(): Promise<{ jobs: Job[] }> {
   const { data, error } = await api.GET("/jobs");
 
   if (error) return { jobs: [] };
-  return { jobs: data.jobs as Job[] };
+  return { jobs: data.jobs };
 }
 
 export async function deleteJob(jobId: string): Promise<void> {

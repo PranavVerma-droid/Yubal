@@ -1,13 +1,11 @@
 import { useEffect, useRef, useState } from "react";
+import type { LogEntry, LogLine } from "@/api/logs";
+
+export type { LogLine } from "@/api/logs";
 
 const SSE_URL = "/api/logs/sse";
 const MAX_LOG_LINES = 1000;
 const RECONNECT_DELAYS = [1000, 2000, 4000, 8000, 16000] as const;
-
-export interface LogLine {
-  id: string;
-  content: string;
-}
 
 export interface UseLogsResult {
   lines: LogLine[];
@@ -51,7 +49,8 @@ export function useLogs(): UseLogsResult {
 
       eventSource.onmessage = (event) => {
         if (!mounted) return;
-        const line: LogLine = { id: crypto.randomUUID(), content: event.data };
+        const entry = JSON.parse(event.data) as LogEntry;
+        const line: LogLine = { id: crypto.randomUUID(), entry };
         setLines((prev) => {
           const newLines = [...prev, line];
           return newLines.length > MAX_LOG_LINES

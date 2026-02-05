@@ -5,7 +5,6 @@ Jobs are processed sequentially in FIFO order.
 """
 
 import asyncio
-import json
 from collections.abc import AsyncIterator
 
 from fastapi import APIRouter, status
@@ -28,6 +27,7 @@ from yubal_api.schemas.jobs import (
     CreateJobRequest,
     JobCreatedResponse,
     JobsResponse,
+    SnapshotEvent,
 )
 from yubal_api.services.job_event_bus import get_job_event_bus
 from yubal_api.services.job_store import JobStore
@@ -132,28 +132,26 @@ async def delete_job(job_id: str, job_store: JobStoreDep) -> None:
 HEARTBEAT_INTERVAL = 30.0
 
 
-@router.get("/sse", response_class=StreamingResponse)
+@router.get(
+    "/sse",
+    response_class=StreamingResponse,
+    summary="Stream job events via SSE",
+    description=(
+        "On connect, sends a snapshot event with all current jobs, "
+        "then streams events as they occur. "
+        "Heartbeat comments sent every 30s."
+    ),
+)
 async def stream_jobs(job_store: JobStoreDep) -> StreamingResponse:
-    """Stream job events via Server-Sent Events.
-
-    Events:
-    - snapshot: Initial state with all jobs
-    - created: New job created
-    - updated: Job status/progress changed
-    - deleted: Job removed
-    - cleared: Finished jobs cleared
-    """
+    """Stream job events via Server-Sent Events."""
     bus = get_job_event_bus()
 
     async def event_generator() -> AsyncIterator[str]:
         async with bus.subscribe() as queue:
             # Subscribe first, then snapshot (events queue up correctly)
             jobs = job_store.get_all()
-            snapshot = {
-                "type": "snapshot",
-                "jobs": [j.model_dump(mode="json") for j in jobs],
-            }
-            yield f"data: {json.dumps(snapshot)}\n\n"
+            snapshot = SnapshotEvent(jobs=jobs)
+            yield f"data: {snapshot.model_dump_json(by_alias=True)}\n\n"
 
             while True:
                 try:

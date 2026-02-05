@@ -1,5 +1,4 @@
 import type { Job } from "@/api/jobs";
-import type { components } from "@/api/schema";
 import { EmptyState } from "@/components/common/empty-state";
 import { Panel, PanelContent, PanelHeader } from "@/components/common/panel";
 import { useLocalStorage } from "@/hooks/use-local-storage";
@@ -7,15 +6,9 @@ import { isActive } from "@/lib/job-status";
 import { Chip, Spinner } from "@heroui/react";
 import { ChevronDownIcon, CloudOffIcon, TerminalIcon } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { LogLine } from "./log-line";
 import { useLogs } from "./use-logs";
-
-type LogEntry = components["schemas"]["LogEntry"];
-
-type ParsedLine =
-  | { type: "json"; entry: LogEntry; key: string }
-  | { type: "text"; text: string; key: string };
 
 type Props = {
   jobs?: Job[];
@@ -30,23 +23,6 @@ export function ConsolePanel({ jobs = [] }: Props) {
   );
 
   const hasActiveJobs = jobs.some((job) => isActive(job.status));
-
-  // Memoize parsed lines to avoid re-parsing on every render
-  const parsedLines = useMemo(
-    () =>
-      lines.map(({ id, content }): ParsedLine => {
-        try {
-          return {
-            type: "json",
-            entry: JSON.parse(content) as LogEntry,
-            key: id,
-          };
-        } catch {
-          return { type: "text", text: content, key: id };
-        }
-      }),
-    [lines],
-  );
 
   // Auto-scroll to bottom when new lines arrive
   useEffect(() => {
@@ -112,21 +88,17 @@ export function ConsolePanel({ jobs = [] }: Props) {
               height="h-70"
               className="console-logs space-y-0.5 p-4 font-mono text-xs"
             >
-              {parsedLines.length === 0 ? (
+              {lines.length === 0 ? (
                 <EmptyState icon={TerminalIcon} title="No activity yet" mono />
               ) : (
                 <AnimatePresence initial={false}>
-                  {parsedLines.map((parsed) => (
+                  {lines.map((line) => (
                     <motion.div
-                      key={parsed.key}
+                      key={line.id}
                       initial={{ opacity: 0, y: 5 }}
                       animate={{ opacity: 1, y: 0 }}
                     >
-                      {parsed.type === "json" ? (
-                        <LogLine entry={parsed.entry} />
-                      ) : (
-                        <div className="text-foreground-400">{parsed.text}</div>
-                      )}
+                      <LogLine entry={line.entry} />
                     </motion.div>
                   ))}
                 </AnimatePresence>

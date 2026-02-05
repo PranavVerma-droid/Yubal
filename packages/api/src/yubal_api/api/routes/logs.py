@@ -42,17 +42,15 @@ async def get_logs() -> list[LogEntry]:
 @router.get(
     "/sse",
     response_class=StreamingResponse,
-    summary="Stream structured logs via SSE",
-    description="Each SSE data line contains a JSON-serialized LogEntry object.",
+    summary="Stream log entries via SSE",
+    description=(
+        "On connect, sends all buffered log entries, "
+        "then streams new entries as they arrive. "
+        "Heartbeat comments sent every 30s."
+    ),
 )
 async def stream_logs() -> StreamingResponse:
-    """Stream structured log entries via Server-Sent Events.
-
-    Sends all existing buffered lines on connect, then streams new lines
-    as they arrive. Each line is a JSON-serialized LogEntry.
-
-    Heartbeats are sent every 30 seconds to prevent connection timeouts.
-    """
+    """Stream structured log entries via Server-Sent Events."""
     buffer = get_log_buffer()
 
     async def event_generator() -> AsyncIterator[str]:
