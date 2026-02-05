@@ -72,7 +72,7 @@ export function LogsPanel({ jobs = [] }: Props) {
           </motion.div>
         }
       >
-        console
+        logs
       </PanelHeader>
       <AnimatePresence initial={false}>
         {isExpanded && (
