@@ -354,8 +354,11 @@ export interface components {
              * @default null
              */
             year: number | null;
-            /** Track Count */
-            track_count: number;
+            /**
+             * Track Count
+             * @default null
+             */
+            track_count: number | null;
             /**
              * Playlist Id
              * @default

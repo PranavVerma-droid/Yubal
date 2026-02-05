@@ -161,6 +161,30 @@ def build_content_info(
     )
 
 
+def build_early_content_info(
+    playlist: PlaylistInfo,
+    url: str,
+    audio_format: str,
+) -> ContentInfo:
+    """Build preliminary ContentInfo from playlist metadata only.
+
+    Called immediately when playlist_info becomes available for early UI feedback.
+    Fields requiring track data use placeholder values.
+    """
+    return ContentInfo(
+        title=playlist.title or "Unknown",
+        artist=playlist.author or "Unknown Artist",
+        year=None,
+        track_count=None,  # Updated when extraction completes
+        playlist_id=playlist.playlist_id,
+        url=url,
+        thumbnail_url=playlist.cover_url,
+        audio_codec=audio_format.upper(),
+        audio_bitrate=None,
+        kind=playlist.kind.value,
+    )
+
+
 def _extract_year(
     playlist: PlaylistInfo, first_track: TrackMetadata | None
 ) -> int | None:
@@ -384,7 +408,7 @@ class _SyncWorkflow:
             )
 
     def _check_extraction_complete(self, progress: PlaylistProgress) -> None:
-        """Emit content_info when transitioning out of extraction phase.
+        """Update content_info when transitioning out of extraction phase.
 
         This handles the case where some tracks are skipped (UGC videos)
         and the extraction current count never equals total.
@@ -392,15 +416,16 @@ class _SyncWorkflow:
         is_leaving_extraction = (
             self.previous_phase == "extracting" and progress.phase != "extracting"
         )
-        should_emit = (
+        # Update content_info with track data if we have tracks but haven't updated yet
+        should_update = (
             is_leaving_extraction
-            and self.content_info is None
             and self.playlist_info is not None
             and self.tracks
+            and (self.content_info is None or self.content_info.track_count is None)
         )
 
-        if should_emit:
-            self._emit_content_info_found()
+        if should_update:
+            self._update_content_info_complete()
 
     def _handle_extraction(
         self,
@@ -414,28 +439,60 @@ class _SyncWorkflow:
                 self.tracks.append(progress.extract_progress.track)
             self.playlist_info = progress.extract_progress.playlist_info
 
+        # Emit early content_info on first progress with playlist_info
+        if self.playlist_info is not None and self.content_info is None:
+            self._emit_early_content_info()
+
         self._emit(step, _format_extraction_message(progress), percent)
 
-        # Build content_info when extraction completes normally
+        # Update content_info when extraction completes
         extraction_complete = (
             progress.current == progress.total
             and self.playlist_info is not None
             and self.tracks
         )
         if extraction_complete:
-            self._emit_content_info_found()
+            self._update_content_info_complete()
 
-    def _emit_content_info_found(self) -> None:
-        """Build and emit content_info with "Found N tracks" message."""
-        if self.playlist_info is None or not self.tracks:
+    def _emit_early_content_info(self) -> None:
+        """Emit preliminary content_info when playlist_info first becomes available."""
+        if self.content_info is not None or self.playlist_info is None:
             return
 
-        self.content_info = build_content_info(
+        self.content_info = build_early_content_info(
             self.playlist_info,
-            self.tracks,
             self.url,
             self.audio_format,
         )
+
+        self._emit(
+            ProgressStep.FETCHING_INFO,
+            f"Found: {self.content_info.title}",
+            1.0,  # Small progress to show activity
+            {"content_info": self.content_info.model_dump()},
+        )
+
+    def _update_content_info_complete(self) -> None:
+        """Update content_info with complete track data."""
+        if self.playlist_info is None or not self.tracks:
+            return
+
+        first_track = self.tracks[0]
+
+        if self.content_info is None:
+            # Fallback: build from scratch if early emission didn't happen
+            self.content_info = build_content_info(
+                self.playlist_info, self.tracks, self.url, self.audio_format
+            )
+        else:
+            # Update existing content_info with track-derived data
+            self.content_info.track_count = len(self.tracks)
+            self.content_info.artist = _determine_artist(
+                self.playlist_info, first_track
+            )
+            self.content_info.year = _extract_year(self.playlist_info, first_track)
+            if not self.content_info.thumbnail_url and first_track.cover_url:
+                self.content_info.thumbnail_url = first_track.cover_url
 
         track_word = "track" if len(self.tracks) == 1 else "tracks"
         message = f"Found {len(self.tracks)} {track_word}: {self.content_info.title}"
@@ -443,7 +500,7 @@ class _SyncWorkflow:
         self._emit(
             ProgressStep.FETCHING_INFO,
             message,
-            PHASE_RANGES["extracting"].end,  # End of extraction phase
+            PHASE_RANGES["extracting"].end,
             {"content_info": self.content_info.model_dump()},
         )
 
