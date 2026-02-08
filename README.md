@@ -48,7 +48,7 @@ data/
 │       ├── 02 - Paranoid Android.lrc
 │       └── cover.jpg
 │
-└── Playlists/
+└── _Playlists/
     ├── My Favorites [n2g-XhDv].m3u
     └── My Favorites [n2g-XhDv].jpg
 ```

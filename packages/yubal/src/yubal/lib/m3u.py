@@ -91,10 +91,10 @@ def write_m3u(
         >>> tracks = [(track_meta, Path("/music/Artist/2024 - Album/01 - Song.opus"))]
         >>> m3u_path = write_m3u(Path("/music"), "My Favorites", "PLxyz123abc", tracks)
         >>> print(m3u_path)
-        /music/Playlists/My Favorites [z123abc].m3u
+        /music/_Playlists/My Favorites [z123abc].m3u
     """
-    # Create Playlists directory
-    playlists_dir = base_path / "Playlists"
+    # Create _Playlists directory
+    playlists_dir = base_path / "_Playlists"
     playlists_dir.mkdir(parents=True, exist_ok=True)
 
     # Build M3U file path with ID suffix

@@ -157,15 +157,15 @@ class TestWritePlaylistCover:
     def test_creates_playlists_directory(
         self, mock_fetch: MagicMock, tmp_path: Path
     ) -> None:
-        """Should create Playlists directory if it doesn't exist."""
+        """Should create _Playlists directory if it doesn't exist."""
         mock_fetch.return_value = b"\xff\xd8\xff\xe0"  # JPEG magic bytes
 
         write_playlist_cover(
             tmp_path, "My Playlist", "PLtest12345678", "https://example.com/cover.jpg"
         )
 
-        assert (tmp_path / "Playlists").exists()
-        assert (tmp_path / "Playlists").is_dir()
+        assert (tmp_path / "_Playlists").exists()
+        assert (tmp_path / "_Playlists").is_dir()
 
     @patch("yubal.utils.cover.fetch_cover")
     def test_writes_cover_file(self, mock_fetch: MagicMock, tmp_path: Path) -> None:
@@ -192,7 +192,7 @@ class TestWritePlaylistCover:
             tmp_path, "My Favorites", "PLtest12345678", "https://example.com/cover.jpg"
         )
 
-        assert cover_path == tmp_path / "Playlists" / "My Favorites [12345678].jpg"
+        assert cover_path == tmp_path / "_Playlists" / "My Favorites [12345678].jpg"
 
     @patch("yubal.utils.cover.fetch_cover")
     def test_sanitizes_playlist_name(

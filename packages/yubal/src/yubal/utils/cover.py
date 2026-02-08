@@ -168,8 +168,8 @@ def write_playlist_cover(
     if not cover_data:
         return None
 
-    # Create Playlists directory
-    playlists_dir = base_path / "Playlists"
+    # Create _Playlists directory
+    playlists_dir = base_path / "_Playlists"
     playlists_dir.mkdir(parents=True, exist_ok=True)
 
     # Build cover file path with ID suffix
