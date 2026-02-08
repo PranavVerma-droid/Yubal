@@ -117,6 +117,7 @@ docker compose up -d
 | `YUBAL_SCHEDULER_CRON`    | Cron schedule for auto-sync          | `0 0 * * *`      |
 | `YUBAL_FETCH_LYRICS`      | Fetch lyrics from lrclib.net         | `true`           |
 | `YUBAL_REPLAYGAIN`        | Apply ReplayGain tags to downloads   | `true`           |
+| `YUBAL_ASCII_FILENAMES`   | Transliterate unicode to ASCII       | `false`          |
 | `YUBAL_TZ`                | Timezone (IANA format)               | `UTC`            |
 
 <details>

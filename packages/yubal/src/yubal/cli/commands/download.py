@@ -79,6 +79,13 @@ def download_cmd(
         bool,
         typer.Option("--no-replaygain", help="Disable ReplayGain tagging."),
     ] = False,
+    ascii_filenames: Annotated[
+        bool,
+        typer.Option(
+            "--ascii-filenames",
+            help="Transliterate unicode to ASCII in filenames.",
+        ),
+    ] = False,
 ) -> None:
     """Download tracks from a YouTube Music URL.
 
@@ -115,6 +122,7 @@ def download_cmd(
                 codec=codec,
                 quality=quality,
                 quiet=True,
+                ascii_filenames=ascii_filenames,
             ),
             generate_m3u=not no_m3u,
             save_cover=not no_cover,

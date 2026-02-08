@@ -73,6 +73,11 @@ class Settings(BaseSettings):
     # Lyrics settings
     fetch_lyrics: bool = Field(default=True, description="Fetch lyrics from lrclib.net")
 
+    # Filename settings
+    ascii_filenames: bool = Field(
+        default=False, description="Transliterate unicode to ASCII in filenames"
+    )
+
     # ReplayGain settings
     replaygain: bool = Field(
         default=True,

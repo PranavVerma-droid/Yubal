@@ -150,6 +150,7 @@ def create_services(repository: SubscriptionRepository) -> Services:
         cookies_path=settings.cookies_file,
         fetch_lyrics=settings.fetch_lyrics,
         apply_replaygain=settings.replaygain,
+        ascii_filenames=settings.ascii_filenames,
         subscription_repository=repository,
     )
 

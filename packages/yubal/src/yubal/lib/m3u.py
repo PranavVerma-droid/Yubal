@@ -67,6 +67,8 @@ def write_m3u(
     playlist_name: str,
     playlist_id: str,
     tracks: list[tuple[TrackMetadata, Path]],
+    *,
+    ascii_filenames: bool = False,
 ) -> Path:
     """Write an M3U playlist file to the Playlists folder.
 
@@ -79,6 +81,7 @@ def write_m3u(
         playlist_name: Name of the playlist (will be sanitized for filename).
         playlist_id: Unique playlist ID (last 8 chars appended to filename).
         tracks: List of tuples containing (TrackMetadata, file_path) for each track.
+        ascii_filenames: If True, transliterate unicode to ASCII in filenames.
 
     Returns:
         Path to the written M3U file.
@@ -95,7 +98,9 @@ def write_m3u(
     playlists_dir.mkdir(parents=True, exist_ok=True)
 
     # Build M3U file path with ID suffix
-    filename = format_playlist_filename(playlist_name, playlist_id)
+    filename = format_playlist_filename(
+        playlist_name, playlist_id, ascii_filenames=ascii_filenames
+    )
     m3u_path = playlists_dir / f"{filename}.m3u"
 
     # Generate and write content

@@ -243,6 +243,106 @@ class TestCleanFilename:
         assert invalid_char not in result
 
 
+class TestCleanFilenameAsciiMode:
+    """Tests for clean_filename with ascii_filenames=True."""
+
+    @pytest.mark.parametrize(
+        ("input_str", "expected"),
+        [
+            ("Björk", "Bjork"),
+            ("Sigur Rós", "Sigur Ros"),
+            ("Motörhead", "Motorhead"),
+            ("Café Tacvba", "Cafe Tacvba"),
+        ],
+        ids=["bjork", "sigur_ros", "motorhead", "cafe_tacvba"],
+    )
+    def test_transliterates_unicode_to_ascii(
+        self, input_str: str, expected: str
+    ) -> None:
+        """Should transliterate unicode characters to ASCII equivalents."""
+        assert clean_filename(input_str, ascii_filenames=True) == expected
+
+    @pytest.mark.parametrize(
+        "input_str",
+        [
+            "Test Song",
+            "The Beatles",
+            "Abbey Road - Remastered",
+        ],
+    )
+    def test_ascii_strings_unchanged(self, input_str: str) -> None:
+        """ASCII-only strings should be unchanged with ascii_filenames=True."""
+        assert clean_filename(input_str, ascii_filenames=True) == input_str
+
+    def test_japanese_transliteration(self) -> None:
+        """Should transliterate Japanese characters."""
+        result = clean_filename("日本語タイトル", ascii_filenames=True)
+        # unidecode converts Japanese to romaji
+        assert result.isascii()
+        assert len(result) > 0
+
+    def test_korean_transliteration(self) -> None:
+        """Should transliterate Korean characters."""
+        result = clean_filename("방탄소년단", ascii_filenames=True)
+        assert result.isascii()
+        assert len(result) > 0
+
+    def test_cyrillic_transliteration(self) -> None:
+        """Should transliterate Cyrillic characters."""
+        result = clean_filename("Кино", ascii_filenames=True)
+        assert result.isascii()
+        assert len(result) > 0
+
+    def test_default_preserves_unicode(self) -> None:
+        """Default (ascii_filenames=False) should preserve unicode."""
+        assert clean_filename("Björk") == "Björk"
+        assert clean_filename("Björk", ascii_filenames=False) == "Björk"
+
+
+class TestBuildTrackPathAsciiMode:
+    """Tests for build_track_path with ascii_filenames=True."""
+
+    def test_transliterates_all_components(self) -> None:
+        """Should transliterate artist, album, and title."""
+        result = build_track_path(
+            base=Path("/music"),
+            artist="Björk",
+            year="1997",
+            album="Homogenic",
+            track_number=2,
+            title="Jóga",
+            ascii_filenames=True,
+        )
+        assert result == Path("/music/Bjork/1997 - Homogenic/02 - Joga")
+
+    def test_default_preserves_unicode(self) -> None:
+        """Default should preserve unicode in path components."""
+        result = build_track_path(
+            base=Path("/music"),
+            artist="Björk",
+            year="1997",
+            album="Homogenic",
+            track_number=2,
+            title="Jóga",
+        )
+        assert result == Path("/music/Björk/1997 - Homogenic/02 - Jóga")
+
+
+class TestBuildUnmatchedTrackPathAsciiMode:
+    """Tests for build_unmatched_track_path with ascii_filenames=True."""
+
+    def test_transliterates_components(self) -> None:
+        """Should transliterate artist and title."""
+        result = build_unmatched_track_path(
+            base=Path("/music"),
+            artist="Björk",
+            title="Jóga",
+            video_id="abc123",
+            ascii_filenames=True,
+        )
+        assert result == Path("/music/_Unmatched/Bjork - Joga [abc123]")
+
+
 class TestBuildTrackPath:
     """Tests for build_track_path function."""
 

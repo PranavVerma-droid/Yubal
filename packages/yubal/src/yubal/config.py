@@ -36,6 +36,7 @@ class DownloadConfig:
         quality: Audio quality (0 = best, 10 = worst). Only applies to lossy codecs.
         quiet: Suppress yt-dlp output.
         fetch_lyrics: Whether to fetch lyrics from lrclib.net.
+        ascii_filenames: Transliterate unicode to ASCII in filenames.
     """
 
     base_path: Path
@@ -43,6 +44,7 @@ class DownloadConfig:
     quality: int = 0
     quiet: bool = True
     fetch_lyrics: bool = True
+    ascii_filenames: bool = False
 
 
 @dataclass(frozen=True)

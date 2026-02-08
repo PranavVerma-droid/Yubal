@@ -47,6 +47,7 @@ class JobExecutor:
         cookies_path: Path | None = None,
         fetch_lyrics: bool = True,
         apply_replaygain: bool = False,
+        ascii_filenames: bool = False,
         subscription_repository: SubscriptionRepository | None = None,
     ) -> None:
         """Initialize the job executor.
@@ -58,6 +59,7 @@ class JobExecutor:
             cookies_path: Optional path to cookies.txt for authenticated requests.
             fetch_lyrics: Whether to fetch lyrics from lrclib.net.
             apply_replaygain: Whether to apply ReplayGain tags using rsgain.
+            ascii_filenames: Whether to transliterate unicode to ASCII in filenames.
             subscription_repository: Optional repository to update subscription names.
         """
         self._job_store = job_store
@@ -66,6 +68,7 @@ class JobExecutor:
         self._cookies_path = cookies_path
         self._fetch_lyrics = fetch_lyrics
         self._apply_replaygain = apply_replaygain
+        self._ascii_filenames = ascii_filenames
         self._subscription_repository = subscription_repository
 
         # Track background tasks to prevent GC during execution
@@ -205,6 +208,7 @@ class JobExecutor:
                 self._cookies_path,
                 self._fetch_lyrics,
                 self._apply_replaygain,
+                self._ascii_filenames,
             )
             result = await asyncio.to_thread(
                 sync_service.run,

@@ -272,6 +272,7 @@ class SyncService:
     cookies_path: Path | None = None
     fetch_lyrics: bool = True
     apply_replaygain: bool = False
+    ascii_filenames: bool = False
     _codec: AudioCodec = field(init=False)
 
     def __post_init__(self) -> None:
@@ -311,6 +312,7 @@ class SyncService:
             cookies_path=self.cookies_path,
             fetch_lyrics=self.fetch_lyrics,
             apply_replaygain=self.apply_replaygain,
+            ascii_filenames=self.ascii_filenames,
         )
         return workflow.execute()
 
@@ -338,6 +340,7 @@ class _SyncWorkflow:
     cookies_path: Path | None
     fetch_lyrics: bool
     apply_replaygain: bool
+    ascii_filenames: bool
 
     # Workflow state
     content_info: ContentInfo | None = field(default=None, init=False)
@@ -384,6 +387,7 @@ class _SyncWorkflow:
                 codec=self.codec,
                 quiet=True,
                 fetch_lyrics=self.fetch_lyrics,
+                ascii_filenames=self.ascii_filenames,
             ),
             generate_m3u=True,
             save_cover=True,

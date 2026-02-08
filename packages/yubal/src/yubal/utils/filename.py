@@ -3,16 +3,18 @@
 from pathlib import Path
 
 from pathvalidate import sanitize_filename
+from unidecode import unidecode
 
 
-def clean_filename(s: str) -> str:
+def clean_filename(s: str, *, ascii_filenames: bool = False) -> str:
     """Sanitize a string for use in a filename.
 
-    Converts unicode characters to ASCII equivalents and removes
-    or replaces characters that are invalid in filenames.
+    Optionally transliterates unicode characters to ASCII equivalents,
+    then removes or replaces characters that are invalid in filenames.
 
     Args:
         s: String to sanitize.
+        ascii_filenames: If True, transliterate unicode to ASCII before sanitizing.
 
     Returns:
         Sanitized string safe for use in filenames.
@@ -22,21 +24,28 @@ def clean_filename(s: str) -> str:
         'Bjork - Joga'
         >>> clean_filename("AC/DC")
         'ACDC'
+        >>> clean_filename("Björk", ascii_filenames=True)
+        'Bjork'
     """
+    if ascii_filenames:
+        s = unidecode(s)
     return sanitize_filename(s)
 
 
-def format_playlist_filename(playlist_name: str, playlist_id: str) -> str:
+def format_playlist_filename(
+    playlist_name: str, playlist_id: str, *, ascii_filenames: bool = False
+) -> str:
     """Format playlist filename with ID suffix to avoid collisions.
 
     Args:
         playlist_name: Name of the playlist (will be sanitized).
         playlist_id: Unique playlist ID (last 8 chars used as suffix).
+        ascii_filenames: If True, transliterate unicode to ASCII.
 
     Returns:
         Formatted filename without extension, e.g., "My Favorites [abcd1234]".
     """
-    safe_name = clean_filename(playlist_name)
+    safe_name = clean_filename(playlist_name, ascii_filenames=ascii_filenames)
     if not safe_name or not safe_name.strip():
         safe_name = "Untitled Playlist"
 
@@ -53,6 +62,8 @@ def build_track_path(
     album: str,
     track_number: int | None,
     title: str,
+    *,
+    ascii_filenames: bool = False,
 ) -> Path:
     """Build a filesystem path for a track following the convention.
 
@@ -65,6 +76,7 @@ def build_track_path(
         album: Album name.
         track_number: Track number (or None for unknown).
         title: Track title.
+        ascii_filenames: If True, transliterate unicode to ASCII.
 
     Returns:
         Full path to the track file (without extension).
@@ -74,9 +86,15 @@ def build_track_path(
         PosixPath('/music/Artist/2024 - Album/01 - Song')
     """
     # Sanitize components
-    safe_artist = clean_filename(artist) or "Unknown Artist"
-    safe_album = clean_filename(album) or "Unknown Album"
-    safe_title = clean_filename(title) or "Unknown Track"
+    safe_artist = (
+        clean_filename(artist, ascii_filenames=ascii_filenames) or "Unknown Artist"
+    )
+    safe_album = (
+        clean_filename(album, ascii_filenames=ascii_filenames) or "Unknown Album"
+    )
+    safe_title = (
+        clean_filename(title, ascii_filenames=ascii_filenames) or "Unknown Track"
+    )
 
     # Build album folder name
     year_str = year or "0000"
@@ -96,6 +114,8 @@ def build_unmatched_track_path(
     artist: str,
     title: str,
     video_id: str,
+    *,
+    ascii_filenames: bool = False,
 ) -> Path:
     """Build a filesystem path for an unmatched track.
 
@@ -110,6 +130,7 @@ def build_unmatched_track_path(
         artist: Artist name from the video listing.
         title: Track title from the video listing.
         video_id: YouTube video ID (ensures filename uniqueness).
+        ascii_filenames: If True, transliterate unicode to ASCII.
 
     Returns:
         Full path to the track file (without extension).
@@ -120,8 +141,12 @@ def build_unmatched_track_path(
         ... )
         PosixPath('/music/_Unmatched/Wiz Khalifa - Mercury Retrograde [-HJ0ZGkdlTk]')
     """
-    safe_artist = clean_filename(artist) or "Unknown Artist"
-    safe_title = clean_filename(title) or "Unknown Track"
+    safe_artist = (
+        clean_filename(artist, ascii_filenames=ascii_filenames) or "Unknown Artist"
+    )
+    safe_title = (
+        clean_filename(title, ascii_filenames=ascii_filenames) or "Unknown Track"
+    )
     track_name = f"{safe_artist} - {safe_title} [{video_id}]"
 
     return base / "_Unmatched" / track_name

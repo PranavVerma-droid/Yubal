@@ -70,6 +70,9 @@ class PlaylistArtifactsService:
         >>> artifacts.cover  # Path or None
     """
 
+    def __init__(self, *, ascii_filenames: bool = False) -> None:
+        self._ascii_filenames = ascii_filenames
+
     # ============================================================================
     # PUBLIC API - Main entry point for playlist artifact generation
     # ============================================================================
@@ -182,7 +185,11 @@ class PlaylistArtifactsService:
             return None
 
         m3u_path = write_m3u(
-            base_path, playlist_name, playlist_info.playlist_id, tracks
+            base_path,
+            playlist_name,
+            playlist_info.playlist_id,
+            tracks,
+            ascii_filenames=self._ascii_filenames,
         )
         logger.info(
             "Generated M3U playlist: '%s'",
@@ -254,7 +261,11 @@ class PlaylistArtifactsService:
             return None
 
         cover_path = write_playlist_cover(
-            base_path, playlist_name, playlist_info.playlist_id, playlist_info.cover_url
+            base_path,
+            playlist_name,
+            playlist_info.playlist_id,
+            playlist_info.cover_url,
+            ascii_filenames=self._ascii_filenames,
         )
         if cover_path:
             logger.info(

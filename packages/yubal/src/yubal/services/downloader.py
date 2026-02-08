@@ -543,6 +543,7 @@ class DownloadService:
                 artist=track.primary_album_artist,
                 title=track.title,
                 video_id=track.omv_video_id or track.atv_video_id or "unknown",
+                ascii_filenames=self._config.ascii_filenames,
             )
         return build_track_path(
             base=self._config.base_path,
@@ -551,6 +552,7 @@ class DownloadService:
             album=track.album,
             track_number=track.track_number,
             title=track.title,
+            ascii_filenames=self._config.ascii_filenames,
         )
 
     # ============================================================================

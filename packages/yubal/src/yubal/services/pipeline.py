@@ -127,7 +127,9 @@ class PlaylistDownloadService:
         self._downloader = downloader or DownloadService(
             config.download, cookies_path=cookies_path
         )
-        self._composer = composer or PlaylistArtifactsService()
+        self._composer = composer or PlaylistArtifactsService(
+            ascii_filenames=config.download.ascii_filenames,
+        )
         self._replaygain = replaygain or ReplayGainService()
 
         # Store last result for retrieval after iteration
