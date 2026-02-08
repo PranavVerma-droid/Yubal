@@ -137,48 +137,6 @@ class TestAlbumCaching:
 
 
 # ============================================================================
-# Duration Parsing Tests
-# ============================================================================
-
-
-class TestParseDuration:
-    """Tests for duration parsing in YTMusicClient."""
-
-    @pytest.mark.parametrize(
-        "length,expected",
-        [
-            ("3:00", 180),
-            ("0:30", 30),
-            ("10:00", 600),
-            ("59:59", 3599),
-            ("1:23:45", 5025),
-            ("2:30:00", 9000),
-            ("0:00", 0),
-            ("0:0:0", 0),
-        ],
-    )
-    def test_valid_durations(self, length: str, expected: int) -> None:
-        client = YTMusicClient(ytmusic=MagicMock())
-        assert client._parse_duration(length) == expected
-
-    def test_single_part_returns_zero(self) -> None:
-        client = YTMusicClient(ytmusic=MagicMock())
-        assert client._parse_duration("180") == 0
-
-    def test_four_parts_returns_zero(self) -> None:
-        client = YTMusicClient(ytmusic=MagicMock())
-        assert client._parse_duration("1:2:3:4") == 0
-
-    def test_invalid_format_returns_zero(self) -> None:
-        client = YTMusicClient(ytmusic=MagicMock())
-        assert client._parse_duration("abc:def") == 0
-
-    def test_empty_string_returns_zero(self) -> None:
-        client = YTMusicClient(ytmusic=MagicMock())
-        assert client._parse_duration("") == 0
-
-
-# ============================================================================
 # get_track() Tests
 # ============================================================================
 

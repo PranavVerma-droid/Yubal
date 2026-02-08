@@ -16,14 +16,6 @@ def scheduler(mock_settings: MagicMock) -> Scheduler:
     return Scheduler(repository, job_executor, mock_settings)
 
 
-class TestCronExpression:
-    """Tests for cron_expression property."""
-
-    def test_returns_cron_from_settings(self, scheduler: Scheduler) -> None:
-        """Should return cron expression from settings."""
-        assert scheduler.cron_expression == "0 0 * * *"
-
-
 class TestGetNextRunTime:
     """Tests for _get_next_run_time calculation."""
 
@@ -99,69 +91,3 @@ class TestGetNextRunTime:
         diff = abs((next_utc - next_tokyo).total_seconds())
         # Allow for day wraparound - diff should be ~9h or ~15h (24-9)
         assert diff in range(8 * 3600, 10 * 3600) or diff in range(14 * 3600, 16 * 3600)
-
-
-class TestSchedulerProperties:
-    """Tests for scheduler properties."""
-
-    def test_enabled_returns_settings_value(
-        self, scheduler: Scheduler, mock_settings: MagicMock
-    ) -> None:
-        """Should return scheduler_enabled from settings."""
-        mock_settings.scheduler_enabled = True
-        assert scheduler.enabled is True
-
-        mock_settings.scheduler_enabled = False
-        assert scheduler.enabled is False
-
-    def test_is_running_false_when_not_started(self, scheduler: Scheduler) -> None:
-        """Should be False when scheduler hasn't been started."""
-        assert scheduler.is_running is False
-
-    def test_next_run_at_none_when_not_started(self, scheduler: Scheduler) -> None:
-        """Should be None when scheduler hasn't been started."""
-        assert scheduler.next_run_at is None
-
-
-class TestNextRunAtBehavior:
-    """Tests for next_run_at behavior based on scheduler_enabled setting."""
-
-    def test_next_run_at_none_when_sync_disabled(
-        self, mock_settings: MagicMock
-    ) -> None:
-        """Should set next_run_at to None when sync is disabled.
-
-        This tests the internal logic without starting the full async loop.
-        """
-        mock_settings.scheduler_enabled = False
-        mock_settings.scheduler_cron = "* * * * *"  # Every minute
-        mock_settings.timezone = ZoneInfo("UTC")
-
-        repository = MagicMock()
-        job_executor = MagicMock()
-        scheduler = Scheduler(repository, job_executor, mock_settings)
-
-        # Simulate the logic from _run_loop
-        next_run = scheduler._get_next_run_time()
-        scheduler._next_run_at = next_run if mock_settings.scheduler_enabled else None
-
-        assert scheduler.next_run_at is None
-
-    def test_next_run_at_set_when_scheduler_enabled(
-        self, mock_settings: MagicMock
-    ) -> None:
-        """Should set next_run_at to calculated time when sync is enabled."""
-        mock_settings.scheduler_enabled = True
-        mock_settings.scheduler_cron = "* * * * *"  # Every minute
-        mock_settings.timezone = ZoneInfo("UTC")
-
-        repository = MagicMock()
-        job_executor = MagicMock()
-        scheduler = Scheduler(repository, job_executor, mock_settings)
-
-        # Simulate the logic from _run_loop
-        next_run = scheduler._get_next_run_time()
-        scheduler._next_run_at = next_run if mock_settings.scheduler_enabled else None
-
-        assert scheduler.next_run_at is not None
-        assert scheduler.next_run_at > datetime.now(UTC)

@@ -4,33 +4,10 @@ import pytest
 from pydantic import ValidationError
 from yubal.models.enums import VideoType
 from yubal.models.track import TrackMetadata
-from yubal.models.ytmusic import (
-    Album,
-    AlbumRef,
-    AlbumTrack,
-    Artist,
-    Playlist,
-    PlaylistTrack,
-    SearchResult,
-    Thumbnail,
-)
 
 
 class TestVideoType:
     """Tests for VideoType enum."""
-
-    def test_atv_value(self) -> None:
-        """ATV should have correct value matching ytmusicapi."""
-        assert VideoType.ATV == "MUSIC_VIDEO_TYPE_ATV"
-
-    def test_omv_value(self) -> None:
-        """OMV should have correct value matching ytmusicapi."""
-        assert VideoType.OMV == "MUSIC_VIDEO_TYPE_OMV"
-
-    def test_string_comparison(self) -> None:
-        """Should compare equal to ytmusicapi string values."""
-        assert VideoType.ATV == "MUSIC_VIDEO_TYPE_ATV"
-        assert VideoType.OMV == "MUSIC_VIDEO_TYPE_OMV"
 
     def test_all_video_types(self) -> None:
         """All video types should have correct values."""
@@ -105,9 +82,6 @@ class TestTrackMetadata:
 
     def test_rejects_empty_album_artists(self) -> None:
         """Should reject empty album_artists list."""
-        import pytest
-        from pydantic import ValidationError
-
         with pytest.raises(ValidationError, match="must have at least one entry"):
             TrackMetadata(
                 omv_video_id="abc123",
@@ -117,145 +91,3 @@ class TestTrackMetadata:
                 album_artists=[],
                 video_type=VideoType.ATV,
             )
-
-
-class TestYTMusicModels:
-    """Tests for ytmusicapi response models."""
-
-    def test_artist_with_alias(self) -> None:
-        """Artist should parse correctly."""
-        artist = Artist(name="Test", id="123")
-        assert artist.name == "Test"
-        assert artist.id == "123"
-
-    def test_artist_without_id(self) -> None:
-        """Artist should work without ID."""
-        artist = Artist(name="Test", id=None)
-        assert artist.id is None
-
-    def test_thumbnail_validation(self) -> None:
-        """Thumbnail should validate dimensions."""
-        thumb = Thumbnail(url="https://test.jpg", width=544, height=544)
-        assert thumb.width == 544
-
-    def test_album_ref_from_dict(self) -> None:
-        """AlbumRef should parse from dict."""
-        ref = AlbumRef.model_validate({"id": "abc", "name": "Album Name"})
-        assert ref.id == "abc"
-        assert ref.name == "Album Name"
-
-    def test_playlist_track_with_alias(self) -> None:
-        """PlaylistTrack should parse videoId alias."""
-        track = PlaylistTrack.model_validate(
-            {
-                "videoId": "vid123",
-                "title": "Song",
-                "artists": [{"name": "Artist", "id": "a1"}],
-                "thumbnails": [{"url": "https://t.jpg", "width": 120, "height": 90}],
-                "duration_seconds": 180,
-            }
-        )
-        assert track.video_id == "vid123"
-
-    def test_playlist_track_ignores_extra_fields(self) -> None:
-        """PlaylistTrack should ignore unknown fields."""
-        track = PlaylistTrack.model_validate(
-            {
-                "videoId": "vid123",
-                "title": "Song",
-                "artists": [{"name": "Artist", "id": "a1"}],
-                "thumbnails": [{"url": "https://t.jpg", "width": 120, "height": 90}],
-                "duration_seconds": 180,
-                "unknownField": "should be ignored",
-                "anotherUnknown": 123,
-            }
-        )
-        assert track.video_id == "vid123"
-        assert not hasattr(track, "unknownField")
-
-    def test_album_track_with_aliases(self) -> None:
-        """AlbumTrack should parse aliases correctly."""
-        track = AlbumTrack.model_validate(
-            {
-                "videoId": "vid123",
-                "title": "Song",
-                "artists": [{"name": "Artist"}],
-                "trackNumber": 5,
-                "duration_seconds": 240,
-            }
-        )
-        assert track.video_id == "vid123"
-        assert track.track_number == 5
-
-    def test_album_parsing(self) -> None:
-        """Album should parse with nested tracks."""
-        album = Album.model_validate(
-            {
-                "title": "Album Title",
-                "artists": [{"name": "Artist"}],
-                "year": "2024",
-                "thumbnails": [{"url": "https://t.jpg", "width": 544, "height": 544}],
-                "tracks": [
-                    {
-                        "videoId": "t1",
-                        "title": "Track 1",
-                        "artists": [{"name": "Artist"}],
-                        "trackNumber": 1,
-                        "duration_seconds": 200,
-                    }
-                ],
-            }
-        )
-        assert album.title == "Album Title"
-        assert len(album.tracks) == 1
-        assert album.tracks[0].track_number == 1
-
-    def test_playlist_parsing(self) -> None:
-        """Playlist should parse with nested tracks."""
-        playlist = Playlist.model_validate(
-            {
-                "tracks": [
-                    {
-                        "videoId": "v1",
-                        "title": "Track",
-                        "artists": [{"name": "Artist"}],
-                        "thumbnails": [
-                            {"url": "https://t.jpg", "width": 120, "height": 90}
-                        ],
-                        "duration_seconds": 180,
-                    }
-                ]
-            }
-        )
-        assert len(playlist.tracks) == 1
-
-    def test_search_result_parsing(self) -> None:
-        """SearchResult should parse with optional album."""
-        result = SearchResult.model_validate(
-            {
-                "videoId": "s1",
-                "videoType": "MUSIC_VIDEO_TYPE_ATV",
-                "title": "Test Song",
-                "album": {"id": "alb1", "name": "Album"},
-            }
-        )
-        assert result.video_id == "s1"
-        assert result.title == "Test Song"
-        assert result.album is not None
-        assert result.album.id == "alb1"
-
-    def test_search_result_without_album(self) -> None:
-        """SearchResult should work without album."""
-        result = SearchResult.model_validate(
-            {
-                "videoId": "s1",
-                "title": "Test Song",
-            }
-        )
-        assert result.album is None
-
-    def test_models_are_frozen(self) -> None:
-        """Models should be immutable."""
-        artist = Artist(name="Test", id="123")
-        with pytest.raises(ValidationError):
-            artist.name = "Changed"

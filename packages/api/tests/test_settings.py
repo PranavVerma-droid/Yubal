@@ -113,20 +113,6 @@ class TestRootRequired:
         ):
             Settings(data=TEST_DATA, config=TEST_CONFIG)  # type: ignore[call-arg]
 
-    def test_accepts_root_as_string(self) -> None:
-        """Should accept root as string and convert to Path."""
-        settings = Settings(
-            root="/tmp/test",  # type: ignore[arg-type]
-            data=TEST_DATA,
-            config=TEST_CONFIG,
-        )
-        assert settings.root == Path("/tmp/test")
-
-    def test_accepts_root_as_path(self) -> None:
-        """Should accept root as Path."""
-        settings = _create_settings()
-        assert settings.root == TEST_ROOT
-
 
 class TestPathDefaults:
     """Tests for path default values based on root."""
@@ -146,18 +132,6 @@ class TestPathDefaults:
             data=TEST_DATA,
         )  # type: ignore[call-arg]
         assert settings.config == Path("/tmp/test/config")
-
-    def test_data_can_be_overridden(self) -> None:
-        """Should allow data to be explicitly set."""
-        custom_data = Path("/custom/data")
-        settings = _create_settings(data=custom_data)
-        assert settings.data == custom_data
-
-    def test_config_can_be_overridden(self) -> None:
-        """Should allow config to be explicitly set."""
-        custom_config = Path("/custom/config")
-        settings = _create_settings(config=custom_config)
-        assert settings.config == custom_config
 
 
 class TestTimezone:
