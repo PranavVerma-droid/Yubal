@@ -18,7 +18,7 @@ from yubal.cli.formatting import (
 from yubal.cli.logging import setup_logging
 from yubal.cli.state import ExtractionState
 from yubal.client import YTMusicClient
-from yubal.exceptions import YTMetaError
+from yubal.exceptions import YubalError
 from yubal.models.enums import SkipReason
 from yubal.services import MetadataExtractorService
 from yubal.utils.url import is_single_track_url
@@ -113,7 +113,7 @@ def meta_cmd(
                 unavailable_tracks=state.unavailable_tracks,
             )
 
-    except YTMetaError as e:
+    except YubalError as e:
         logger.error(str(e))
         console.print(f"[red]Error: {e}[/red]")
         raise typer.Exit(code=1) from e

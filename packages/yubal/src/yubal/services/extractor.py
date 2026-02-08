@@ -106,7 +106,7 @@ class MetadataExtractorService:
             TrackParseError: If URL is invalid (for single tracks).
             PlaylistNotFoundError: If playlist doesn't exist.
             TrackNotFoundError: If track doesn't exist.
-            APIError: If API requests fail.
+            UpstreamAPIError: If API requests fail.
 
         Example:
             >>> for progress in extractor.extract(url):
@@ -243,7 +243,7 @@ class MetadataExtractorService:
         Raises:
             TrackParseError: If URL doesn't contain a video ID.
             TrackNotFoundError: If track doesn't exist.
-            APIError: If API requests fail.
+            UpstreamAPIError: If API requests fail.
         """
         video_id = parse_video_id(url)
         if not video_id:

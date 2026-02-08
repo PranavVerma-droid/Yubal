@@ -40,7 +40,7 @@ class PlaylistInfoService:
             PlaylistNotFoundError: If playlist doesn't exist (404).
             AuthenticationRequiredError: If authentication is required (401).
             UnsupportedPlaylistError: If playlist type is not supported (422).
-            APIError: If API request fails (502).
+            UpstreamAPIError: If API request fails (502).
         """
         playlist_id = parse_playlist_id(url)
         playlist = self._client.get_playlist(playlist_id)

@@ -173,7 +173,7 @@ class PlaylistDownloadService:
             CancellationError: If cancel_token.is_cancelled becomes True.
             PlaylistParseError: If URL is invalid.
             PlaylistNotFoundError: If playlist doesn't exist.
-            APIError: If API requests fail.
+            UpstreamAPIError: If API requests fail.
 
         Example:
             >>> for progress in service.download_playlist(url):
@@ -274,7 +274,7 @@ class PlaylistDownloadService:
             CancellationError: If cancel_token.is_cancelled becomes True.
             PlaylistParseError: If URL is invalid.
             PlaylistNotFoundError: If playlist doesn't exist.
-            APIError: If API requests fail.
+            UpstreamAPIError: If API requests fail.
 
         Example:
             >>> result = service.download_playlist_all(url)

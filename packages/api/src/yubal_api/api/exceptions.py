@@ -26,8 +26,8 @@ class ErrorResponse(BaseModel):
 # -- Base Exceptions --
 
 
-class YubalError(Exception):
-    """Base exception for Yubal application errors.
+class APIError(Exception):
+    """Base exception for API errors.
 
     Subclasses should define:
     - status_code: HTTP status code
@@ -45,7 +45,7 @@ class YubalError(Exception):
 # -- Job Exceptions --
 
 
-class JobNotFoundError(YubalError):
+class JobNotFoundError(APIError):
     """Raised when a job is not found."""
 
     status_code = status.HTTP_404_NOT_FOUND
@@ -56,7 +56,7 @@ class JobNotFoundError(YubalError):
         super().__init__(f"Job {job_id} not found")
 
 
-class JobConflictError(YubalError):
+class JobConflictError(APIError):
     """Raised when a job operation conflicts with existing state."""
 
     status_code = status.HTTP_409_CONFLICT
@@ -67,7 +67,7 @@ class JobConflictError(YubalError):
         super().__init__(message)
 
 
-class QueueFullError(YubalError):
+class QueueFullError(APIError):
     """Raised when the job queue is at capacity."""
 
     status_code = status.HTTP_409_CONFLICT
@@ -80,7 +80,7 @@ class QueueFullError(YubalError):
 # -- Subscription Exceptions --
 
 
-class SubscriptionNotFoundError(YubalError):
+class SubscriptionNotFoundError(APIError):
     """Raised when a subscription is not found."""
 
     status_code = status.HTTP_404_NOT_FOUND
@@ -91,7 +91,7 @@ class SubscriptionNotFoundError(YubalError):
         super().__init__(f"Subscription {subscription_id} not found")
 
 
-class SubscriptionConflictError(YubalError):
+class SubscriptionConflictError(APIError):
     """Raised when a subscription operation conflicts with existing state."""
 
     status_code = status.HTTP_409_CONFLICT
@@ -102,7 +102,7 @@ class SubscriptionConflictError(YubalError):
         super().__init__(message)
 
 
-class MetadataFetchError(YubalError):
+class MetadataFetchError(APIError):
     """Raised when metadata fetching fails unexpectedly."""
 
     status_code = status.HTTP_502_BAD_GATEWAY
@@ -116,14 +116,14 @@ class MetadataFetchError(YubalError):
 # -- Sync Operation Exceptions --
 
 
-class DownloadError(YubalError):
+class DownloadError(APIError):
     """Raised when a download operation fails."""
 
     status_code = status.HTTP_502_BAD_GATEWAY
     error_code = "download_failed"
 
 
-class CookieValidationError(YubalError):
+class CookieValidationError(APIError):
     """Raised when cookie file validation fails."""
 
     status_code = status.HTTP_400_BAD_REQUEST
@@ -136,11 +136,11 @@ class CookieValidationError(YubalError):
 def register_exception_handlers(app: FastAPI) -> None:
     """Register custom exception handlers on the FastAPI app."""
     from yubal import (
-        APIError,
         AuthenticationRequiredError,
         PlaylistNotFoundError,
         PlaylistParseError,
         UnsupportedPlaylistError,
+        UpstreamAPIError,
     )
 
     # Map yubal core exceptions to HTTP responses
@@ -149,7 +149,7 @@ def register_exception_handlers(app: FastAPI) -> None:
         AuthenticationRequiredError: (401, "authentication_required"),
         PlaylistParseError: (422, "playlist_parse_error"),
         UnsupportedPlaylistError: (422, "unsupported_playlist"),
-        APIError: (502, "api_error"),
+        UpstreamAPIError: (502, "upstream_api_error"),
     }
 
     for exc_class, (status_code, error_code) in _CORE_EXCEPTION_MAP.items():
@@ -165,9 +165,9 @@ def register_exception_handlers(app: FastAPI) -> None:
 
         app.exception_handler(exc_class)(_make_handler(status_code, error_code))
 
-    @app.exception_handler(YubalError)
-    async def yubal_error_handler(request: Request, exc: YubalError) -> JSONResponse:
-        """Generic handler for all YubalError subclasses."""
+    @app.exception_handler(APIError)
+    async def api_error_handler(request: Request, exc: APIError) -> JSONResponse:
+        """Generic handler for all APIError subclasses."""
         content: dict[str, str | None] = {
             "error": exc.error_code,
             "message": exc.message,

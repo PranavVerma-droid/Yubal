@@ -17,7 +17,7 @@ from yubal.cli.formatting import (
 from yubal.cli.logging import setup_logging
 from yubal.cli.state import ExtractionState
 from yubal.config import AudioCodec, DownloadConfig, PlaylistDownloadConfig
-from yubal.exceptions import YTMetaError
+from yubal.exceptions import YubalError
 from yubal.models.enums import DownloadStatus
 from yubal.services import PlaylistDownloadService
 from yubal.utils.url import is_single_track_url
@@ -215,7 +215,7 @@ def download_cmd(
             if final_result.cover_path:
                 console.print(f"    • Cover: {final_result.cover_path}")
 
-    except YTMetaError as e:
+    except YubalError as e:
         logger.error(str(e))
         console.print(f"[red]Error: {e}[/red]")
         raise typer.Exit(code=1) from e

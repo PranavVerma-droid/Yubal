@@ -34,7 +34,6 @@ from pathlib import Path
 from yubal.client import YTMusicClient as _YTMusicClient
 from yubal.config import APIConfig, AudioCodec, DownloadConfig, PlaylistDownloadConfig
 from yubal.exceptions import (
-    APIError,
     AuthenticationRequiredError,
     CancellationError,
     DownloadError,
@@ -43,7 +42,8 @@ from yubal.exceptions import (
     TrackNotFoundError,
     TrackParseError,
     UnsupportedPlaylistError,
-    YTMetaError,
+    UpstreamAPIError,
+    YubalError,
 )
 from yubal.models.cancel import CancelToken
 from yubal.models.enums import ContentKind, DownloadStatus, SkipReason, VideoType
@@ -182,7 +182,6 @@ def create_playlist_downloader(
 
 __all__ = [
     "APIConfig",
-    "APIError",
     "AudioCodec",
     "AuthenticationRequiredError",
     "CancelToken",
@@ -208,8 +207,9 @@ __all__ = [
     "TrackNotFoundError",
     "TrackParseError",
     "UnsupportedPlaylistError",
+    "UpstreamAPIError",
     "VideoType",
-    "YTMetaError",
+    "YubalError",
     "cleanup_part_files",
     "clear_cover_cache",
     "create_downloader",

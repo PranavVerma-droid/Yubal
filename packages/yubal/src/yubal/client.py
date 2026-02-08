@@ -10,12 +10,12 @@ from ytmusicapi.exceptions import YTMusicError, YTMusicServerError, YTMusicUserE
 
 from yubal.config import APIConfig
 from yubal.exceptions import (
-    APIError,
     AuthenticationRequiredError,
     PlaylistNotFoundError,
     TrackNotFoundError,
     UnsupportedPlaylistError,
-    YTMetaError,
+    UpstreamAPIError,
+    YubalError,
 )
 from yubal.models.enums import SkipReason
 from yubal.models.ytmusic import Album, Playlist, PlaylistTrack, SearchResult
@@ -114,7 +114,7 @@ class YTMusicClient:
             PlaylistNotFoundError: If playlist doesn't exist or is inaccessible.
             AuthenticationRequiredError: If playlist requires authentication.
             UnsupportedPlaylistError: If playlist type is not supported.
-            APIError: If API request fails.
+            UpstreamAPIError: If API request fails.
         """
         if not playlist_id or not playlist_id.strip():
             raise ValueError("playlist_id cannot be empty")
@@ -134,10 +134,10 @@ class YTMusicClient:
             if specific_error:
                 raise specific_error from e
 
-            raise APIError(f"Failed to fetch playlist: {e}") from e
+            raise UpstreamAPIError(f"Failed to fetch playlist: {e}") from e
         except YTMusicError as e:
             logger.warning("YTMusic error for playlist %s: %s", playlist_id, e)
-            raise APIError(f"Failed to fetch playlist: {e}") from e
+            raise UpstreamAPIError(f"Failed to fetch playlist: {e}") from e
         except KeyError as e:
             error_msg = str(e)
             logger.warning("Missing data in playlist response %s: %s", playlist_id, e)
@@ -233,7 +233,7 @@ class YTMusicClient:
             Parsed Album model.
 
         Raises:
-            APIError: If API request fails.
+            UpstreamAPIError: If API request fails.
         """
         if album_id in self._album_cache:
             logger.debug("Album cache hit: %s", album_id)
@@ -246,10 +246,10 @@ class YTMusicClient:
             data = self._ytm.get_album(album_id)
         except (YTMusicServerError, YTMusicUserError) as e:
             logger.warning("YTMusic API error for album %s: %s", album_id, e)
-            raise APIError(f"Failed to fetch album: {e}") from e
+            raise UpstreamAPIError(f"Failed to fetch album: {e}") from e
         except YTMusicError as e:
             logger.warning("YTMusic error for album %s: %s", album_id, e)
-            raise APIError(f"Failed to fetch album: {e}") from e
+            raise UpstreamAPIError(f"Failed to fetch album: {e}") from e
 
         album = Album.model_validate(data)
 
@@ -271,7 +271,7 @@ class YTMusicClient:
             List of parsed SearchResult models.
 
         Raises:
-            APIError: If API request fails.
+            UpstreamAPIError: If API request fails.
         """
         logger.debug("Searching songs: %s", query)
         try:
@@ -283,10 +283,10 @@ class YTMusicClient:
             )
         except (YTMusicServerError, YTMusicUserError) as e:
             logger.warning("YTMusic API error for search '%s': %s", query, e)
-            raise APIError(f"Search failed: {e}") from e
+            raise UpstreamAPIError(f"Search failed: {e}") from e
         except YTMusicError as e:
             logger.warning("YTMusic error for search '%s': %s", query, e)
-            raise APIError(f"Search failed: {e}") from e
+            raise UpstreamAPIError(f"Search failed: {e}") from e
 
         return [SearchResult.model_validate(r) for r in data]
 
@@ -302,7 +302,7 @@ class YTMusicClient:
         Raises:
             ValueError: If video_id is empty.
             TrackNotFoundError: If track doesn't exist or is inaccessible.
-            APIError: If API request fails.
+            UpstreamAPIError: If API request fails.
         """
         if not video_id or not video_id.strip():
             raise ValueError("video_id cannot be empty")
@@ -312,10 +312,10 @@ class YTMusicClient:
             data = self._ytm.get_watch_playlist(video_id)
         except (YTMusicServerError, YTMusicUserError) as e:
             logger.warning("YTMusic API error for track %s: %s", video_id, e)
-            raise APIError(f"Failed to fetch track: {e}") from e
+            raise UpstreamAPIError(f"Failed to fetch track: {e}") from e
         except YTMusicError as e:
             logger.warning("YTMusic error for track %s: %s", video_id, e)
-            raise APIError(f"Failed to fetch track: {e}") from e
+            raise UpstreamAPIError(f"Failed to fetch track: {e}") from e
 
         tracks = cast(list[dict[str, Any]], data.get("tracks") or [])
         if not tracks:
@@ -426,7 +426,7 @@ class YTMusicClient:
 
     def _parse_playlist_error(
         self, error_msg: str, playlist_id: str
-    ) -> YTMetaError | None:
+    ) -> YubalError | None:
         """Parse ytmusicapi error to determine specific error type.
 
         Args:

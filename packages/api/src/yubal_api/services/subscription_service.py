@@ -5,11 +5,11 @@ from datetime import UTC, datetime
 from uuid import UUID
 
 from yubal import (
-    APIError,
     AuthenticationRequiredError,
     PlaylistNotFoundError,
     PlaylistParseError,
     UnsupportedPlaylistError,
+    UpstreamAPIError,
 )
 
 from yubal_api.api.exceptions import (
@@ -70,7 +70,7 @@ class SubscriptionService:
             AuthenticationRequiredError,
             PlaylistParseError,
             UnsupportedPlaylistError,
-            APIError,
+            UpstreamAPIError,
         ):
             raise  # Known exceptions — propagate to exception handlers
         except Exception as e:

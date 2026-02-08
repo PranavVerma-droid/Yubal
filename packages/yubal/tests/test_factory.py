@@ -56,10 +56,10 @@ class TestPublicAPI:
         assert hasattr(yubal, "PlaylistDownloadConfig")
 
         # Exceptions
-        assert hasattr(yubal, "YTMetaError")
+        assert hasattr(yubal, "YubalError")
         assert hasattr(yubal, "PlaylistParseError")
         assert hasattr(yubal, "PlaylistNotFoundError")
-        assert hasattr(yubal, "APIError")
+        assert hasattr(yubal, "UpstreamAPIError")
 
     def test_internal_not_exported(self) -> None:
         """Internal implementation details should not be exported."""

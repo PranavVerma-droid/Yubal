@@ -4,7 +4,7 @@ from unittest.mock import MagicMock
 
 import pytest
 from yubal.client import YTMusicClient
-from yubal.exceptions import APIError, TrackNotFoundError
+from yubal.exceptions import TrackNotFoundError, UpstreamAPIError
 
 # ============================================================================
 # Fixtures
@@ -236,7 +236,7 @@ class TestGetTrack:
         mock_ytm = MagicMock()
         mock_ytm.get_watch_playlist.side_effect = YTMusicServerError("API failure")
         client = YTMusicClient(ytmusic=mock_ytm)
-        with pytest.raises(APIError, match="Failed to fetch track"):
+        with pytest.raises(UpstreamAPIError, match="Failed to fetch track"):
             client.get_track("abc123")
 
     def test_normalizes_watch_playlist_response_format(self) -> None:

@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 from uuid import uuid4
 
 import pytest
-from yubal import APIError, PlaylistNotFoundError
+from yubal import PlaylistNotFoundError, UpstreamAPIError
 from yubal_api.api.exceptions import (
     MetadataFetchError,
     SubscriptionConflictError,
@@ -130,9 +130,11 @@ class TestCreate:
         mock_playlist_info: MagicMock,
     ) -> None:
         mock_repo.get_by_url.return_value = None
-        mock_playlist_info.get_playlist_metadata.side_effect = APIError("timeout")
+        mock_playlist_info.get_playlist_metadata.side_effect = UpstreamAPIError(
+            "timeout"
+        )
 
-        with pytest.raises(APIError):
+        with pytest.raises(UpstreamAPIError):
             service.create("https://music.youtube.com/playlist?list=PLbad")
 
     def test_create_unexpected_error_wraps_in_metadata_fetch_error(
