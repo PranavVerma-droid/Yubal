@@ -28,6 +28,7 @@ export function useLogs(): UseLogsResult {
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
+  const idCounterRef = useRef(0);
 
   useEffect(() => {
     let mounted = true;
@@ -50,7 +51,7 @@ export function useLogs(): UseLogsResult {
       eventSource.onmessage = (event) => {
         if (!mounted) return;
         const entry = JSON.parse(event.data) as LogEntry;
-        const line: LogLine = { id: crypto.randomUUID(), entry };
+        const line: LogLine = { id: String(idCounterRef.current++), entry };
         setLines((prev) => {
           const newLines = [...prev, line];
           return newLines.length > MAX_LOG_LINES
