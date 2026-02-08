@@ -441,6 +441,26 @@ class TestJobStateTransitions:
 
         assert cancelled is False
 
+    @pytest.mark.parametrize(
+        "status",
+        [JobStatus.COMPLETED, JobStatus.FAILED, JobStatus.CANCELLED],
+    )
+    def test_transition_on_finished_job_is_noop(
+        self, store: JobStore, status: JobStatus
+    ) -> None:
+        """Transitioning a finished job should return it unchanged."""
+        result = store.create("https://music.youtube.com/playlist?list=PLtest")
+        assert result is not None
+        job, _ = result
+
+        store.transition(job.id, status)
+
+        # Attempt to overwrite finished status
+        updated = store.transition(job.id, JobStatus.DOWNLOADING)
+
+        assert updated is not None
+        assert updated.status == status  # Still the original finished status
+
 
 # =============================================================================
 # Test Class: Queue Management
@@ -661,136 +681,6 @@ class TestCapacityLimits:
         # Cannot create new job
         result = store.create("https://music.youtube.com/playlist?list=PLextra")
         assert result is None
-
-
-# =============================================================================
-# Test Class: Timeout Detection
-# =============================================================================
-
-
-class TestTimeoutDetection:
-    """Tests for timeout detection on stalled jobs."""
-
-    def test_timeout_marks_job_as_failed(self, store: JobStore, clock: Any) -> None:
-        """Job exceeding timeout should be marked as failed."""
-        result = store.create("https://music.youtube.com/playlist?list=PLtest")
-        assert result is not None
-        job, _ = result
-
-        # Start the job
-        store.transition(job.id, JobStatus.DOWNLOADING, started_at=clock())
-
-        # Advance time past timeout
-        clock.advance(JobStore.TIMEOUT_SECONDS + 1)
-
-        # Get the job (triggers timeout check)
-        updated = store.get(job.id)
-
-        assert updated is not None
-        assert updated.status == JobStatus.FAILED
-        assert updated.completed_at == clock()
-
-    def test_timeout_not_triggered_before_threshold(
-        self, store: JobStore, clock: Any
-    ) -> None:
-        """Job should not timeout if within threshold."""
-        result = store.create("https://music.youtube.com/playlist?list=PLtest")
-        assert result is not None
-        job, _ = result
-
-        store.transition(job.id, JobStatus.DOWNLOADING, started_at=clock())
-
-        # Advance time to just under timeout
-        clock.advance(JobStore.TIMEOUT_SECONDS - 1)
-
-        updated = store.get(job.id)
-
-        assert updated is not None
-        assert updated.status == JobStatus.DOWNLOADING
-
-    def test_timeout_not_triggered_for_pending_jobs(
-        self, store: JobStore, clock: Any
-    ) -> None:
-        """Pending jobs without started_at should not timeout."""
-        result = store.create("https://music.youtube.com/playlist?list=PLtest")
-        assert result is not None
-        job, _ = result
-
-        clock.advance(JobStore.TIMEOUT_SECONDS + 100)
-
-        updated = store.get(job.id)
-
-        assert updated is not None
-        assert updated.status == JobStatus.PENDING
-
-    def test_timeout_not_triggered_for_finished_jobs(
-        self, store: JobStore, clock: Any
-    ) -> None:
-        """Already finished jobs should not be re-marked on timeout check."""
-        result = store.create("https://music.youtube.com/playlist?list=PLtest")
-        assert result is not None
-        job, _ = result
-
-        start_time = clock()
-        store.transition(job.id, JobStatus.DOWNLOADING, started_at=start_time)
-        store.transition(job.id, JobStatus.COMPLETED)
-
-        clock.advance(JobStore.TIMEOUT_SECONDS + 1)
-
-        updated = store.get(job.id)
-
-        assert updated is not None
-        assert updated.status == JobStatus.COMPLETED
-
-    def test_timeout_clears_active_job(self, store: JobStore, clock: Any) -> None:
-        """Timed-out job should release the active slot."""
-        r1 = store.create("https://music.youtube.com/playlist?list=PL1")
-        r2 = store.create("https://music.youtube.com/playlist?list=PL2")
-        assert r1 and r2
-        job1, _ = r1
-
-        store.transition(job1.id, JobStatus.DOWNLOADING, started_at=clock())
-
-        clock.advance(JobStore.TIMEOUT_SECONDS + 1)
-
-        # Trigger timeout check
-        store.get(job1.id)
-
-        # Active slot should be cleared, allowing next job
-        next_job = store.pop_next_pending()
-        assert next_job is not None
-        assert next_job.id == "job-0002"
-
-    def test_get_all_checks_timeouts_on_all_jobs(
-        self, store: JobStore, clock: Any
-    ) -> None:
-        """get_all should check timeouts on all jobs."""
-        r1 = store.create("https://music.youtube.com/playlist?list=PL1")
-        assert r1 is not None
-        job1, _ = r1
-
-        # Complete first job to free active slot
-        store.transition(job1.id, JobStatus.COMPLETED)
-
-        r2 = store.create("https://music.youtube.com/playlist?list=PL2")
-        r3 = store.create("https://music.youtube.com/playlist?list=PL3")
-        assert r2 and r3
-
-        # Start both with timestamps
-        store.transition(r2[0].id, JobStatus.DOWNLOADING, started_at=clock())
-        clock.advance(10)
-        store.transition(r3[0].id, JobStatus.DOWNLOADING, started_at=clock())
-
-        # Advance past timeout for job2 but not job3
-        clock.advance(JobStore.TIMEOUT_SECONDS - 5)
-
-        jobs = store.get_all()
-
-        job2 = next(j for j in jobs if j.id == "job-0002")
-        job3 = next(j for j in jobs if j.id == "job-0003")
-
-        assert job2.status == JobStatus.FAILED
-        assert job3.status == JobStatus.DOWNLOADING
 
 
 # =============================================================================

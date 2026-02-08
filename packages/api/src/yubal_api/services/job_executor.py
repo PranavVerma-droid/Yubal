@@ -30,6 +30,7 @@ class JobExecutor:
     Key Responsibilities:
         - Background task lifecycle (creation, tracking, cleanup)
         - Cancellation via CancelToken registry
+        - Timeout enforcement via asyncio.timeout
         - Job queue continuation (starts next pending job when one completes)
         - Progress callback wiring to update job store
 
@@ -38,6 +39,8 @@ class JobExecutor:
         - CancelToken is the single source of truth for cancellation
         - Tasks are tracked in a set to prevent garbage collection
     """
+
+    TIMEOUT_SECONDS: float = 30 * 60  # 30 minutes
 
     def __init__(
         self,
@@ -166,86 +169,96 @@ class JobExecutor:
             if cancel_token.is_cancelled:
                 return
 
-            self._job_store.transition(
-                job_id,
-                JobStatus.FETCHING_INFO,
-                started_at=datetime.now(UTC),
-            )
-
-            # Create progress callback that updates job store
-            loop = asyncio.get_running_loop()
-
-            def on_progress(
-                step: ProgressStep,
-                _message: str,
-                progress: float | None,
-                details: dict[str, Any] | None,
-            ) -> None:
-                if cancel_token.is_cancelled:
-                    return
-
-                status = self._step_to_status(step)
-                content_info = self._parse_content_info(details) if details else None
-
-                # Skip terminal states - handled by result
-                if status in (JobStatus.COMPLETED, JobStatus.FAILED):
-                    return
-
-                loop.call_soon_threadsafe(
-                    partial(
-                        self._job_store.transition,
-                        job_id,
-                        status,
-                        progress=progress,
-                        content_info=content_info,
-                    )
-                )
-
-            # Run sync in thread pool
-            sync_service = SyncService(
-                self._base_path,
-                self._audio_format,
-                self._cookies_path,
-                self._fetch_lyrics,
-                self._apply_replaygain,
-                self._ascii_filenames,
-            )
-            result = await asyncio.to_thread(
-                sync_service.run,
-                url,
-                on_progress,
-                cancel_token,
-                max_items,
-            )
-
-            # Handle result (cancelled status already set by cancel_job API)
-            if cancel_token.is_cancelled:
-                pass  # Status already set, cleanup happens in finally block
-            elif result.success:
+            async with asyncio.timeout(self.TIMEOUT_SECONDS):
                 self._job_store.transition(
                     job_id,
-                    JobStatus.COMPLETED,
-                    progress=PROGRESS_COMPLETE,
-                    content_info=result.content_info,
-                    download_stats=result.download_stats,
+                    JobStatus.FETCHING_INFO,
+                    started_at=datetime.now(UTC),
                 )
-                # Update subscription metadata with latest info from YouTube Music
-                # TODO: migrate to SubscriptionService when executor
-                # refactoring is scoped
-                if (
-                    self._subscription_repository
-                    and result.content_info
-                    and result.content_info.title
-                ):
-                    self._subscription_repository.update_metadata_by_url(
-                        url,
-                        result.content_info.title,
-                        result.content_info.thumbnail_url,
+
+                # Create progress callback that updates job store
+                loop = asyncio.get_running_loop()
+
+                def on_progress(
+                    step: ProgressStep,
+                    _message: str,
+                    progress: float | None,
+                    details: dict[str, Any] | None,
+                ) -> None:
+                    if cancel_token.is_cancelled:
+                        return
+
+                    status = self._step_to_status(step)
+                    content_info = (
+                        self._parse_content_info(details) if details else None
                     )
-            else:
-                error_msg = result.error or "Unknown error"
-                logger.error("Job %s failed: %s", job_id[:8], error_msg)
-                self._job_store.transition(job_id, JobStatus.FAILED)
+
+                    # Skip terminal states - handled by result
+                    if status in (JobStatus.COMPLETED, JobStatus.FAILED):
+                        return
+
+                    loop.call_soon_threadsafe(
+                        partial(
+                            self._job_store.transition,
+                            job_id,
+                            status,
+                            progress=progress,
+                            content_info=content_info,
+                        )
+                    )
+
+                # Run sync in thread pool
+                sync_service = SyncService(
+                    self._base_path,
+                    self._audio_format,
+                    self._cookies_path,
+                    self._fetch_lyrics,
+                    self._apply_replaygain,
+                    self._ascii_filenames,
+                )
+                result = await asyncio.to_thread(
+                    sync_service.run,
+                    url,
+                    on_progress,
+                    cancel_token,
+                    max_items,
+                )
+
+                # Handle result (cancelled status already set by cancel_job API)
+                if cancel_token.is_cancelled:
+                    pass  # Status already set, cleanup happens in finally block
+                elif result.success:
+                    self._job_store.transition(
+                        job_id,
+                        JobStatus.COMPLETED,
+                        progress=PROGRESS_COMPLETE,
+                        content_info=result.content_info,
+                        download_stats=result.download_stats,
+                    )
+                    # Update subscription metadata with latest info from YouTube Music
+                    # TODO: migrate to SubscriptionService when executor
+                    # refactoring is scoped
+                    if (
+                        self._subscription_repository
+                        and result.content_info
+                        and result.content_info.title
+                    ):
+                        self._subscription_repository.update_metadata_by_url(
+                            url,
+                            result.content_info.title,
+                            result.content_info.thumbnail_url,
+                        )
+                else:
+                    error_msg = result.error or "Unknown error"
+                    logger.error("Job %s failed: %s", job_id[:8], error_msg)
+                    self._job_store.transition(job_id, JobStatus.FAILED)
+
+        except TimeoutError:
+            logger.warning(
+                "Job %s timed out after %d seconds", job_id[:8], self.TIMEOUT_SECONDS
+            )
+            cancel_token.cancel()
+            self._job_store.transition(job_id, JobStatus.FAILED)
 
         except Exception as e:
             logger.exception("Job %s failed with error: %s", job_id[:8], e)

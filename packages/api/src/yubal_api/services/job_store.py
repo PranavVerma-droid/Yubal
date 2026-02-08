@@ -27,11 +27,11 @@ class JobStore:
     Responsibilities:
         - Job persistence (CRUD operations)
         - Queue management (FIFO ordering, capacity limits)
-        - Timeout detection for stalled jobs
 
     Non-Responsibilities:
         - State machine validation (caller's responsibility)
         - Cancellation signaling (handled by CancelToken in JobExecutor)
+        - Timeout enforcement (handled by asyncio.timeout in JobExecutor)
 
     Capacity:
         When at MAX_JOBS, completed jobs are pruned to make room for new ones.
@@ -39,7 +39,6 @@ class JobStore:
     """
 
     MAX_JOBS = 200
-    TIMEOUT_SECONDS = 30 * 60  # 30 minutes
 
     def __init__(
         self, clock: Clock, id_generator: IdGenerator, event_bus: JobEventBus
@@ -106,8 +105,6 @@ class JobStore:
     def get(self, job_id: str) -> Job | None:
         """Get a job by ID.
 
-        Also checks for timeout on the retrieved job.
-
         Args:
             job_id: The job identifier.
 
@@ -115,22 +112,15 @@ class JobStore:
             The job if found, None otherwise.
         """
         with self._locked():
-            if job := self._jobs.get(job_id):
-                self._check_timeout(job)
-                return job
-            return None
+            return self._jobs.get(job_id)
 
     def get_all(self) -> list[Job]:
         """Get all jobs in FIFO order (oldest first).
-
-        Also checks for timeouts on all jobs.
 
         Returns:
             List of all jobs ordered by creation time.
         """
         with self._locked():
-            for job in self._jobs.values():
-                self._check_timeout(job)
             return list(self._jobs.values())
 
     def delete(self, job_id: str) -> bool:
@@ -201,6 +191,9 @@ class JobStore:
         with self._locked():
             if not (job := self._jobs.get(job_id)):
                 return None
+
+            if job.status.is_finished:
+                return job
 
             self._apply_updates(
                 job,
@@ -394,38 +387,3 @@ class JobStore:
         # for calling release_active() after cleanup completes
         if job.status.is_finished:
             job.completed_at = job.completed_at or self._clock()
-
-    def _check_timeout(self, job: Job) -> bool:
-        """Check if a job has timed out and mark it as failed.
-
-        A job times out if it has been running longer than TIMEOUT_SECONDS.
-
-        Note:
-            Must be called with lock held.
-
-        Args:
-            job: The job to check.
-
-        Returns:
-            True if job was timed out and marked as failed.
-        """
-        if not job.started_at or job.status.is_finished:
-            return False
-
-        now = self._clock()
-        elapsed_seconds = int((now - job.started_at).total_seconds())
-
-        if elapsed_seconds <= self.TIMEOUT_SECONDS:
-            return False
-
-        job.status = JobStatus.FAILED
-        job.completed_at = now
-        # Note: Do NOT clear _active_job_id here - the executor is responsible
-        # for calling release_active() after cleanup completes
-
-        logger.warning(
-            "Job %s timed out after %d seconds",
-            job.id[:8],
-            elapsed_seconds,
-        )
-        return True
