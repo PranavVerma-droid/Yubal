@@ -9,7 +9,8 @@ from unittest.mock import MagicMock, patch
 import pytest
 from pydantic import ValidationError
 from yubal.config import AudioCodec, DownloadConfig
-from yubal.exceptions import DownloadError
+from yubal.exceptions import CancellationError, DownloadError
+from yubal.models.cancel import CancelToken
 from yubal.models.enums import VideoType
 from yubal.models.track import TrackMetadata
 from yubal.services.downloader import (
@@ -84,11 +85,18 @@ class MockDownloader:
         self.downloads: list[tuple[str, Path]] = []
         self.should_fail = should_fail
 
-    def download(self, video_id: str, output_path: Path) -> Path:
+    def download(
+        self,
+        video_id: str,
+        output_path: Path,
+        cancel_token: CancelToken | None = None,
+    ) -> Path:
         """Mock download that records calls and returns actual path."""
         self.downloads.append((video_id, output_path))
         if self.should_fail:
             raise DownloadError(f"Mock download failed for {video_id}")
+        if cancel_token and cancel_token.is_cancelled:
+            raise CancellationError("Download cancelled")
         # Create an empty file to simulate download
         output_path.parent.mkdir(parents=True, exist_ok=True)
         actual_path = output_path.with_suffix(".opus")
@@ -268,7 +276,12 @@ class TestDownloadService:
             def __init__(self) -> None:
                 self.downloads: list[str] = []
 
-            def download(self, video_id: str, output_path: Path) -> Path:
+            def download(
+                self,
+                video_id: str,
+                output_path: Path,
+                cancel_token: CancelToken | None = None,
+            ) -> Path:
                 self.downloads.append(video_id)
                 if video_id == "atv456":
                     raise DownloadError(f"Failed: {video_id}")
@@ -586,3 +599,112 @@ class TestYTDLPDownloaderRetry:
 
         assert call_count == 2
         assert result.exists()
+
+
+class TestCancellation:
+    """Tests for cancellation during downloads."""
+
+    def test_download_tracks_cancels_between_tracks(
+        self,
+        sample_track: TrackMetadata,
+        sample_track_no_atv: TrackMetadata,
+        download_config: DownloadConfig,
+    ) -> None:
+        """Should raise CancellationError when token is cancelled between tracks."""
+        mock_downloader = MockDownloader()
+        service = DownloadService(download_config, mock_downloader)
+        token = CancelToken()
+
+        # Cancel after first track downloads
+        results = []
+        with pytest.raises(CancellationError):
+            for progress in service.download_tracks(
+                [sample_track, sample_track_no_atv], cancel_token=token
+            ):
+                results.append(progress)
+                token.cancel()  # Cancel after first track
+
+        # First track downloaded, second was cancelled before starting
+        assert len(results) == 1
+        assert results[0].result.status == DownloadStatus.SUCCESS
+
+    def test_download_track_cancels_mid_download(
+        self,
+        sample_track: TrackMetadata,
+        download_config: DownloadConfig,
+    ) -> None:
+        """CancellationError when cancelled mid-download via hook."""
+
+        class CancellingDownloader:
+            """Downloader that simulates cancellation during download."""
+
+            def download(
+                self,
+                video_id: str,
+                output_path: Path,
+                cancel_token: CancelToken | None = None,
+            ) -> Path:
+                if cancel_token and cancel_token.is_cancelled:
+                    raise CancellationError("Download cancelled")
+                output_path.parent.mkdir(parents=True, exist_ok=True)
+                return output_path.with_suffix(".opus")
+
+        service = DownloadService(download_config, CancellingDownloader())
+        token = CancelToken()
+        token.cancel()
+
+        with pytest.raises(CancellationError):
+            service.download_track(sample_track, cancel_token=token)
+
+    def test_ytdlp_downloader_raises_cancellation_error(
+        self, download_config: DownloadConfig, tmp_path: Path
+    ) -> None:
+        """YTDLPDownloader should raise CancellationError when token is cancelled."""
+        from yt_dlp.utils import DownloadCancelled
+
+        downloader = YTDLPDownloader(download_config)
+        output_path = tmp_path / "test_track"
+        token = CancelToken()
+        token.cancel()
+
+        def mock_download(urls: list[str]) -> None:
+            # Simulate yt-dlp calling the progress hook which checks the token
+            raise DownloadCancelled("Download cancelled")
+
+        with patch("yt_dlp.YoutubeDL") as mock_ydl:
+            mock_instance = mock_ydl.return_value.__enter__.return_value
+            mock_instance.download = mock_download
+
+            with pytest.raises(CancellationError, match="Download cancelled"):
+                downloader.download("test_video_id", output_path, cancel_token=token)
+
+    def test_ytdlp_downloader_cancel_hook_triggers_during_download(
+        self, download_config: DownloadConfig, tmp_path: Path
+    ) -> None:
+        """Progress hook should raise DownloadCancelled when token is cancelled."""
+        downloader = YTDLPDownloader(download_config)
+        output_path = tmp_path / "test_track"
+        token = CancelToken()
+
+        captured_hooks: list[list] = []
+
+        def mock_download(urls: list[str]) -> None:
+            # yt-dlp would call progress hooks during download; simulate that
+            for hook in captured_hooks[0]:
+                token.cancel()  # Cancel mid-download
+                hook({"status": "downloading"})
+
+        with patch("yt_dlp.YoutubeDL") as mock_ydl:
+            # Capture the opts passed to YoutubeDL to get the registered hooks
+            def capture_opts(opts: dict) -> MagicMock:
+                captured_hooks.append(opts.get("progress_hooks", []))
+                mock_instance = MagicMock()
+                mock_instance.__enter__ = MagicMock(return_value=mock_instance)
+                mock_instance.__exit__ = MagicMock(return_value=False)
+                mock_instance.download = mock_download
+                return mock_instance
+
+            mock_ydl.side_effect = capture_opts
+
+            with pytest.raises(CancellationError, match="Download cancelled"):
+                downloader.download("test_video_id", output_path, cancel_token=token)

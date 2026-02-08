@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any, Protocol
 
 import yt_dlp
+from yt_dlp.utils import DownloadCancelled
 
 from yubal.config import DownloadConfig
 from yubal.exceptions import CancellationError, DownloadError
@@ -38,7 +39,12 @@ class DownloaderProtocol(Protocol):
     Implement this protocol to create mock downloaders for testing.
     """
 
-    def download(self, video_id: str, output_path: Path) -> Path:
+    def download(
+        self,
+        video_id: str,
+        output_path: Path,
+        cancel_token: CancelToken | None = None,
+    ) -> Path:
         """Download a track to the specified path.
 
         Returns:
@@ -154,7 +160,12 @@ class YTDLPDownloader:
         for partial in output_path.parent.glob(f"{output_path.name}*.part"):
             partial.unlink(missing_ok=True)
 
-    def download(self, video_id: str, output_path: Path) -> Path:
+    def download(
+        self,
+        video_id: str,
+        output_path: Path,
+        cancel_token: CancelToken | None = None,
+    ) -> Path:
         """Download a track and extract audio to the specified path.
 
         Why hook-based path capture: yt-dlp may change the output filename during
@@ -167,12 +178,14 @@ class YTDLPDownloader:
         Args:
             video_id: YouTube video ID.
             output_path: Target path for the downloaded file (without extension).
+            cancel_token: Optional token for cancellation support.
 
         Returns:
             Actual path where file was saved (with extension).
 
         Raises:
             DownloadError: If download fails.
+            CancellationError: If cancel_token is cancelled during download.
         """
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -203,13 +216,24 @@ class YTDLPDownloader:
                     if filepath:
                         actual_path = Path(filepath)
 
-            opts["postprocessor_hooks"] = [capture_postprocessed_path]
+            def _cancel_hook(d: dict[str, Any]) -> None:
+                if cancel_token and cancel_token.is_cancelled:
+                    raise DownloadCancelled("Download cancelled")
+
+            opts["progress_hooks"] = [_cancel_hook]
+            opts["postprocessor_hooks"] = [
+                capture_postprocessed_path,
+                _cancel_hook,
+            ]
 
             for attempt in range(self.MAX_RETRIES + 1):
                 try:
                     with yt_dlp.YoutubeDL(opts) as ydl:
                         ydl.download([url])
                     break  # Success
+                except DownloadCancelled as e:
+                    self._cleanup_partial_downloads(output_path)
+                    raise CancellationError("Download cancelled") from e
                 except (KeyboardInterrupt, SystemExit):
                     raise
                 except Exception as e:
@@ -407,12 +431,13 @@ class DownloadService:
                 },
             )
 
-            result = self.download_track(track)
+            result = self.download_track(track, cancel_token=cancel_token)
             yield DownloadProgress(current=i + 1, total=total, result=result)
 
     def download_track(
         self,
         track: TrackMetadata,
+        cancel_token: CancelToken | None = None,
     ) -> DownloadResult:
         """Download a single track with metadata tagging.
 
@@ -459,7 +484,7 @@ class DownloadService:
             )
 
         try:
-            actual_path = self._downloader.download(video_id, output_path)
+            actual_path = self._downloader.download(video_id, output_path, cancel_token)
 
             # Tag the downloaded file with metadata
             self._apply_metadata_tags(actual_path, track)
