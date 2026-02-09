@@ -69,12 +69,6 @@ def download_cmd(
         bool,
         typer.Option("--no-cover", help="Disable cover image saving."),
     ] = False,
-    album_m3u: Annotated[
-        bool,
-        typer.Option(
-            "--album-m3u", help="Generate M3U files for albums (disabled by default)."
-        ),
-    ] = False,
     no_replaygain: Annotated[
         bool,
         typer.Option("--no-replaygain", help="Disable ReplayGain tagging."),
@@ -95,7 +89,7 @@ def download_cmd(
     if ATV is unavailable. Existing files are automatically skipped.
 
     The content type (album, playlist, or single track) is automatically detected.
-    Albums skip M3U generation by default (use --album-m3u to override).
+    Albums skip M3U generation automatically.
 
     Examples:
 
@@ -126,7 +120,6 @@ def download_cmd(
             ),
             generate_m3u=not no_m3u,
             save_cover=not no_cover,
-            skip_album_m3u=not album_m3u,
             max_items=max_items,
             apply_replaygain=not no_replaygain,
         )

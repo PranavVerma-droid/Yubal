@@ -76,7 +76,6 @@ yubal download "https://music.youtube.com/watch?v=VIDEO_ID" ~/Music --codec flac
 | `--cookies PATH` | Path to cookies.txt for authentication |
 | `--no-m3u` | Disable M3U playlist file generation |
 | `--no-cover` | Disable cover image saving |
-| `--album-m3u` | Generate M3U files for albums (off by default) |
 | `--no-replaygain` | Disable ReplayGain tagging |
 
 #### `tags` - Inspect audio file tags
