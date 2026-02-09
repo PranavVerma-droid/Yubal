@@ -50,6 +50,20 @@ class SkipReason(StrEnum):
                 return "region unavailable"
 
 
+class MatchResult(StrEnum):
+    """Track matching outcome for download routing.
+
+    Determines which folder a track is downloaded to:
+    - MATCHED: Album-structured path (Artist/Year - Album/NN - Title)
+    - UNMATCHED: Flat _Unmatched/ folder (OMVs with no confident album match)
+    - UNOFFICIAL: Flat _Unofficial/ folder (UGC tracks with unreliable metadata)
+    """
+
+    MATCHED = "matched"
+    UNMATCHED = "unmatched"
+    UNOFFICIAL = "unofficial"
+
+
 class ContentKind(StrEnum):
     """Type of music content (album vs playlist vs track)."""
 

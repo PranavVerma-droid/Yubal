@@ -10,6 +10,7 @@ from rich.progress import (
 )
 from rich.table import Table
 
+from yubal.models.enums import MatchResult
 from yubal.models.track import TrackMetadata, UnavailableTrack
 
 # Standard progress bar columns used by both meta and download commands.
@@ -79,6 +80,8 @@ def print_track_card(console: Console, track: TrackMetadata, index: int) -> None
         table.add_row("OMV ID", track.omv_video_id)
     if track.atv_video_id:
         table.add_row("ATV ID", track.atv_video_id)
+    if track.match_result == MatchResult.UNOFFICIAL and track.source_video_id:
+        table.add_row("Source ID", track.source_video_id)
     if track.cover_url:
         table.add_row("Cover", track.cover_url)
 

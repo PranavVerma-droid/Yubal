@@ -159,6 +159,7 @@ def create_services(repository: SubscriptionRepository) -> Services:
         fetch_lyrics=settings.fetch_lyrics,
         apply_replaygain=settings.replaygain,
         ascii_filenames=settings.ascii_filenames,
+        download_ugc=settings.download_ugc,
         subscription_service=subscription_service,
     )
 

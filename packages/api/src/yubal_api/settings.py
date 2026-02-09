@@ -78,6 +78,12 @@ class Settings(BaseSettings):
         default=False, description="Transliterate unicode to ASCII in filenames"
     )
 
+    # UGC settings
+    download_ugc: bool = Field(
+        default=False,
+        description="Download user-generated content tracks to _Unofficial",
+    )
+
     # ReplayGain settings
     replaygain: bool = Field(
         default=True,

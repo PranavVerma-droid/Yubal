@@ -8,7 +8,7 @@ from yubal.client import YTMusicProtocol
 from yubal.exceptions import CancellationError, TrackParseError
 from yubal.lib.matching import find_best_album_match, find_track_by_fuzzy_title
 from yubal.models.cancel import CancelToken
-from yubal.models.enums import ContentKind, SkipReason, VideoType
+from yubal.models.enums import ContentKind, MatchResult, SkipReason, VideoType
 from yubal.models.progress import ExtractProgress
 from yubal.models.track import PlaylistInfo, TrackMetadata, UnavailableTrack
 from yubal.models.ytmusic import Album, AlbumTrack, Artist, PlaylistTrack, Thumbnail
@@ -62,13 +62,15 @@ class MetadataExtractorService:
                    enriched album information
     """
 
-    def __init__(self, client: YTMusicProtocol) -> None:
+    def __init__(self, client: YTMusicProtocol, *, download_ugc: bool = False) -> None:
         """Initialize the service.
 
         Args:
             client: YouTube Music API client for fetching playlist/album data.
+            download_ugc: If True, extract UGC tracks as unofficial instead of skipping.
         """
         self._client = client
+        self._download_ugc = download_ugc
 
     # ============================================================================
     # PUBLIC API - Main entry points for metadata extraction
@@ -440,6 +442,18 @@ class MetadataExtractorService:
 
         # Skip tracks with unsupported video type (warning already logged)
         if video_type is None:
+            # Check if this is a UGC track and download_ugc is enabled
+            if self._download_ugc and track.video_type:
+                try:
+                    raw_type = VideoType(track.video_type)
+                except ValueError:
+                    return None, SkipReason.UNSUPPORTED_VIDEO_TYPE
+                if raw_type == VideoType.UGC:
+                    metadata = self._create_fallback_metadata(
+                        track, raw_type, match_result=MatchResult.UNOFFICIAL
+                    )
+                    if metadata is not None:
+                        return metadata, None
             return None, SkipReason.UNSUPPORTED_VIDEO_TYPE
 
         album_id = track.album.id if track.album else None
@@ -451,7 +465,7 @@ class MetadataExtractorService:
                 case None:
                     # Download as unmatched instead of skipping
                     metadata = self._create_fallback_metadata(
-                        track, video_type, unmatched=True
+                        track, video_type, match_result=MatchResult.UNMATCHED
                     )
                     assert metadata is not None  # video_type validated above
                     return metadata, None
@@ -786,6 +800,7 @@ class MetadataExtractorService:
         )
 
         return TrackMetadata(
+            source_video_id=track.video_id,
             omv_video_id=omv_id,
             atv_video_id=atv_id,
             title=track_title,
@@ -805,7 +820,7 @@ class MetadataExtractorService:
         track: PlaylistTrack,
         video_type: VideoType | None = None,
         *,
-        unmatched: bool = False,
+        match_result: MatchResult = MatchResult.MATCHED,
     ) -> TrackMetadata | None:
         """Create basic metadata when album information is unavailable.
 
@@ -824,8 +839,7 @@ class MetadataExtractorService:
         Args:
             track: Playlist track to create fallback from.
             video_type: Optional video type (determined if not provided).
-            unmatched: If True, marks the track as unmatched so the downloader
-                routes it to the ``_Unmatched/`` folder.
+            match_result: How the track was matched — controls download routing.
 
         Returns:
             Basic track metadata, or None if video type is unsupported.
@@ -835,18 +849,25 @@ class MetadataExtractorService:
 
         # Skip unsupported video types
         # None means unknown/unsupported from _determine_video_type
-        if video_type is None or video_type not in SUPPORTED_VIDEO_TYPES:
+        # Allow UGC through when building unofficial metadata
+        allowed_types = SUPPORTED_VIDEO_TYPES | {VideoType.UGC}
+        if video_type is None or video_type not in allowed_types:
             return None
 
         # Assign video ID based on track type
         if video_type == VideoType.ATV:
             omv_id = None
             atv_id = track.video_id
+        elif video_type == VideoType.UGC:
+            # UGC tracks: no official OMV/ATV, ID lives in source_video_id
+            omv_id = None
+            atv_id = None
         else:
             omv_id = track.video_id
             atv_id = None
 
         return TrackMetadata(
+            source_video_id=track.video_id,
             omv_video_id=omv_id,
             atv_video_id=atv_id,
             title=track.title,
@@ -859,5 +880,5 @@ class MetadataExtractorService:
             cover_url=_get_square_thumbnail(track.thumbnails),
             video_type=video_type,
             duration_seconds=track.duration_seconds,
-            unmatched=unmatched,
+            match_result=match_result,
         )

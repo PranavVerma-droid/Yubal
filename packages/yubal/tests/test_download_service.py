@@ -11,7 +11,7 @@ from pydantic import ValidationError
 from yubal.config import AudioCodec, DownloadConfig
 from yubal.exceptions import CancellationError, DownloadError
 from yubal.models.cancel import CancelToken
-from yubal.models.enums import VideoType
+from yubal.models.enums import MatchResult, VideoType
 from yubal.models.track import TrackMetadata
 from yubal.services.download_service import (
     DownloadResult,
@@ -352,13 +352,14 @@ class TestDownloadService:
     ) -> None:
         """Should route unmatched tracks to _Unmatched/ folder."""
         track = TrackMetadata(
+            source_video_id="omv123",
             omv_video_id="omv123",
             atv_video_id=None,
             title="Mercury Retrograde",
             artists=["Wiz Khalifa"],
             album="Unknown Album",
             album_artists=["Wiz Khalifa"],
-            unmatched=True,
+            match_result=MatchResult.UNMATCHED,
         )
         mock_downloader = MockDownloader()
         service = DownloadService(download_config, mock_downloader)
@@ -370,12 +371,39 @@ class TestDownloadService:
         assert "_Unmatched" in str(output_path)
         assert "Wiz Khalifa - Mercury Retrograde [omv123]" in str(output_path)
 
-    def test_track_metadata_unmatched_defaults_to_false(
+    def test_download_unofficial_track_routes_to_unofficial_folder(
+        self,
+        download_config: DownloadConfig,
+        tmp_path: Path,
+    ) -> None:
+        """Should route unofficial (UGC) tracks to _Unofficial/ folder."""
+        track = TrackMetadata(
+            source_video_id="ugc123",
+            omv_video_id=None,
+            atv_video_id=None,
+            title="User Upload",
+            artists=["Some User"],
+            album="Unknown Album",
+            album_artists=["Some User"],
+            video_type=VideoType.UGC,
+            match_result=MatchResult.UNOFFICIAL,
+        )
+        mock_downloader = MockDownloader()
+        service = DownloadService(download_config, mock_downloader)
+
+        result = service.download_track(track)
+
+        assert result.status == DownloadStatus.SUCCESS
+        _, output_path = mock_downloader.downloads[0]
+        assert "_Unofficial" in str(output_path)
+        assert "Some User - User Upload [ugc123]" in str(output_path)
+
+    def test_track_metadata_match_result_defaults_to_matched(
         self,
         sample_track: TrackMetadata,
     ) -> None:
-        """TrackMetadata.unmatched should default to False."""
-        assert sample_track.unmatched is False
+        """TrackMetadata.match_result should default to MATCHED."""
+        assert sample_track.match_result == MatchResult.MATCHED
 
     def test_tagging_called_on_success(
         self,

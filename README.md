@@ -109,15 +109,16 @@ docker compose up -d
 
 ## ⚙️ Configuration
 
-| Variable                  | Description                          | Default (Docker) |
-| ------------------------- | ------------------------------------ | ---------------- |
-| `YUBAL_AUDIO_FORMAT`      | `opus`, `mp3`, or `m4a`              | `opus`           |
-| `YUBAL_AUDIO_QUALITY`     | Transcode quality (0=best, 10=worst) | `0`              |
-| `YUBAL_SCHEDULER_ENABLED` | Enable automatic scheduled sync      | `true`           |
-| `YUBAL_SCHEDULER_CRON`    | Cron schedule for auto-sync          | `0 0 * * *`      |
-| `YUBAL_FETCH_LYRICS`      | Fetch lyrics from lrclib.net         | `true`           |
-| `YUBAL_REPLAYGAIN`        | Apply ReplayGain tags to downloads   | `true`           |
-| `YUBAL_TZ`                | Timezone (IANA format)               | `UTC`            |
+| Variable                  | Description                                       | Default (Docker) |
+| ------------------------- | ------------------------------------------------- | ---------------- |
+| `YUBAL_AUDIO_FORMAT`      | `opus`, `mp3`, or `m4a`                           | `opus`           |
+| `YUBAL_AUDIO_QUALITY`     | Transcode quality (0=best, 10=worst)              | `0`              |
+| `YUBAL_SCHEDULER_ENABLED` | Enable automatic scheduled sync                   | `true`           |
+| `YUBAL_SCHEDULER_CRON`    | Cron schedule for auto-sync                       | `0 0 * * *`      |
+| `YUBAL_FETCH_LYRICS`      | Fetch lyrics from lrclib.net                      | `true`           |
+| `YUBAL_DOWNLOAD_UGC`      | Download user-generated content to `_Unofficial/` | `false`          |
+| `YUBAL_REPLAYGAIN`        | Apply ReplayGain tags to downloads                | `true`           |
+| `YUBAL_TZ`                | Timezone (IANA format)                            | `UTC`            |
 
 <details>
 <summary>All options</summary>
@@ -197,7 +198,7 @@ Need age-restricted content, private playlists, or Premium quality? Add your coo
 - [x] Single track downloads ([v0.3.0](https://github.com/guillevc/yubal/releases/tag/v0.3.0))
 - [x] Automatic lyrics (.lrc) ([v0.3.0](https://github.com/guillevc/yubal/releases/tag/v0.3.0))
 - [x] Auto-sync playlists ([v0.4.0](https://github.com/guillevc/yubal/releases/tag/v0.4.0))
-- [ ] UGC tracks (user-generated content, remixes, unofficial tracks)
+- [x] UGC tracks (user-generated content, remixes, unofficial tracks) ([v0.5.0](https://github.com/guillevc/yubal/releases/tag/v0.5.0))
 - [ ] Flat folder mode
 - [ ] Browser extension
 - [ ] Post-download webhooks

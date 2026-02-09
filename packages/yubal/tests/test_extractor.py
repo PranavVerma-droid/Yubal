@@ -7,7 +7,7 @@ from conftest import MockYTMusicClient
 from pydantic import ValidationError
 from yubal.exceptions import CancellationError
 from yubal.models.cancel import CancelToken
-from yubal.models.enums import VideoType
+from yubal.models.enums import MatchResult, VideoType
 from yubal.models.track import TrackMetadata
 from yubal.models.ytmusic import Album, Artist, Playlist, SearchResult, Thumbnail
 from yubal.services import MetadataExtractorService
@@ -1160,7 +1160,7 @@ class TestMetadataExtractorService:
         tracks = extract_all(service, "https://music.youtube.com/playlist?list=PLtest")
 
         assert len(tracks) == 1
-        assert tracks[0].unmatched is True
+        assert tracks[0].match_result == MatchResult.UNMATCHED
         assert tracks[0].title == "Mercury Retrograde"
         assert tracks[0].year is None
         assert tracks[0].track_number is None
@@ -1588,3 +1588,113 @@ class TestGetSquareThumbnail:
         """Should work with a single square thumbnail."""
         thumbnails = [Thumbnail(url="https://only.jpg", width=544, height=544)]
         assert _get_square_thumbnail(thumbnails) == "https://only.jpg"
+
+
+class TestUGCDownload:
+    """Tests for UGC (User Generated Content) track handling."""
+
+    def _make_ugc_playlist(self) -> Playlist:
+        """Create a playlist containing a UGC track."""
+        return Playlist.model_validate(
+            {
+                "tracks": [
+                    {
+                        "videoId": "ugc123",
+                        "videoType": "MUSIC_VIDEO_TYPE_UGC",
+                        "title": "User Upload",
+                        "artists": [{"name": "Some User"}],
+                        "thumbnails": [
+                            {"url": "https://t.jpg", "width": 120, "height": 90}
+                        ],
+                        "duration_seconds": 180,
+                    }
+                ]
+            }
+        )
+
+    def test_ugc_skipped_when_download_ugc_disabled(self) -> None:
+        """Should skip UGC tracks when download_ugc is False (default)."""
+        playlist = self._make_ugc_playlist()
+        mock = MockYTMusicClient(playlist=playlist, album=None, search_results=[])
+        service = MetadataExtractorService(mock, download_ugc=False)
+
+        tracks = extract_all(service, "https://music.youtube.com/playlist?list=PLtest")
+
+        assert len(tracks) == 0
+
+    def test_ugc_extracted_when_download_ugc_enabled(self) -> None:
+        """Should extract UGC tracks as unofficial when download_ugc is True."""
+        playlist = self._make_ugc_playlist()
+        mock = MockYTMusicClient(playlist=playlist, album=None, search_results=[])
+        service = MetadataExtractorService(mock, download_ugc=True)
+
+        tracks = extract_all(service, "https://music.youtube.com/playlist?list=PLtest")
+
+        assert len(tracks) == 1
+        assert tracks[0].match_result == MatchResult.UNOFFICIAL
+        assert tracks[0].title == "User Upload"
+        assert tracks[0].source_video_id == "ugc123"
+        assert tracks[0].video_type == VideoType.UGC
+        # UGC tracks have no official OMV/ATV
+        assert tracks[0].omv_video_id is None
+        assert tracks[0].atv_video_id is None
+        # video_id property falls back to source_video_id
+        assert tracks[0].video_id == "ugc123"
+
+    def test_ugc_mixed_with_supported_types(self) -> None:
+        """Should extract both supported and UGC tracks when enabled."""
+        playlist = Playlist.model_validate(
+            {
+                "tracks": [
+                    {
+                        "videoId": "atv1",
+                        "videoType": "MUSIC_VIDEO_TYPE_ATV",
+                        "title": "Good ATV Track",
+                        "artists": [{"name": "Artist"}],
+                        "album": {"id": "alb1", "name": "Album"},
+                        "thumbnails": [
+                            {"url": "https://t.jpg", "width": 120, "height": 90}
+                        ],
+                        "duration_seconds": 180,
+                    },
+                    {
+                        "videoId": "ugc1",
+                        "videoType": "MUSIC_VIDEO_TYPE_UGC",
+                        "title": "UGC Track",
+                        "artists": [{"name": "User"}],
+                        "thumbnails": [
+                            {"url": "https://t.jpg", "width": 120, "height": 90}
+                        ],
+                        "duration_seconds": 200,
+                    },
+                ]
+            }
+        )
+
+        album = Album.model_validate(
+            {
+                "title": "Album",
+                "artists": [{"name": "Artist"}],
+                "thumbnails": [{"url": "https://t.jpg", "width": 544, "height": 544}],
+                "tracks": [
+                    {
+                        "videoId": "atv1",
+                        "title": "Good ATV Track",
+                        "artists": [{"name": "Artist"}],
+                        "trackNumber": 1,
+                        "duration_seconds": 180,
+                    }
+                ],
+            }
+        )
+
+        mock = MockYTMusicClient(playlist=playlist, album=album, search_results=[])
+        service = MetadataExtractorService(mock, download_ugc=True)
+
+        tracks = extract_all(service, "https://music.youtube.com/playlist?list=PLtest")
+
+        assert len(tracks) == 2
+        assert tracks[0].match_result == MatchResult.MATCHED
+        assert tracks[0].video_type == VideoType.ATV
+        assert tracks[1].match_result == MatchResult.UNOFFICIAL
+        assert tracks[1].video_type == VideoType.UGC

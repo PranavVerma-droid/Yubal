@@ -52,6 +52,7 @@ class JobExecutor:
         fetch_lyrics: bool = True,
         apply_replaygain: bool = False,
         ascii_filenames: bool = False,
+        download_ugc: bool = False,
         subscription_service: SubscriptionService | None = None,
     ) -> None:
         """Initialize the job executor.
@@ -64,6 +65,7 @@ class JobExecutor:
             fetch_lyrics: Whether to fetch lyrics from lrclib.net.
             apply_replaygain: Whether to apply ReplayGain tags using rsgain.
             ascii_filenames: Whether to transliterate unicode to ASCII in filenames.
+            download_ugc: Whether to download UGC tracks to _Unofficial folder.
             subscription_service: Optional service to update subscription metadata.
         """
         self._job_store = job_store
@@ -73,6 +75,7 @@ class JobExecutor:
         self._fetch_lyrics = fetch_lyrics
         self._apply_replaygain = apply_replaygain
         self._ascii_filenames = ascii_filenames
+        self._download_ugc = download_ugc
         self._subscription_service = subscription_service
 
         # Track background tasks to prevent GC during execution
@@ -224,6 +227,7 @@ class JobExecutor:
                     self._fetch_lyrics,
                     self._apply_replaygain,
                     self._ascii_filenames,
+                    self._download_ugc,
                 )
                 result = await asyncio.to_thread(
                     sync_service.run,

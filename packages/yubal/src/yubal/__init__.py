@@ -46,7 +46,13 @@ from yubal.exceptions import (
     YubalError,
 )
 from yubal.models.cancel import CancelToken
-from yubal.models.enums import ContentKind, DownloadStatus, SkipReason, VideoType
+from yubal.models.enums import (
+    ContentKind,
+    DownloadStatus,
+    MatchResult,
+    SkipReason,
+    VideoType,
+)
 from yubal.models.progress import DownloadProgress, ExtractProgress, PlaylistProgress
 from yubal.models.results import (
     DownloadResult,
@@ -193,6 +199,7 @@ __all__ = [
     "DownloadResult",
     "DownloadStatus",
     "ExtractProgress",
+    "MatchResult",
     "MetadataExtractorService",
     "PhaseStats",
     "PlaylistDownloadConfig",

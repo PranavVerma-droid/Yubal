@@ -6,6 +6,7 @@ import pytest
 from yubal.utils.filename import (
     build_track_path,
     build_unmatched_track_path,
+    build_unofficial_track_path,
     clean_filename,
     format_playlist_filename,
 )
@@ -845,6 +846,72 @@ class TestBuildUnmatchedTrackPath:
     def test_returns_path_object(self) -> None:
         """Should return a Path object, not a string."""
         result = build_unmatched_track_path(
+            base=Path("/music"),
+            artist="Artist",
+            title="Song",
+            video_id="abc123",
+        )
+        assert isinstance(result, Path)
+
+
+class TestBuildUnofficialTrackPath:
+    """Tests for build_unofficial_track_path function."""
+
+    def test_docstring_example(self) -> None:
+        """Should pass docstring example."""
+        result = build_unofficial_track_path(
+            Path("/music"), "Some User", "Cool Song", "abc123"
+        )
+        assert result == Path("/music/_Unofficial/Some User - Cool Song [abc123]")
+
+    def test_basic_path_construction(self) -> None:
+        """Should build complete path with all components."""
+        result = build_unofficial_track_path(
+            base=Path("/music"),
+            artist="Test Artist",
+            title="Test Song",
+            video_id="xyz789",
+        )
+        assert result == Path("/music/_Unofficial/Test Artist - Test Song [xyz789]")
+
+    def test_path_structure(self) -> None:
+        """Should follow convention: base/_Unofficial/Artist - Title [videoId]."""
+        result = build_unofficial_track_path(
+            base=Path("/music"),
+            artist="Some User",
+            title="Upload Title",
+            video_id="dQw4w9WgXcQ",
+        )
+        parts = result.parts
+        assert parts[-3] == "music"
+        assert parts[-2] == "_Unofficial"
+        assert parts[-1] == "Some User - Upload Title [dQw4w9WgXcQ]"
+
+    def test_transliterates_components(self) -> None:
+        """Should transliterate artist and title with ascii_filenames."""
+        result = build_unofficial_track_path(
+            base=Path("/music"),
+            artist="Björk",
+            title="Jóga",
+            video_id="abc123",
+            ascii_filenames=True,
+        )
+        assert result == Path("/music/_Unofficial/Bjork - Joga [abc123]")
+
+    def test_empty_component_fallbacks(self) -> None:
+        """Should use fallback values for empty strings."""
+        result = build_unofficial_track_path(
+            base=Path("/music"),
+            artist="",
+            title="",
+            video_id="abc123",
+        )
+        assert "Unknown Artist" in str(result)
+        assert "Unknown Track" in str(result)
+
+    def test_returns_path_object(self) -> None:
+        """Should return a Path object, not a string."""
+        result = build_unofficial_track_path(
             base=Path("/music"),
             artist="Artist",
             title="Song",

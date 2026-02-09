@@ -45,6 +45,7 @@ class DownloadConfig:
     quiet: bool = True
     fetch_lyrics: bool = True
     ascii_filenames: bool = False
+    download_ugc: bool = False
 
 
 @dataclass(frozen=True)

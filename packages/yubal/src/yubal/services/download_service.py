@@ -15,14 +15,18 @@ from yt_dlp.utils import DownloadCancelled
 from yubal.config import DownloadConfig
 from yubal.exceptions import CancellationError, DownloadError
 from yubal.models.cancel import CancelToken
-from yubal.models.enums import DownloadStatus, SkipReason
+from yubal.models.enums import DownloadStatus, MatchResult, SkipReason
 from yubal.models.progress import DownloadProgress
 from yubal.models.results import DownloadResult
 from yubal.models.track import TrackMetadata
 from yubal.services.lyrics import LyricsService, LyricsServiceProtocol
 from yubal.services.tagging_service import AudioFileTaggingService
 from yubal.utils.cover import fetch_cover
-from yubal.utils.filename import build_track_path, build_unmatched_track_path
+from yubal.utils.filename import (
+    build_track_path,
+    build_unmatched_track_path,
+    build_unofficial_track_path,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -537,7 +541,7 @@ class DownloadService:
         Raises:
             DownloadError: If no video ID is available for the track.
         """
-        video_id = track.atv_video_id or track.omv_video_id
+        video_id = track.video_id
         if not video_id:
             raise DownloadError(
                 f"No video ID available for track: '{track.title}' by {track.artist}"
@@ -562,23 +566,33 @@ class DownloadService:
         Returns:
             Output path (without extension, yt-dlp adds it during download).
         """
-        if track.unmatched:
-            return build_unmatched_track_path(
-                base=self._config.base_path,
-                artist=track.primary_album_artist,
-                title=track.title,
-                video_id=track.omv_video_id or track.atv_video_id or "unknown",
-                ascii_filenames=self._config.ascii_filenames,
-            )
-        return build_track_path(
-            base=self._config.base_path,
-            artist=track.primary_album_artist,
-            year=track.year,
-            album=track.album,
-            track_number=track.track_number,
-            title=track.title,
-            ascii_filenames=self._config.ascii_filenames,
-        )
+        match track.match_result:
+            case MatchResult.UNMATCHED:
+                return build_unmatched_track_path(
+                    base=self._config.base_path,
+                    artist=track.primary_album_artist,
+                    title=track.title,
+                    video_id=track.video_id or "unknown",
+                    ascii_filenames=self._config.ascii_filenames,
+                )
+            case MatchResult.UNOFFICIAL:
+                return build_unofficial_track_path(
+                    base=self._config.base_path,
+                    artist=track.primary_album_artist,
+                    title=track.title,
+                    video_id=track.video_id or "unknown",
+                    ascii_filenames=self._config.ascii_filenames,
+                )
+            case MatchResult.MATCHED:
+                return build_track_path(
+                    base=self._config.base_path,
+                    artist=track.primary_album_artist,
+                    year=track.year,
+                    album=track.album,
+                    track_number=track.track_number,
+                    title=track.title,
+                    ascii_filenames=self._config.ascii_filenames,
+                )
 
     # ============================================================================
     # METADATA TAGGING - Embed ID3/MP4 tags and cover art

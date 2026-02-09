@@ -2,7 +2,7 @@
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from yubal.models.enums import ContentKind, SkipReason, VideoType
+from yubal.models.enums import ContentKind, MatchResult, SkipReason, VideoType
 
 
 class UnavailableTrack(BaseModel):
@@ -36,6 +36,7 @@ class TrackMetadata(BaseModel):
 
     model_config = ConfigDict(frozen=True)
 
+    source_video_id: str = ""
     omv_video_id: str | None = None
     atv_video_id: str | None = None
     title: str
@@ -48,7 +49,12 @@ class TrackMetadata(BaseModel):
     cover_url: str | None = None
     video_type: VideoType | None = None
     duration_seconds: int | None = None
-    unmatched: bool = False
+    match_result: MatchResult = MatchResult.MATCHED
+
+    @property
+    def video_id(self) -> str:
+        """Best available video ID for download."""
+        return self.atv_video_id or self.omv_video_id or self.source_video_id
 
     @field_validator("title", "album")
     @classmethod

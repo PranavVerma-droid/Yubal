@@ -109,6 +109,41 @@ def build_track_path(
     return base / safe_artist / album_folder / track_name
 
 
+def _build_flat_track_path(
+    base: Path,
+    folder: str,
+    artist: str,
+    title: str,
+    video_id: str,
+    *,
+    ascii_filenames: bool = False,
+) -> Path:
+    """Build path: base/folder/Artist - Title [videoId].
+
+    Shared implementation for unmatched and unofficial track paths.
+
+    Args:
+        base: Base directory for downloads.
+        folder: Subfolder name (e.g., "_Unmatched", "_Unofficial").
+        artist: Artist name from the video listing.
+        title: Track title from the video listing.
+        video_id: YouTube video ID (ensures filename uniqueness).
+        ascii_filenames: If True, transliterate unicode to ASCII.
+
+    Returns:
+        Full path to the track file (without extension).
+    """
+    safe_artist = (
+        clean_filename(artist, ascii_filenames=ascii_filenames) or "Unknown Artist"
+    )
+    safe_title = (
+        clean_filename(title, ascii_filenames=ascii_filenames) or "Unknown Track"
+    )
+    track_name = f"{safe_artist} - {safe_title} [{video_id}]"
+
+    return base / folder / track_name
+
+
 def build_unmatched_track_path(
     base: Path,
     artist: str,
@@ -141,12 +176,42 @@ def build_unmatched_track_path(
         ... )
         PosixPath('/music/_Unmatched/Wiz Khalifa - Mercury Retrograde [-HJ0ZGkdlTk]')
     """
-    safe_artist = (
-        clean_filename(artist, ascii_filenames=ascii_filenames) or "Unknown Artist"
+    return _build_flat_track_path(
+        base, "_Unmatched", artist, title, video_id, ascii_filenames=ascii_filenames
     )
-    safe_title = (
-        clean_filename(title, ascii_filenames=ascii_filenames) or "Unknown Track"
-    )
-    track_name = f"{safe_artist} - {safe_title} [{video_id}]"
 
-    return base / "_Unmatched" / track_name
+
+def build_unofficial_track_path(
+    base: Path,
+    artist: str,
+    title: str,
+    video_id: str,
+    *,
+    ascii_filenames: bool = False,
+) -> Path:
+    """Build a filesystem path for an unofficial (UGC) track.
+
+    UGC tracks have unreliable metadata and are stored in a flat
+    ``_Unofficial`` folder with the video ID appended for uniqueness.
+
+    Path structure: base/_Unofficial/Artist - Title [videoId]
+
+    Args:
+        base: Base directory for downloads.
+        artist: Artist name from the video listing.
+        title: Track title from the video listing.
+        video_id: YouTube video ID (ensures filename uniqueness).
+        ascii_filenames: If True, transliterate unicode to ASCII.
+
+    Returns:
+        Full path to the track file (without extension).
+
+    Example:
+        >>> build_unofficial_track_path(
+        ...     Path("/music"), "Some User", "Cool Song", "abc123"
+        ... )
+        PosixPath('/music/_Unofficial/Some User - Cool Song [abc123]')
+    """
+    return _build_flat_track_path(
+        base, "_Unofficial", artist, title, video_id, ascii_filenames=ascii_filenames
+    )

@@ -123,7 +123,9 @@ class PlaylistDownloadService:
             client = YTMusicClient(cookies_path=cookies_path)
 
         # Create services
-        self._extractor = extractor or MetadataExtractorService(client)
+        self._extractor = extractor or MetadataExtractorService(
+            client, download_ugc=config.download.download_ugc
+        )
         self._downloader = downloader or DownloadService(
             config.download, cookies_path=cookies_path
         )

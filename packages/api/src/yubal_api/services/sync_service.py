@@ -273,6 +273,7 @@ class SyncService:
     fetch_lyrics: bool = True
     apply_replaygain: bool = False
     ascii_filenames: bool = False
+    download_ugc: bool = False
     _codec: AudioCodec = field(init=False)
 
     def __post_init__(self) -> None:
@@ -313,6 +314,7 @@ class SyncService:
             fetch_lyrics=self.fetch_lyrics,
             apply_replaygain=self.apply_replaygain,
             ascii_filenames=self.ascii_filenames,
+            download_ugc=self.download_ugc,
         )
         return workflow.execute()
 
@@ -341,6 +343,7 @@ class _SyncWorkflow:
     fetch_lyrics: bool
     apply_replaygain: bool
     ascii_filenames: bool
+    download_ugc: bool
 
     # Workflow state
     content_info: ContentInfo | None = field(default=None, init=False)
@@ -388,6 +391,7 @@ class _SyncWorkflow:
                 quiet=True,
                 fetch_lyrics=self.fetch_lyrics,
                 ascii_filenames=self.ascii_filenames,
+                download_ugc=self.download_ugc,
             ),
             generate_m3u=True,
             save_cover=True,
