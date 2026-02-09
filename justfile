@@ -248,6 +248,11 @@ test-cov-web:
 
 # Utils
 [group('utils')]
+[doc("Generate OpenAPI schema and TypeScript types")]
+gen-api:
+    @python scripts/generate_openapi.py
+
+[group('utils')]
 [doc("Bump version across all packages")]
 [confirm]
 [script('bash')]
@@ -270,9 +275,14 @@ version VERSION:
     git tag v{{VERSION}}
 
 [group('utils')]
-[doc("Generate OpenAPI schema and TypeScript types")]
-gen-api:
-    @python scripts/generate_openapi.py
+[doc("Preview changelog for next release")]
+changelog version:
+    git cliff --tag {{version}} --unreleased
+
+[group('utils')]
+[doc("Write full changelog to CHANGELOG.md")]
+changelog-md:
+    git cliff --output CHANGELOG.md
 
 # CI
 [group('ci')]
